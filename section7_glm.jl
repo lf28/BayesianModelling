@@ -71,13 +71,25 @@ Based on the above general definition, GLMs have three components:
 2. A suitable likelihood function ``\mathcal{P}``, such as Gaussian, Bernoulli, Poisson, *etc.*
 3. A suitable **link function** ``g(\mu)`` that is associated with the requirement of the chosen likelihood function.
 
+**Example (linear regression)** The likelihood function for linear regression is Gaussian: 
 
-**Example (logistic regression)** Take logistic regression as an example, the suitable likelihood function is ``\texttt{Bernoulli}(p)``. Since the bias ``p`` should be between 0 and 1, a suitable (inverse) link function is ``g^{-1}(\mu) = \texttt{logistic}(\mu)``, which is a ``R \rightarrow [0,1]`` deterministic transformation.
+```math 
+p(y_n|\mathbf{x}_n, \boldsymbol{\beta}) =  \mathcal{N}(y_n; \beta_0+\mathbf{x}_n^\top \boldsymbol{\beta}_1, \sigma^2).
+``` The link function here is simply an identity function, *i.e.* ``g^{-1}(x) = x``, since the mean parameter of a Gaussian is unconstrained. An extra parameter is needed for the observation noise ``\sigma^2``. 
 
-
-**Example (linear regression)** For linear regression, the likelihood function is Gaussian: ``\mathcal{N}(\mu, \sigma^2)``. The link function is simply an identity function , *i.e.* ``g^{-1}(x) =g(x) = x``, since the mean parameter of a Gaussian is unconstrained. An extra parameter is needed for the observation noise ``\sigma^2``. 
 
 """
+
+# ╔═╡ f113ba37-1eeb-4101-8162-5402af63677a
+md"
+**Example (logistic regression)** Logistic regression assumes a ``\texttt{Bernoulli}`` likelihood: 
+
+```math
+p(y_n|\mathbf{x}_n, \boldsymbol{\beta}) = \texttt{Bernoulli}(y_n; \sigma(\beta_0+\mathbf{x}_n^\top \boldsymbol{\beta}_1)).
+``` 
+
+Since the bias of a Bernoulli distribution should be between 0 and 1, a suitable (inverse) link function is logistic function: ``g^{-1}(\mu) = \sigma(\mu)``, which is a ``R \rightarrow [0,1]`` deterministic transformation.
+"
 
 # ╔═╡ 73c61d37-9c26-43b7-ae99-9a79c6fe9804
 md"""
@@ -98,24 +110,24 @@ The following table has summarised some commonly used GLMs.
 
 # ╔═╡ 5d01251e-5ea2-4d2c-82c8-d9c576264887
 md"""
-## Bayesian GLM 
+## Bayesian GLMs 
 
 The frequentist's GLMs have specified a likelihood function for the targets ``\mathbf{y}``:
 ```math
-p(\mathbf{y}|\mathbf{X}, \boldsymbol{\beta}_1, \beta_0).
+p(\mathbf{y}|\mathbf{X},  \beta_0, \boldsymbol{\beta}_1).
 ```
-To fully specify a Bayesian model, we only need to add a prior distribution for the unknown regression parameters: ``p(\beta_0, \boldsymbol{\beta})``. Since the regression parameters take unconstrained real-values, a sensible prior choice is therefore Gaussian, which was also used in the Bayesian linear and logistic regression models discussed earlier.
+To fully specify a Bayesian model, we only need to add a prior distribution for the unknown regression parameters: ``p(\beta_0, \boldsymbol{\beta})``. Since the regression parameters take unconstrained real values, a sensible prior choice is therefore Gaussian, which was also used in the Bayesian linear and logistic regression models discussed earlier.
 
 A general Bayesian GLM model therefore can be specified as:
 
-!!! infor "Bayesian GLM"
+!!! infor "Bayesian GLMs"
 	```math
 	\begin{align}
 	\text{Priors: }\;\;\;\;\;\;\beta_0 &\sim \mathcal{N}(m_0^{\beta_0}, v_0^{\beta_0})\\
 	\boldsymbol{\beta}_1 &\sim \mathcal{N}(\mathbf{m}_0^{\beta_1}, \mathbf{V}_0^{\beta_1})\\
 	\text{Likelihood: } \;\; \text{for } n &= 1,2,\ldots, N:\\
 	\mu_n &=\beta_0 + \boldsymbol{\beta}_1^\top \mathbf{x}_n \\
-	y_n &\sim \mathcal{P}(g^{-1}(\mu_n)).
+	y_n &\sim \mathcal{P}(y_n; g^{-1}(\mu_n)).
 	\end{align}
 	```
 
@@ -129,10 +141,53 @@ md"""
 
 ## Bayesian Poisson Regression
 
-To make the illustration easier, we will consider a popular GLM: Poisson regression. The regression model is a popular choice for count data. 
+To make the illustration easier, we will consider a popular GLM: Poisson regression. The regression model is a popular choice for counting data which can only take non-negative integer values, such as the daily visitor number of a website.
 
 
-To help illustrate the idea, a real-world `Cuckoo` dataset, described and analysed in the book [Statistical modelling in R](https://exeter-data-analytics.github.io/StatModelling/generalised-linear-models.html) is used here as a concrete example. 
+### Poisson model
+A Poisson distribution is parameterised with a rate parameter ``\lambda>0``, which should be strictly positive. The distribution, with a probability distribution
+
+```math
+\texttt{Poisson}(x=k; \lambda) \triangleq p(x=k|\lambda)=  \frac{\lambda^k}{k!}e^{-\lambda}, \;\;\text{for } k= 0,1,2,\ldots,
+```
+is suitable to describe the number of independent events occurring within a unit time interval. And the rate ``\lambda`` is the average rate of occurrence of the event. 
+
+Some Poissons with increasing rate parameters are plotted below. It can be observed that when ``\lambda`` is larger, the distribution's probability mass shifts to the right and the variance or spread of the distribution gets wider. And this is because a Poisson distribution's mean and variance are both tied to ``\lambda``, which makes a Poisson's error structure less flexible. Careful model checking, therefore, is usually necessary for Poisson-based models.
+
+"""
+
+# ╔═╡ ba72ad42-87d6-4962-b56e-a8d6ba3d9733
+let
+	λs = [1, 10, 5, 20]
+	plts = []
+	for i in 1:length(λs)
+ 		push!(plts, bar(Poisson(λs[i]), xlim =[0, 40], leg=false, c=i, title=L"\lambda=%$(λs[i])"))
+	end
+	plot(plts..., layout=(2,2))
+end
+
+# ╔═╡ ac69616e-14bf-48fe-adc9-7a810aa7a113
+md"""
+
+
+
+Since the rate parameter is strictly positive, when used in a GLM, we need to introduce an inverse link function that maps from the real number line to the positive part: ``g^{-1}: R \rightarrow (0, +\infty)``. A common choice for Poisson regression is an exponential function (alternatively, ``\texttt{softplus}`` transformation can also be used). Therefore, a Poisson regression admits a likelihood function:
+
+```math
+p(y_n|\mathbf{x}_n, \boldsymbol{\beta}) = \texttt{Poisson}(y_n;\lambda_n=e^{\beta_0+\mathbf{x}_n^\top \boldsymbol{\beta}_1})
+```
+
+for ``n=1,2,\ldots, N`` observations. Note that the transformed rate ``e^{\beta_0+\mathbf{x}_n^\top \boldsymbol{\beta}_1}`` is always positive.
+
+"""
+
+# ╔═╡ ad45d197-0bae-4145-92b9-3b28064a692c
+md"""
+### An real-world counting data problem
+
+
+
+To help illustrate the idea, a real-world `Cuckoo` dataset, described and analysed in the book [Statistical modelling in R](https://exeter-data-analytics.github.io/StatModelling/generalised-linear-models.html), is used as a concrete example. 
 
 $(Resource("https://exeter-data-analytics.github.io/StatModelling/_img/03-cuckoo.png", :align=>""))
 
@@ -145,11 +200,6 @@ The question of interest for the Cuckoo data is:
 
 
 The begging rate is a count data, which takes non-negative integer values. Bayesian Poisson regression, therefore, is a suitable model. 
-"""
-
-# ╔═╡ ad45d197-0bae-4145-92b9-3b28064a692c
-md"""
-### Data exploration
 
 We first **download** and **import** the data to the notebook's environment, and then carry out some initial data exploration.
 """
@@ -364,7 +414,7 @@ end
 md"""
 #### Predictive checks
 
-Lastly, we carry out predictive checks to make sure the Bayesian model's assumption matches the observed data. To simulate data from the posterior predictive distribution, we use the `predict()` method.
+Lastly, we carry out predictive checks to make sure the Bayesian model's assumptions match the observed data. To simulate data from the posterior predictive distribution, we use the `predict()` method.
 """
 
 # ╔═╡ 4ab38b80-0bae-4ea5-a109-3a88556daac5
@@ -2073,9 +2123,12 @@ version = "1.4.1+0"
 # ╟─88154488-233d-11ed-1072-3dc0dd25d3fd
 # ╟─623efa9d-485d-4d9c-8e6d-aedb7dcbc00d
 # ╟─0e52bc27-41e9-4361-a036-77eee3774e46
+# ╟─f113ba37-1eeb-4101-8162-5402af63677a
 # ╟─73c61d37-9c26-43b7-ae99-9a79c6fe9804
 # ╟─5d01251e-5ea2-4d2c-82c8-d9c576264887
 # ╟─8b8471cd-6a77-4d8a-bbd9-ee28e0aab1f6
+# ╟─ba72ad42-87d6-4962-b56e-a8d6ba3d9733
+# ╟─ac69616e-14bf-48fe-adc9-7a810aa7a113
 # ╟─ad45d197-0bae-4145-92b9-3b28064a692c
 # ╠═52431ba0-762b-42d4-ab91-148998c90600
 # ╟─b2e26c07-43ad-47c1-a157-2368fbe5c707
