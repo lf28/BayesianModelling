@@ -1,2 +1,2 @@
-# BayesianML
- A few topics on Bayesian Machine Learning
+# BayesianModelling
+ A few topics on Bayesian inference
