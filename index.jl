@@ -17,17 +17,18 @@ $(Resource("https://www.st-andrews.ac.uk/assets/university/brand/logos/standard-
 
 **Lei Fang(@lf28 $(Resource("https://raw.githubusercontent.com/edent/SuperTinyIcons/bed6907f8e4f5cb5bb21299b9070f4d7c51098c0/images/svg/github.svg", :width=>10)))**
 
-*School of Computer Science*
+School of Computer Science
 
 **University of St Andrews, UK**
 
-*August, 2022*
+*August 2022*
+
 """
 
 # ╔═╡ 3defd8e1-b7eb-4bfe-ba8b-f01ff34de41d
 md"""
 
-## Topics
+# Topics
 
 1. [Introduction to Julia](./section0_julia.html)
 2. [An overview of Bayesian inference](./section1_introduction.html)
@@ -37,6 +38,15 @@ md"""
 6. [Bayesian linear regression](./section5_regressions.html)
 7. [Bayesian logistic regression](./section6_logistic_regression.html)
 8. [Bayesian generalised linear models](./section7_glm.html)
+"""
+
+# ╔═╡ 7708f15d-d3b2-4f17-a9f9-a54939bee183
+md"---
+"
+
+# ╔═╡ ee9e219f-d7ab-466e-afff-765fef2d0bf8
+html"""
+<a href=`"https://creativecommons.org/licenses/by-nc-sa/4.0/\"> <font size=\"-1\">CC BY-NC-SA 4.0 Lei Fang</font></a>
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -286,5 +296,7 @@ version = "17.4.0+0"
 # ╟─d5eb649f-579e-4db5-89bf-e778fc702f66
 # ╟─4393c278-23f4-11ed-13f8-0d5e1856794f
 # ╟─3defd8e1-b7eb-4bfe-ba8b-f01ff34de41d
+# ╟─7708f15d-d3b2-4f17-a9f9-a54939bee183
+# ╟─ee9e219f-d7ab-466e-afff-765fef2d0bf8
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

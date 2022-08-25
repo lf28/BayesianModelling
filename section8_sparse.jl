@@ -16,6 +16,9 @@ begin
 	using Logging; Logging.disable_logging(Logging.Warn);
 end;
 
+# ╔═╡ 709e2b13-67d2-4e5b-b148-aba16431b0ae
+TableOfContents()
+
 # ╔═╡ 2c50b998-12e7-4bba-a29c-5b892aa1612a
 md"""
 
@@ -24,31 +27,43 @@ md"""
 
 # ╔═╡ 7f290bd5-06be-4627-b34a-4748521c48e8
 md"""
-## Recap
+## Digress: non-linear models
 
 """
 
 # ╔═╡ b7981b85-d045-442b-89d0-d20cca6381f3
 md"""
 
-## Fixed basis expansion*
+### Fixed basis expansion*
 """
 
 # ╔═╡ ba923faf-f694-4aba-999e-51337c637311
 md"""
 
-## The need of priors
+## Regularisation 
 """
 
-# ╔═╡ 2770759d-1da9-4194-a3fc-0e6de9241bc5
+# ╔═╡ 60f86e5e-98c1-475a-badd-6eeab9ebaaf7
 md"""
-## Other sparse prior choices
+## Priors as regularisation
+
+"""
+
+# ╔═╡ d7792a50-04bc-47d2-bbaf-f5d7c4a27a00
+md"""
+### Bayesian Ridge regression
 
 """
 
 # ╔═╡ 99e7c0a6-c845-4284-93b1-01ac52e17024
 md"""
-### Laplace prior - Bayesian Lasso
+### Bayesian Lasso regression
+
+"""
+
+# ╔═╡ 2770759d-1da9-4194-a3fc-0e6de9241bc5
+md"""
+## More advanced sparse priors
 
 """
 
@@ -1713,11 +1728,14 @@ version = "1.4.1+0"
 
 # ╔═╡ Cell order:
 # ╟─f49dc24c-2220-11ed-0ff2-2df7e9f3a0cf
+# ╟─709e2b13-67d2-4e5b-b148-aba16431b0ae
 # ╟─2c50b998-12e7-4bba-a29c-5b892aa1612a
-# ╠═7f290bd5-06be-4627-b34a-4748521c48e8
+# ╟─7f290bd5-06be-4627-b34a-4748521c48e8
 # ╟─b7981b85-d045-442b-89d0-d20cca6381f3
 # ╟─ba923faf-f694-4aba-999e-51337c637311
-# ╟─2770759d-1da9-4194-a3fc-0e6de9241bc5
+# ╟─60f86e5e-98c1-475a-badd-6eeab9ebaaf7
+# ╟─d7792a50-04bc-47d2-bbaf-f5d7c4a27a00
 # ╟─99e7c0a6-c845-4284-93b1-01ac52e17024
+# ╟─2770759d-1da9-4194-a3fc-0e6de9241bc5
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
