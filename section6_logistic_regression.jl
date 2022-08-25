@@ -25,6 +25,9 @@ begin
 	first(default_df, 6)
 end
 
+# ╔═╡ 920b9b1f-b56d-465c-bce2-e08530ec4bb4
+using StatsBase
+
 # ╔═╡ 0a8fff98-24fd-49d6-a6b2-061e6350350b
 TableOfContents()
 
@@ -65,7 +68,7 @@ A remedy is to impose a ``R\rightarrow [0,1]`` function to squeeze an unconstrai
 \texttt{logistic}(\mu) \triangleq \sigma(\mu) = \frac{1}{1+e^{-\mu}}.
 ``` 
 
-We use `\sigma` as a shorthand notation for the logistic transformation. The function is plotted below:
+We use ``\sigma`` as a shorthand notation for the logistic transformation. The function is plotted below:
 
 $(begin
 plot(logistic, xlabel=L"\mu", ylabel="", label=L"\texttt{logistic}(\mu)", legend=:topleft, lw=2, size=(450,300))
@@ -136,14 +139,6 @@ begin
 	using GLM
 	glm_fit = glm([ones(size(D)[1]) D], targets, Bernoulli(), LogitLink())
 end
-
-# ╔═╡ 0ca3c752-627f-40ce-ac6c-d10fc90d4663
-begin
-	using StatsBase
-	XX, yy = Matrix(default_df[!, [:Balance, :Income, :StudentNum]]), default_df[!, :DefaultNum]
-	feature_scalar = fit(ZScoreTransform, XX[:, 1:2], dims=1)	
-	XX[:, 1:2] .= StatsBase.transform(feature_scalar, XX[:, 1:2])
-end;
 
 # ╔═╡ 60a5cad4-c676-4334-8cbe-47877a68943f
 md"""
@@ -346,6 +341,13 @@ describe(default_df)
 # ╔═╡ 8c73a18f-55a1-4740-8795-5bbb6ff425de
 md"The two numerical features `Balance` and `Income` are with very different mean and value ranges. It is in general a good idea to standardize them such that the transformed data are with zero mean and unit variance. By standardising the features, the prior's variances, *i.e. ``\mathbf{V}_0^{\boldsymbol{\beta}}``*, are also easier to be specified, since all the features are of the same scale.
 "
+
+# ╔═╡ 0ca3c752-627f-40ce-ac6c-d10fc90d4663
+begin
+	XX, yy = Matrix(default_df[!, [:Balance, :Income, :StudentNum]]), default_df[!, :DefaultNum]
+	feature_scalar = fit(ZScoreTransform, XX[:, 1:2], dims=1)	
+	XX[:, 1:2] .= StatsBase.transform(feature_scalar, XX[:, 1:2])
+end;
 
 # ╔═╡ a84de1b9-3c27-4b63-822f-f454b7d3098b
 md"""
@@ -2295,6 +2297,7 @@ version = "0.9.1+5"
 # ╠═40db5082-3558-4fd4-ab47-1127f6d67e38
 # ╠═fbcdbc4e-f55b-4bf8-a10d-42f2627dbfdb
 # ╟─8c73a18f-55a1-4740-8795-5bbb6ff425de
+# ╠═920b9b1f-b56d-465c-bce2-e08530ec4bb4
 # ╠═0ca3c752-627f-40ce-ac6c-d10fc90d4663
 # ╟─a84de1b9-3c27-4b63-822f-f454b7d3098b
 # ╟─b25a3f92-f3ad-4c05-961d-2f69d39d98c3
