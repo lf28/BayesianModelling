@@ -29,8 +29,14 @@ md"""
 
 ## Topics
 
-1. [Introduction to Julia](https://lf28.github.io/BayesianML/MLE.html)
-2. [MCMC](./section3_mcmc.html)
+1. [Introduction to Julia](./section0_julia.html)
+2. [An overview of Bayesian inference](./section1_introduction.html)
+3. [Bayesian modelling](./section2_modelling.html)
+4. [Bayesian computation - MCMC](./section3_mcmc.html)
+5. [Introduction to `Turing`](./section4_turing.html)
+6. [Bayesian linear regression](./section5_regressions.html)
+7. [Bayesian logistic regression](./section6_logistic_regression.html)
+8. [Bayesian generalised linear models](./section7_glm.html)
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001

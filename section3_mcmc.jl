@@ -24,7 +24,15 @@ TableOfContents()
 
 # ╔═╡ 70f5222b-aadf-4dc0-bc03-b1d10e7db8b6
 md"""
-# Bayesian computation with MCMC
+# Bayesian inference with MCMC
+"""
+
+# ╔═╡ 46af5470-afc8-47a8-a6c4-07de22105e91
+md"""
+In this chapter, we introduce a technique called Markov Chain Monte Carlo (MCMC), which is arguably the most important algorithm for Bayesian inference. 
+In a nutshell, MCMC aims at computing the posterior distribution ``p(\theta|\mathcal{D})`` efficiently. Without it, most Bayesian computations cannot be finished in a realistic timeframe. Therefore, it is safe to say the algorithm is instrumental to the very success of the modern Bayesian method. 
+
+In the following sections, we will first explain why the algorithm is needed for Bayesian inference. Different forms of MCMC algorithms, such as Metropolis-Hastings, Gibbs sampling, and Hamiltonian sampler, are introduced afterwards. The intuitions behind the algorithms are given higher priority than their theoretical buildups. From a Bayesian practitioner's perspective, it is probably more important to know how to use the algorithm in real-world analysis. Therefore, the practical aspects of the technique, such as MCMC diagnostic tools, are also explained in detail.
 """
 
 # ╔═╡ f9584f19-9020-481d-93b2-8d52e8c4bdfc
@@ -660,7 +668,7 @@ describe(chain_mh)
 
 # ╔═╡ e0e4f50c-52c0-4261-abae-3cf0399e04e0
 md"""
-# MCMC diagnosis
+# MCMC diagonistics
 """
 
 # ╔═╡ 81ce6e4c-ef48-4a07-9133-4414867c2b29
@@ -764,7 +772,7 @@ The figure below shows trace plots of four different chains with `ess=` 4.6, 49.
 
 # ╔═╡ 68c98e53-7ac3-4832-a7dd-97459a89d7cb
 md"""
-# Other MCMC samplers*
+# Other MCMC samplers
 """
 
 # ╔═╡ 5f1f12b2-5b63-416e-a459-9b5d0e37b0e8
@@ -1223,7 +1231,8 @@ end
 
 # ╔═╡ cca21050-aa12-4bb7-bcb1-918d94aa0bec
 begin
-	corner(chain_mh)
+	# for cleaner visualisation, plot with 1000 samples
+	corner(sample(chain_mh,1000), size=(400,400))
 end
 
 # ╔═╡ be3c585b-425b-4995-b2bc-ae7bb33d6bad
@@ -1324,7 +1333,7 @@ gif(anim, fps= 10)
 
 
 	
-end
+end;
 
 # ╔═╡ cf968e52-7518-40b0-af57-1f552c41dc07
 begin
@@ -1576,7 +1585,7 @@ gif(anim, fps= 10)
 
 
 	
-end
+end;
 
 # ╔═╡ 3bf64dd1-c44e-4499-9c15-3c4725554ef1
 begin
@@ -3340,6 +3349,7 @@ version = "0.9.1+5"
 # ╟─ce716e92-0c3c-11ed-364f-2f8266fa10f2
 # ╟─8daf0123-b22e-4cda-8eec-7cad3484c8e0
 # ╟─70f5222b-aadf-4dc0-bc03-b1d10e7db8b6
+# ╟─46af5470-afc8-47a8-a6c4-07de22105e91
 # ╟─f9584f19-9020-481d-93b2-8d52e8c4bdfc
 # ╟─4e93aa8d-00d8-4677-8e06-0032a0634a5a
 # ╟─e0dcfd8c-2415-4c4f-b254-5f9f52cf8ebf
@@ -3398,7 +3408,7 @@ version = "0.9.1+5"
 # ╟─52b29fcc-c534-4bba-866a-e7622c5a5e11
 # ╟─55ed9e58-7feb-4dbc-b807-05796a02fc62
 # ╟─2c06c3f1-11e6-4191-b505-080342a9b787
-# ╠═cca21050-aa12-4bb7-bcb1-918d94aa0bec
+# ╟─cca21050-aa12-4bb7-bcb1-918d94aa0bec
 # ╟─17a4d60b-7181-4268-866c-ddbde37dc349
 # ╟─45eb8c7b-5f17-43ac-b412-0f3ced44a018
 # ╠═be3c585b-425b-4995-b2bc-ae7bb33d6bad
@@ -3471,8 +3481,8 @@ version = "0.9.1+5"
 # ╟─6a9863cb-3067-4250-ad89-6a1c8dc1fddc
 # ╟─ca2662a9-2754-45c1-9ce8-5b8599eef240
 # ╟─9375f800-7c4b-4cae-b263-f17198b04011
-# ╠═280069b8-f9fe-4cd6-866d-a20b9eab036e
-# ╠═0138dedf-f874-4bbd-bf87-7f6bbe8ca816
+# ╟─280069b8-f9fe-4cd6-866d-a20b9eab036e
+# ╟─0138dedf-f874-4bbd-bf87-7f6bbe8ca816
 # ╠═af617b31-396f-465e-b27e-2fa14b3b2423
 # ╟─18ebc039-1656-4f74-8e9f-f03a8d39d7c4
 # ╠═88696ab1-2866-46f1-978e-bd032566cef7
