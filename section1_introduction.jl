@@ -279,7 +279,7 @@ The frequentist approach believes ``\theta`` is not a random variable but some f
 
 $$\hat\theta = \frac{1}{N}\sum_{n=1}^N d_n = \frac{N_h}{N} =0.7,$$
 
-where ``N_h=\sum_n d_n`` denotes the total count of heads, and ``N`` is the number of tosses. However, the true bias of the coin will not exactly be ``\hat\theta=0.7``. If we toss the coin another 10 times, the observed frequency will likely be different from ``0.7``. So how serious shall we think about this ``0.7``? The frequentist wants to know the long-term frequency pattern of the estimator ``\hat\theta`` (but **not** ``\theta``).
+where ``N_h=\sum_n d_n`` denotes the total count of heads, and ``N`` is the number of tosses. However, the true bias of the coin will not exactly be ``\hat\theta=0.7``. If we toss the coin another 10 times, the observed frequency will likely be different from ``0.7``. So how serious shall we treat this ``0.7``? The frequentist wants to know the long-term frequency pattern of the estimator ``\hat\theta`` (but **not** ``\theta``).
 
 One of the frequentist's methods to achieve this is to form a **confidence interval**: an interval ``\theta \in (l, u)`` that traps the true unknown parameter with some good confidence or high probability.
 
@@ -313,22 +313,22 @@ $$(0.46, 0.94).$$
 
 Since the confidence interval encloses ``\theta=0.5``, the frequentists conclude that we do not have overwhelming evidence to rule out the coin being fair.
 
-But what confidence interval means here? Frequentist's methods assume ``\theta`` is a fixed unknown quantity (but only data $\mathcal D$ is random). The confidence interval surely is **not** a probability statement about ``\theta`` but a probability statement about the random interval. The idea can be interpreted as:
+But what does the confidence interval mean here? Frequentist's methods assume ``\theta`` is a fixed unknown quantity (and only data $\mathcal D$ is random). The confidence interval surely is **not** a probability statement about ``\theta``. But rather it is a probability statement about the interval itself (which depends on the data therefore random). The idea is probably better explained in the following way.
 
 !!! danger ""
 	
 	
-	A ``\alpha=10\%`` **confidence interval** here means if you 
+	A ``\alpha=10\%`` **confidence interval**: if you 
 
 	*repeat the following two steps, say 10,000 times:*
 
 	1. *toss the coin another 10 times*
 	2. *calculate another confidence interval*: ``(\hat{\theta} - 1.645 \hat{\texttt{se}}, \hat{\theta} + 1.645 \hat{\texttt{se}})`` *as above*
 
-	Over the 10,000 random intervals, which should be all different from each other, approximately 90% of them trap the true parameter. Check the diagram below for illustration.
+	Over the 10,000 realised random intervals, approximately 90% of them trap the true parameter.
 
 
-The animation below illustrates the idea of a confidence interval. Conditional on the hypothesis that the coin is fair, i.e. ``\theta =0.5`` (it works for any ``\theta\in [0,1]``), the above two steps were repeated 100 times, i.e. tossing the coin ten times and then forming a confidence interval. The red vertical intervals (there are roughly 10 of them) are the 10% CIs that do not trap the true bias. 
+The animation below illustrates the idea of a confidence interval. Conditional on the hypothesis that the coin is fair, i.e. ``\theta =0.5`` (it works for any ``\theta\in [0,1]``), the above two steps were repeated 100 times, *i.e.* tossing the coin ten times and then forming a confidence interval. The red vertical intervals (there are roughly 10 of them) are the 10% CIs that **do not** trap the true bias. 
 """
 
 # ╔═╡ b113a7ce-7e00-4df3-b1a4-4cf7af005aaf
@@ -347,7 +347,7 @@ end
 
 # ╔═╡ 1c64b953-5a3d-4a80-b523-8b8f213f6849
 md"""
-The final plot of the 100 confidence intervals is also listed.
+The final plot of the 100 confidence intervals is also listed below for your reference.
 """
 
 # ╔═╡ 8332304c-2264-46df-baf1-0a1070927152
@@ -360,7 +360,7 @@ end
 
 # ╔═╡ 65b17042-1e16-4097-86c9-83c516de803d
 md"""
-In practice, we make an inference decision based on one of the realised CI (0.46, 0.94), or one experiment: it either traps or misses the true value. However, it is likely (90% of chance) that the CI at hand is one of the good CIs. Equally, there is a small chance the CI is wrong, i.e. it misses the true value. The error is known as the **Type 1** error. 
+In practice, we make an inference decision based on one of the realised CI (0.46, 0.94), *i.e.* one experiment: it either traps or misses the true value. Nevertheless, it is likely (90% of chance) that the CI at hand is one of the good CIs. And based on this fact, we reach a conclusion. However, there is a small chance that the CI is wrong, *i.e.* it misses the true value. And the error is known as the **Type 1** error. 
 """
 
 # ╔═╡ b42dc5e4-143e-4469-be7f-7b1f73ca9064
@@ -368,7 +368,7 @@ md"""
 
 If you think the Frequentist's confidence interval is confusing, I agree with you. The thought experiment of repeated experiments does not even make sense in cases like time series analysis: how can one travel back in time to collect another sample? 
 
-If you want to know a more direct answer about the unknown ``\theta``, we need to resort to Bayesian inference. It provides us with a probability statement about the unknown quantity directly: 
+If you want a more direct answer to the inference question, we need to resort to Bayesian inference. It provides us with a probability statement about the unknown quantity directly: 
 > "*In light of the observed data, what ``\theta`` is more credible, i.e. what is ``p(\theta|\mathcal D)``?*''
 
 """
@@ -378,12 +378,12 @@ md"""
 
 ### Method 2. Bayesian approach
 
-The Bayesian approach assumes ``\theta`` is a random variable with some prior distribution. And apply Bayes' rule to answer the question.
+The Bayesian approach assumes ``\theta`` is a random variable with some prior subjective belief. And apply Bayes' rule to update the prior belief to answer the question.
 
 
 Bayesian inference starts with a model: or "a story on how the data is observed". Note that, from Bayesian's perspective,  the data here include **all** data: both known (or observed) and the unknown. On the other hand, the frequentists' storyline only cares about the observed.
 
-For the coin flipping problem, the *story* is straightforward: the unknown ``\theta`` is first drawn from a prior distribution, and then ``N`` realisations ``d_n`` are drawn from tossing the coin. 
+For the coin flipping problem, the *story* is straightforward: the unknown ``\theta`` is first drawn from the prior belief's distribution, and then ``N`` realisations ``d_n`` are subsequently drawn from the coin. 
 
 
 **Step 1. set a prior for the unknown: ``p(\theta)``**
@@ -410,7 +410,7 @@ md"""
 
 **Step 2. Determine the likelihood function: ``p(\mathcal D|\theta)``**
 
-Next, we need to determine the likelihood function: how the observed data, ``\mathcal D``,  *is generated* conditional on ``\theta``. A coin toss follows a Bernoulli distribution:
+Next, we need to determine the likelihood function: how the observed data, ``\mathcal D``,  *is generated* conditional on ``\theta``. As shown earlier, a coin toss follows a Bernoulli distribution:
 
 $$p(d|\theta) = \begin{cases} \theta, & d = \texttt{h} \\ 1-\theta, & d= \texttt{t},\end{cases}$$
 
@@ -450,11 +450,11 @@ $$p(\mathcal D) = \sum_{\theta\in \{0.0, 0.1, \ldots, 1.0\}} p(\theta)\cdot p(\m
 
 # ╔═╡ 785bdafd-4bfc-441b-bd79-f1bbced4efb9
 md"""
-The posterior can be calculated as follows: for ``\theta \in \{0.0, 0.1, \ldots, 1.0\}``:
+The posterior therefore can be calculated as follows: for ``\theta \in \{0.0, 0.1, \ldots, 1.0\}``:
 
 $$p(\theta|\mathcal D) = \frac{p(\mathcal D|\theta)}{\sum_{\theta} p(\mathcal D|\theta)}$$
 
-The posterior update procedure is illustrated below. Note that the posterior is of the same shape as the likelihood (due to a flat prior being used). After observing the data, the posterior now centres around 0.7. But it seems 0.8 and 0.6 are also likely.
+The posterior update procedure is illustrated below. Note that the posterior is of the same shape as the likelihood (since a flat prior has been used). After observing the data, the posterior now centres around 0.7. But it seems 0.8 and 0.6 are also likely.
 """
 
 # ╔═╡ 009a824f-c26d-43e9-bb6d-fd538a19863b
@@ -600,8 +600,8 @@ end
 md"""
 
 **A more refined approximation:**
-We can have a more refined discretisation of the parameter space. For example, we can choose $$\theta \in [0, 0.01, 0.02, \ldots, 1.0],$$ a step size of ``0.01`` rather than 0.1. Check next chapter for a continuous posterior approach. The corresponding 90% HPDI is 
-``p(``$(θs_refined[l2]) ``\leq \theta \leq`` $(θs_refined[u2])``|\mathcal D)= 90\%.`` We still reach the same conclusion: the null hypothesis cannot be rejected.
+We can have a more refined discretisation of the parameter space. For example, we can choose $$\theta \in [0, 0.01, 0.02, \ldots, 1.0],$$ a step size of ``0.01`` rather than ``0.1``. Check the next chapter for a continuous posterior approach. The corresponding 90% HPDI is 
+``p(``$(θs_refined[l2]) ``\leq \theta \leq`` $(θs_refined[u2])``|\mathcal D)= 90\%.`` We still reach the same conclusion.
 
 """
 
