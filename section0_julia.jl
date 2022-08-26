@@ -290,7 +290,7 @@ There are other convenient ways to create a vector.
 
 To create a sequence of numbers with some fixed gap:
 * `a:b` or `a:h:b`: which create a sequence of numbers starting with `a` and ending with `b` inclusive and the gap is `h` ;
-* `range(a,b,length=n)`: offers an alternative way to produce n values between a and b;
+* `range(a,b,length=n)`: offers an alternative way to produce `n` values between `a` and `b`;
 
 Both above methods return a generator rather than the real values. To cast them to an array, one can use `collect()` or a splat `...` operator.
 """
@@ -306,9 +306,7 @@ range(1, 10, length=12), collect(range(1, 10, length=12))
 # ╔═╡ 911bf98c-130c-4e20-a353-bc290c865a27
 md"""
 
-One can also declare an array with the specified element type and length when creating it.
-
-For example, to create an array of 10 integers of uninitialised values:
+One can also declare an array with the specified element type and length when creating it. For example, to create an array of 10 integers of uninitialised values:
 """
 
 # ╔═╡ 5c15f435-8ea6-446e-a27d-3270b463f681
@@ -332,7 +330,8 @@ Matrices are simply multi-dimensional arrays. It is recommended to import the ad
 """
 
 # ╔═╡ d78b7c17-1f6d-424c-aeed-e35a9d3db49e
-md"To create matrix :
+md"To create matrix
+
 ```math
 \begin{bmatrix} 1 & 2 \\ 3 & 4\end{bmatrix},
 ```
@@ -352,7 +351,7 @@ Where `vcat` and `hcat` concatenate the inputs horizontally (or vertically), als
 # ╔═╡ c68f7d30-3061-40db-8af3-369149cd5ff9
 md"""
 
-Here are some commonly used matrices
+Here are some commonly used special matrices:
 
 * `Matrix{Float64}(undef, m, n)`, returns an `m × n` uninitialised real valued matrix 
 * `ones(m, n)`, returns an `m × n` matrix with ones
@@ -390,7 +389,7 @@ begin
 end
 
 # ╔═╡ b078d4c9-7638-43a4-bd77-57a40b1511ef
-A * B, B' * A # matrix addition
+A * B, B' * A # matrix multiplication is not commutative
 
 # ╔═╡ 2b305ef2-551e-4327-ad56-2bd3a12f51fc
 A^(-1) == inv(A) # inverting a matrix
@@ -496,7 +495,15 @@ end
 or in one-line 
 
 ```julia
-f(x) = ...
+function_name(x) = ...
+```
+
+or anonymously
+
+
+```julia
+(x) -> ...
+
 ```
 
 For example, to create a third-order polynomial with coefficients `a,b,c,d`
@@ -535,7 +542,11 @@ md"""
 	Write a function to calculate the area of a circle with radius `r`: ``\text{area}(r)= \pi r^2``.
 
 !!! hint "Answer"
-	area(r) = π * r^2
+	```julia
+		area(r) = π * r^2
+	```
+
+	Julia provides very mathematical syntax. You program in Julia the same way as you would have written the equations on paper.
 """
 
 # ╔═╡ 5f31fe56-ff6c-4cae-b835-15e100771a82
@@ -554,14 +565,14 @@ md"where `((x) -> x^2)` is an anonymous function, and 5 is the input argument."
 # ╔═╡ 3f9138da-c21a-458f-8eaa-a10079a2ee35
 md"""
 
-An anonymous function has no name, therefore it cannot be reused later. However, the function can be passed around like a variable. In Julia, functions are first-class objects (treated the same way as a variable). Therefore, a function can be assigned a name, if needed.
+An anonymous function has no name, therefore it cannot be reused later. However, the function can be passed around like a variable. In Julia, functions are first-class objects (treated the same way as a variable). Therefore, an anonymous function can be assigned a name, if needed.
 """
 
 # ╔═╡ d0d5068b-f58d-4835-81eb-7cdc3273961e
 my_square = (x) -> x^2
 
 # ╔═╡ bcaf0dba-c26c-41f2-b5ad-34fb81b4e34d
-my_square(5)
+my_square(5) # can be used the same as a normal function
 
 # ╔═╡ a748b9e1-dd0c-4899-bf04-42a831e95434
 md"""
@@ -593,13 +604,13 @@ Find the sum along the column of a matrix:
 M = latexify(ones(6, 3))
 
 # ╔═╡ 0ff926f9-a294-4846-b7ab-d02203a73a13
-md"To sum the above matrix along the column:"
+md"Apply `sum` to each column of the matrix `M`."
 
 # ╔═╡ 482b83c6-fe77-41ea-bc4a-4a9b76bf30ac
 map(sum, eachcol(ones(6,3)))
 
 # ╔═╡ 77ec658a-0fe5-4fc4-81ac-70336e46096b
-md"Similarly, along the row:"
+md"Similarly, apply `sum` to each row:"
 
 # ╔═╡ 528d9adb-1888-4f31-91eb-450879053bf6
 map(sum, eachrow(ones(6,3)))
@@ -677,7 +688,7 @@ We can also put a series of plots (known as frames) together to form an animatio
 Here we use the derivative as an example to show how to create an animation. The derivative of a continuous function ``f(x)`` at ``x_0`` is defined as the limit of a ratio:
 
 ```math
-f'(x_0) = \lim_{\Delta{x} \rightarrow 0} \frac{f(x_0 + \Delta{x}) - f(x_0)}{\Delta x}
+f'(x_0) = \lim_{\Delta{x} \rightarrow 0} \frac{f(x_0 + \Delta{x}) - f(x_0)}{\Delta x}= \lim_{\Delta{x} \rightarrow 0} \frac{\Delta{f}}{\Delta x}
 ```
 
 * when ``\Delta{x}`` approaches zero, the ratio ``\frac{f(x_0 + \Delta{x}) - f(x_0)}{\Delta x}`` gets closer to the exact derivative, 
@@ -694,14 +705,20 @@ let
 	f, ∇f = sin, cos
 	anim = @animate for Δx in π:-0.1:0.0
 		plot(xs, sin, label="f(x)", ylim = [-1.5, 1.5], xlabel=L"x", lw=2, legend=:topleft)
-		k = Δx == 0 ? ∇f(x₀) : (f(x₀ + Δx)-f(x₀))/Δx
+		df = f(x₀ + Δx)-f(x₀)
+		k = Δx == 0 ? ∇f(x₀) : df/Δx
 		b = f(x₀) - k * x₀ 
 		# the approximating linear function with Δx 
 		plot!(xs, (x) -> k*x+b, label="", lw=2)
 		# the location where the derivative is defined
-		scatter!([x₀], [f(x₀)], label="x₀, f(x₀)")
-		scatter!([x₀+Δx], [f(x₀+Δx)], label="x₀+Δx, f(x₀+Δx)")
-		annotate!(0, 1, text("Δx=$(round(Δx, digits=2))"))
+		scatter!([x₀], [f(x₀)], ms=3, label=L"x_0, f(x_0)")
+		scatter!([x₀+Δx], [f(x₀+Δx)], ms=3, label=L"x_0+Δx, f(x_0+Δx)")
+		plot!([x₀, x₀+Δx], [f(x₀), f(x₀)], lc=:gray, label="")
+		plot!([x₀+Δx, x₀+Δx], [f(x₀), f(x₀+Δx)], lc=:gray, label="")
+		font_size = Δx < 0.8 ? 7 : 10
+		annotate!(x₀+Δx, 0.5 *(f(x₀) + f(x₀+Δx)), text(L"Δf=%$(round(df, digits=1))", font_size, :top, rotation = 90))
+		annotate!(0.5*(x₀+x₀+Δx), 0, text(L"Δx=%$(round(Δx, digits=1))", font_size,:top))
+		annotate!(0, 1, text(L"\frac{Δf}{Δx}=%$(round(k, digits=2))", 10,:top))
 	end
 
 	gif(anim, fps=5)
@@ -786,7 +803,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.0"
 manifest_format = "2.0"
-project_hash = "3a36e7b54d1b42e3040325bfd2fdc9038d0e328b"
+project_hash = "eecf0cae6fc8c0adb32e2f7d29a05c28aed97e5c"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
@@ -2054,7 +2071,7 @@ version = "1.4.1+0"
 # ╟─7d897f13-7358-446f-b87a-60ad945769ea
 # ╠═7cd155b2-f76e-4152-9d79-ac9ea8c32b16
 # ╟─d0b5cc5a-f0cf-44e8-9e2a-e28b94d4429f
-# ╟─04065f11-4748-4cf0-abf4-01484454da0b
+# ╠═04065f11-4748-4cf0-abf4-01484454da0b
 # ╟─aed0ed19-0183-4eb8-83c9-3d2419d299b8
 # ╟─02938204-99d2-4209-abcf-cbcfd62f9c04
 # ╠═8548c4cb-9e9b-4ca7-bd4e-97e16058606d
