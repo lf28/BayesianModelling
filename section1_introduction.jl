@@ -26,7 +26,7 @@ md"""
 
 $$d_1, d_2, \ldots, d_N \sim \mathcal P,$$
 
-where "``\sim``" means the data are distributed according to, or equivalently, drawn from the distribution. And we want to *infer* some properties of the population distribution ``\mathcal P`` based on the sample ``\mathcal D = \{d_n\}``. 
+where "``\sim``" means the data are *distributed according to*, or equivalently, drawn from the distribution. And we want to *infer* some properties of the population distribution ``\mathcal P`` based on the sample ``\mathcal D = \{d_n\}``. 
 
 
 The most common inference case is parametric inference: that is when the population ``\mathcal P`` is some probability distribution with some finite number of parameters. For example, to test whether a coin is fair, we toss the coin ``N`` times. In this case, the population distribution is a Bernoulli distribution, i.e. a random variable with binary outcomes. The population distribution is fully determined by one parameter ``\theta \in [0,1]``, i.e. the bias of the coin:
@@ -43,21 +43,27 @@ Then a typical inference query is:
 
 > Based on the observed data ``\mathcal D=\{d_1, d_2, \ldots, d_N\},`` what the population distribution's bias ``\theta`` is?
 
-There are two camps of statistical inference: the frequentist and the Bayesian approach. Historically, the frequentist's approach has been more widely taught and used. However, the Bayesian approach has gained a lot more attention lately, especially in the machine learning community. In this course, we are going to see how Bayesian approach the statistical inference questions. We will see how Bayesian inference provides us with an alternative solution which is usually more overfitting proof, numerically stable, and natural to understand.
+There are two camps of statistical inferences: the **frequentist** and the **Bayesian approach**. Historically, the frequentist's approach has been more widely taught and used. However, the Bayesian approach has gained more momentum in the 21st century, after being successfully applied in a wide range of applications.
 
-In the next section, we are going to first review Baye's theorem, which is the cornerstone of Bayesian inference. Some key Bayesian inference concepts will be introduced afterwards.
+Compared with the frequentist approach, Bayesian inference is procedurally standard. All Bayesian inferences start with a generative stochastic model that tells a story of how the data is generated and end with invoking Bayes' rule to find the updated distribution of the unknowns. In other words, as long as you can tell a story about your data, you can be a proper Bayesian statistician. 
+
+However, the same thing cannot be said for the Frequentist's method. Speaking for myself, I cannot recall the ANOVA, (or just choose any from the following: Frequentist's methods: MANOVA, ``\chi^2``,  Paired/Independent T-test) test procedure and I am still not very sure about how we need to carry out the steps. Not only being more flexible, if properly modelled, Bayesian inference often offers numerical stability, better-generalised performance, and natural interpretation.
+
+The benefits come with a price. Bayesian methods cannot be used like a black box. You do need to understand your data well to be able to come up with a good story (or a proper Bayesian model) first. And after the modelling, one also should be able to diagnose whether the inference algorithms are behaving well. In this course, we are going to learn the tools and techniques that are required for the Bayesian approach.
+
+In this first chapter, we are going to have an overview of Bayesian inference. Firstly, we are going to review Bayes' theorem, which is the cornerstone of Bayesian inference. Next, the coin-tossing problem is used as an example to demonstrate how Bayesian inference is used in practice. To better understand the differences between the two inference camps, a frequentist's take is also shown. 
 """
 
 # ╔═╡ 300929c0-3279-47ef-b165-0e936b757679
 md"""
 
-## Baye's theorem
+## Bayes' theorem
 
-We first review Baye's theorem, which forms the core idea of Bayesian inference.
+We first review Bayes' theorem, which forms the core idea of Bayesian inference.
 
 
-!!! infor "Baye's theorem"
-	Baye's rule provides us with a mechanism to infer an unknown quantity $\theta$ based on observed data $\mathcal D$:
+!!! infor "Bayes' theorem"
+	Bayes' rule provides us with a mechanism to infer an unknown quantity $\theta$ based on observed data $\mathcal D$:
 	
 	$$\text{posterior}=\frac{\text{prior} \times \text{likelihood}}{\text{evidence}}\;\;\text{or}\;\;p(\theta|\mathcal D) =\frac{\overbrace{p(\theta)}^{\text{prior}} \overbrace{p(\mathcal D|\theta)}^{\text{likelihood}}}{\underbrace{p(\mathcal D)}_{\text{evidence}}},$$
 
@@ -70,14 +76,14 @@ We first review Baye's theorem, which forms the core idea of Bayesian inference.
 	$$p(\mathcal D) = \int p(\theta) (\mathcal D|\theta)\mathrm{d}\theta$$ is constant respect to ``\theta``.
 	* ``p(\theta)`` **prior** distribution: prior belief of ``\theta`` before we observe the data 
 	* ``p(\mathcal D|\theta)`` **likelihood**: conditional probability of observing the data given a particular $\theta$
-	* ``p(\mathcal D)`` **evidence**. It scales the product of prior and likelihood, ``p(\theta) \times p(\mathcal D|\theta)``, such that the posterior ``p(\theta|\mathcal D)`` is a valid probability distribution. That is the total probability mass sum to one.
+	* ``p(\mathcal D)`` **evidence** (also known as *marginal likelihood*). It scales the product of prior and likelihood, ``p(\theta) \times p(\mathcal D|\theta)``, such that the posterior ``p(\theta|\mathcal D)`` is a valid probability distribution. That is the total probability mass sum to one.
 """
 
 # ╔═╡ 41e15a4f-8ddc-47f9-8286-bf583b7d748a
 md"""
-### Why Baye's theorem is useful?
+### Why Bayes' theorem is useful?
 
-Human brains are not very good at doing reverse logic reasoning directly. We are however good at thinking in the forward direction. Baye's rule provides us with a tool to do the reverse reasoning routinely based on the forward logic.
+Human brains are not very good at doing reverse logic reasoning directly. We are however good at thinking in the forward direction. Bayes' rule provides us with a tool to do the reverse reasoning routinely based on the forward logic.
 
 When it comes to statistical inference, it is way more straightforward to specify the *forward probability*:
 
@@ -97,11 +103,11 @@ That is given the observed data ``\mathcal D``, what ``\theta \in \Theta`` is mo
 $$p(\theta|\mathcal D):\;\; \text{Posterior distribution}.$$  
 
 
-Baye's rule provides the exact tool to do this reverse engineering. And the recipe is simple and mechanical: multiply a prior with the likelihood (forward probability):
+Bayes' rule provides the exact tool to do this reverse engineering. And the recipe is simple and mechanical: multiply a prior with the likelihood (forward probability):
 
 $$p(\theta|\mathcal D) \propto p(\theta) p(\mathcal D|\theta).$$
 
-The following example demonstrates how Baye's rule is used to answer a non-trivial inverse probability problem.
+The following example demonstrates how Bayes' rule is used to answer a non-trivial inverse probability problem.
 
 """
 
@@ -143,9 +149,9 @@ $(begin
 	Plots.plot(1:5, ℓ_switch([0,1,0,0,0,0])[1], xlabel=L"S", ylabel=L"p(\mathcal{D}|S)", title="Likelihood function", st=:sticks, marker=:circle, label="")
 end)
 
-To apply Baye's rule, we need to impose a *prior* distribution over the unknown. To reflect our ignorance, a natural choice is a uniform distribution: for ``S \in \{1,2,\ldots, 5\}``: ``p(S) = 1/5.``
+To apply Bayes' rule, we need to impose a *prior* distribution over the unknown. To reflect our ignorance, a natural choice is a uniform distribution: for ``S \in \{1,2,\ldots, 5\}``: ``p(S) = 1/5.``
 
-Lastly, we combine the prior and likelihood according to Baye's rule:
+Lastly, we combine the prior and likelihood according to Bayes' rule:
 
 $$p(S|\mathcal D) \propto p(S) p(\mathcal D|S).$$
 
@@ -157,7 +163,7 @@ $(begin
 	Plots.plot!(1:5, ℓ_switch([0,1,0,0,0,0])[1]./ℓ_switch([0,1,0,0,0,0])[2], st=:path, fill=true, alpha=0.3, color=2, label="Posterior")
 end)
 
-Baye's theorem **updates** our prior belief to the posterior by combining the likelihood. And according to the posterior, it is *most likely* that the switch point is after the second toss. 
+Bayes' theorem **updates** our prior belief to the posterior by combining the likelihood. And according to the posterior, it is *most likely* that the switch point is after the second toss. 
 
 However, there is a great amount of uncertainty about this *single point estimator*: an alternative hypothesis ``S=3`` is also likely. A true Bayesian way to answer the question is to ship the posterior distribution as an answer rather than just report the most likely point estimator.
 """
@@ -168,7 +174,7 @@ md"""
 
 ## Bayesian inference procedure
 
-The switching point example demonstrates how Baye's theorem is used to answer an inference question. The whole process can be summarised in two stages: **modelling**  
+The switching point example demonstrates how Bayes' theorem is used to answer an inference question. The whole process can be summarised in two stages: **modelling**  
 and **computation**.
 
 
@@ -177,13 +183,13 @@ and **computation**.
 At the modelling stage, we are *telling a story* of the forward probability: i.e. how the data is generated hypothetically.  
 
 Different from the frequentist approach, Bayesian inference assumes both the **unknown parameter** ``\theta`` and the **observed data** ``\mathcal D`` random.
-Therefore, Bayesian's storyline includes data generation process for ``theta``, i.e. **prior** and the observed ``\mathcal D``, i.e. **likelihood**. 
+Therefore, Bayesian's storyline includes the data generation process for ``theta``, i.e. **prior** and the observed ``\mathcal D``, i.e. **likelihood**. 
 
-In other words, both methods require the likelihoodm but specifying priors for the unknowns is unique to the Bayesian approach.
+In other words, both methods require the likelihood but specifying priors for the unknowns is unique to the Bayesian approach.
 
 **Bayesian *computation* stage**
 
-At the **computation** stage, we routinely apply Baye's rule to answer the inverse inference question or the posterior distribution and finally summarise the posterior to answer specific downstream inference questions.
+At the **computation** stage, we routinely apply Bayes' rule to answer the inverse inference question or the posterior distribution and finally summarise the posterior to answer specific downstream inference questions.
 
 However, the computation step is only *conceptually* straightforward. There is no technical difficulty when the parameter space $\Theta$ is discrete and finite: e.g. the unknown switching point can take one of the five discrete choices. In practice, this exact enumeration method becomes unattainable when the parameter space is continuous and higher-dimensional. And we need more advanced algorithms, e.g. Markov Chain Monte Carlo (MCMC) or variational method, to make the computation scalable. We will discuss the advanced computation algorithm in the next chapter.
 
@@ -209,7 +215,7 @@ In summary, Bayesian inference is formed by two blocks of steps: modelling, and 
 
 
 !!! note "Computation"
-	3. Compute **Posterior** distribution: ``p(\theta|\mathcal D)``. The third step is straightforward, at least conceptually: i.e. mechanically apply Baye's rule to find the posterior.
+	3. Compute **Posterior** distribution: ``p(\theta|\mathcal D)``. The third step is straightforward, at least conceptually: i.e. mechanically apply Bayes' rule to find the posterior.
 	4. (optional) Report findings. Summarise the posterior to answer the inference question at hand. This step is optional as Bayesians report the posterior distribution from step three as the answer.
 """
 
@@ -269,7 +275,7 @@ md"""
 
 ### Method 1. Frequentist approach*
 
-The frequentist approach believes ``\theta`` is not a random variable but some fixed constant. Therefore, they will not use Baye's rule, which treats ``\theta`` as a random variable (with prior and posterior distributions). Instead, the frequentists will form some estimator for ``\theta`` and try to find some long-term frequency property of the estimator. A natural estimator for the bias ``\theta`` is the observed frequency: 
+The frequentist approach believes ``\theta`` is not a random variable but some fixed constant. Therefore, they will not use Bayes' rule, which treats ``\theta`` as a random variable (with prior and posterior distributions). Instead, the frequentists will form some estimator for ``\theta`` and try to find some long-term frequency property of the estimator. A natural estimator for the bias ``\theta`` is the observed frequency: 
 
 $$\hat\theta = \frac{1}{N}\sum_{n=1}^N d_n = \frac{N_h}{N} =0.7,$$
 
@@ -372,7 +378,7 @@ md"""
 
 ### Method 2. Bayesian approach
 
-The Bayesian approach assumes ``\theta`` is a random variable with some prior distribution. And apply Baye's rule to answer the question.
+The Bayesian approach assumes ``\theta`` is a random variable with some prior distribution. And apply Bayes' rule to answer the question.
 
 
 Bayesian inference starts with a model: or "a story on how the data is observed". Note that, from Bayesian's perspective,  the data here include **all** data: both known (or observed) and the unknown. On the other hand, the frequentists' storyline only cares about the observed.
@@ -424,13 +430,13 @@ end)
 # ╔═╡ 65ef62da-f095-4bb2-aa0f-120827bed6e0
 md"""
 
-After spelling out the model (i.e. prior and likelihood), we apply Baye's rule to find the posterior.
+After spelling out the model (i.e. prior and likelihood), we apply Bayes' rule to find the posterior.
 
-**Step 3. Apply Baye's theorem**
+**Step 3. Apply Bayes' theorem**
 
-Mechanically apply Baye's rule: i.e. multiplying the prior and likelihood then normalise.
+Mechanically apply Bayes' rule: i.e. multiplying the prior and likelihood then normalise.
 
-Note the prior is a constant, the posterior is proportional to the likelihood:
+Note the prior is a constant, and the posterior is proportional to the likelihood:
 
 $$p(\theta|\mathcal D) \propto p(\theta)\cdot p(\mathcal D|\theta) = \frac{1}{11} \cdot p(\mathcal D|\theta)\propto p(\mathcal D|\theta).$$
 
