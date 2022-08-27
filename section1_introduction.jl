@@ -17,6 +17,12 @@ end;
 # ╔═╡ b2ad130c-5d40-4a4b-adbe-5880984a9460
 TableOfContents()
 
+# ╔═╡ 3388e67f-a5bb-409a-843d-0958243c3b8f
+md"
+
+# An introduction to Bayesian inference
+"
+
 # ╔═╡ 97d325ca-2c41-42b4-82b8-f74659e61dc3
 md"""
 
@@ -2077,6 +2083,7 @@ version = "0.9.1+5"
 # ╔═╡ Cell order:
 # ╟─078e8979-6753-411f-9c34-ba0164ea9cb2
 # ╟─b2ad130c-5d40-4a4b-adbe-5880984a9460
+# ╟─3388e67f-a5bb-409a-843d-0958243c3b8f
 # ╟─97d325ca-2c41-42b4-82b8-f74659e61dc3
 # ╟─300929c0-3279-47ef-b165-0e936b757679
 # ╟─41e15a4f-8ddc-47f9-8286-bf583b7d748a

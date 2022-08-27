@@ -18,6 +18,13 @@ end;
 # ╔═╡ 904c5f8d-e5a9-4f18-a7d7-b4561ad37655
 TableOfContents()
 
+# ╔═╡ 613a65ce-9384-46ed-ab0d-abfda374f73c
+md"""
+
+# More on Bayesian modelling
+
+"""
+
 # ╔═╡ 5b4c3b01-bd19-4085-8a83-781086c85825
 md"""
 
@@ -63,10 +70,12 @@ md"""
 
 # ╔═╡ e574a570-a76b-4ab2-a395-ca40dc383e5e
 let
-	Plots.plot(0:0.1:10, Exponential(1),lw=2,  label=L"\texttt{Exponential}(1.0)", legend=:best, xlabel=L"\theta", ylabel=L"p(\theta)", title="Priors for "*L"σ^2\in (0,∞)")
-	Plots.plot!(0:0.1:10, Exponential(2),lw=2,  label=L"\texttt{Exponential}(2.0)")
-	Plots.plot!(0:0.1:10, Exponential(5), lw=2, label=L"\texttt{Exponential}(5.0)")
-	Plots.plot!(0:0.1:10, truncated(Cauchy(0, 1), lower= 0), lw=2, label=L"\texttt{HalfCauchy}(0, 1)")
+	xpltlim1= -1
+	xpltlim2 = 6
+	Plots.plot(xpltlim1:0.01:xpltlim2, Exponential(1),lw=1.5,  label=L"\texttt{Exponential}(1.0)", legend=:best, xlabel=L"\theta", ylabel=L"p(\theta)", title="Priors for "*L"σ^2\in (0,∞)")
+	Plots.plot!(xpltlim1:0.01:xpltlim2, Exponential(2),lw=1.5,  label=L"\texttt{Exponential}(2.0)")
+	Plots.plot!(xpltlim1:0.01:xpltlim2, Exponential(5), lw=1.5, label=L"\texttt{Exponential}(5.0)")
+	Plots.plot!(xpltlim1:0.01:xpltlim2, truncated(Cauchy(0, 1), lower= 0), lw=1.5, label=L"\texttt{HalfCauchy}(0, 1)")
 	# Plots.plot!(0:0.1:10, truncated(Cauchy(0, 2), lower= 0), label="HalfCauchy(0, 2)")
 	# Plots.plot!(0:0.1:10, truncated(Cauchy(0, 5), lower= 0), label="HalfCauchy(0, 5)")
 end
@@ -246,12 +255,12 @@ md"""
 
 > Assume we have made ``N`` independent samples from a Gaussian distribution with known ``\mu`` but unknown variance ``\sigma^2>0``. What is the observation variance ``\sigma^2`` ?
 
-It is more convenient to model the precision ``\lambda\triangleq 1/\sigma^2``. A conjugate prior for the precision parameter is Gamma distribution. Gamma distributions have support on the positive real line which matches the precision's value range.
+It is more convenient to model the precision ``\phi\triangleq 1/\sigma^2``. A conjugate prior for the precision parameter is Gamma distribution. Gamma distributions have support on the positive real line which matches the precision's value range.
 
 A Gamma distribution, parameterised with a shape  ``a_0>0``,  and a rate parameter ``b_0>0``, has a probability density function:
 
 ```math
-p(\lambda; a_0, b_0) = \texttt{Gamma}(\lambda; a_0, b_0)=\frac{b_0^{a_0}}{\Gamma(b_0)} \lambda^{a_0-1} e^{-b_0\lambda}.
+p(\phi; a_0, b_0) = \texttt{Gamma}(\phi; a_0, b_0)=\frac{b_0^{a_0}}{\Gamma(b_0)} \phi^{a_0-1} e^{-b_0\phi}.
 ```
 """
 
@@ -259,7 +268,7 @@ p(\lambda; a_0, b_0) = \texttt{Gamma}(\lambda; a_0, b_0)=\frac{b_0^{a_0}}{\Gamma
 let
 	as_ = [1,2,3,5,9,7.5,0.5]
 	bs_ = [1/2, 1/2, 1/2, 1, 1/0.5, 1, 1]
-	plt= plot(xlim =[0,20], ylim = [0, 0.8], xlabel=L"λ", ylabel="density")
+	plt= plot(xlim =[0,20], ylim = [0, 0.8], xlabel=L"\phi", ylabel="density")
 	for i in 1:length(as_)
 		plot!(Gamma(as_[i], 1/bs_[i]), fill=(0, .1), lw=1.5, label=L"\texttt{Gamma}"*"($(as_[i]),$(bs_[i]))")
 	end
@@ -271,20 +280,20 @@ md"""
 
 **Conjugacy.** The data follow a Gaussian distribution. That is for ``n = 1,2,\ldots, N``:
 ```math
-d_n \sim \mathcal N(\mu, 1/\lambda);
+d_n \sim \mathcal N(\mu, 1/\phi);
 ```
-The likelihood therefore is a product of Gaussian likelihoods:
+The likelihood, therefore, is a product of Gaussian likelihoods:
 
 
 ```math
-p(\mathcal D|\mu, \lambda) = \prod_{n=1}^N p(d_n|\mu, \lambda) = \prod_{n=1}^N \mathcal N(d_n; \mu, 1/\lambda) .
+p(\mathcal D|\mu, \phi) = \prod_{n=1}^N p(d_n|\mu, \phi) = \prod_{n=1}^N \mathcal N(d_n; \mu, 1/\phi) .
 ```
 
 It can be shown that the posterior formed according to Baye's rule
 
 ```math
 
-p(\lambda|\mathcal D, \mu) \propto p(\lambda) p(\mathcal D|\mu, \lambda)
+p(\phi|\mathcal D, \mu) \propto p(\phi) p(\mathcal D|\mu, \phi)
 
 ```
 
@@ -293,7 +302,7 @@ p(\lambda|\mathcal D, \mu) \propto p(\lambda) p(\mathcal D|\mu, \lambda)
 is still of a Gamma form (therefore conjugacy is established): 
 
 ```math
-p(\lambda|\mathcal D, \mu) = \texttt{Gamma}(a_N, b_N),
+p(\phi|\mathcal D, \mu) = \texttt{Gamma}(a_N, b_N),
 ```
 
 where 
@@ -302,11 +311,11 @@ $$a_n= a_0 +\frac{N}{2}, \;\;b_N = b_0 + \frac{\sum_{n} (d_n- \mu)^2}{2}.$$
 
 The Bayesian computation reduces to hyperparameter update again. Note the posterior mean (standard result of a Gamma distribution) is 
 
-$$\mathbb{E}[\lambda|\mathcal D] = \frac{a_N}{b_N} = \frac{a_0 + N/2}{b_0 + {\sum_n (d_n -\mu)^2}/{2}}.$$
+$$\mathbb{E}[\phi|\mathcal D] = \frac{a_N}{b_N} = \frac{a_0 + N/2}{b_0 + {\sum_n (d_n -\mu)^2}/{2}}.$$
 
 If we assume ``a_0= b_0=0`` (a flat prior), we recover the regular maximum likelihood estimator for ``{\sigma^2}``: 
 
-$$\hat \sigma^2 =1/\hat{\lambda} = \frac{\sum_n (d_n-\mu)^2}{N}.$$
+$$\hat \sigma^2 =1/\hat{\phi} = \frac{\sum_n (d_n-\mu)^2}{N}.$$
 
 Based on the above result, we can intuitively interpret the hyperparameters as 
 * ``a_N`` : the total count of observations contained in the posterior (both pseudo ``a_0`` and real observation ``N/2``) ;
@@ -317,14 +326,14 @@ Based on the above result, we can intuitively interpret the hyperparameters as
 
 # ╔═╡ edbf5fa3-a064-47a4-9ff4-a93dbd7b9112
 md"""
-**Demonstration:** We first simulate ``N=100`` Gaussian observations with unknown ``\mu=0`` and ``\lambda= 1/\sigma^2 = 2``.
+**Demonstration:** We first simulate ``N=100`` Gaussian observations with unknown ``\mu=0`` and ``\phi= 1/\sigma^2 = 2``.
 
 """
 
 # ╔═╡ 958d6028-e38f-4a56-a606-47b6f8ee86f1
 begin
 	σ² = 0.5
-	true_λ = 1/σ²
+	true_ϕ = 1/σ²
 	N = 100
 	Random.seed!(100)
 	# Gaussian's density in Distributions.jl is implemented with standard deviation σ rather than σ²
@@ -343,8 +352,8 @@ begin
 	a₀ = 0.5
 	b₀ = 0.5
 	# Gamma in Distributions.jl is implemented with shape and scale parameters where the second parameter is 1/b 
-	prior_λ = Gamma(a₀, 1/b₀)
-	posterior_λ = Gamma(a₀+ N/2, 1/(b₀+ sum(gaussian_data.^2)/2))
+	prior_ϕ = Gamma(a₀, 1/b₀)
+	posterior_ϕ = Gamma(a₀+ N/2, 1/(b₀+ sum(gaussian_data.^2)/2))
 end;
 
 # ╔═╡ 03a650cb-7610-4d20-8ae7-2c6e308770f6
@@ -354,45 +363,45 @@ We can plot the prior and posterior distributions to visually check the Bayesian
 
 # ╔═╡ cb37f8a8-83aa-44f6-89a5-43fe0e4a5fa8
 let
-	plot(prior_λ, xlim = [0, 5], ylim=[0, 1.5], lw=2, fill=(0, 0.2), label="Prior "* L"p(\lambda)", xlabel=L"\lambda", ylabel="density", title="Conjugate inference of a Gaussian's precision")
+	plot(prior_ϕ, xlim = [0, 5], ylim=[0, 1.5], lw=2, fill=(0, 0.2), label="Prior "* L"p(\phi)", xlabel=L"\phi", ylabel="density", title="Conjugate inference of a Gaussian's precision")
 
-	plot!(posterior_λ, lw=2,fill=(0, 0.2), label="Posterior "* L"p(\lambda|\mathcal{D})")
-	vline!([true_λ], label="true "*L"λ", lw=4)
-	vline!([mean(prior_λ)], label="prior mean", lw=2, lc=1, ls=:dash)
-	vline!([mean(posterior_λ)], label="posterior mean", lw=2, lc=2, ls=:dash)
+	plot!(posterior_ϕ, lw=2,fill=(0, 0.2), label="Posterior "* L"p(\phi|\mathcal{D})")
+	vline!([true_ϕ], label="true "*L"\phi", lw=4)
+	vline!([mean(prior_ϕ)], label="prior mean", lw=2, lc=1, ls=:dash)
+	vline!([mean(posterior_ϕ)], label="posterior mean", lw=2, lc=2, ls=:dash)
 	# vline!([1/σ²], label="true "*L"λ", lw=2)
 	# end
 end
 
 # ╔═╡ 2d7792cd-5b32-4228-bfef-e1ab250724f3
 md"""
-**Sequential update.** The conjugacy also provides us a computational cheap way to sequentially update the posterior. Due to the independence assumption, we do not need to calculate the posterior in one go.
+**Sequential update.** The conjugacy also provides us with a computationally cheap way to sequentially update the posterior. Due to the independence assumption, we do not need to calculate the posterior in one go.
 
 ```math
 \begin{align}
-p(\lambda|\{d_1, d_2, \ldots, d_N\})&\propto  p(\lambda) \prod_{n=1}^N p(d_n|\lambda) p(d_N|\lambda)\\
-&= \underbrace{p(\lambda) \prod_{n=1}^{N-1} p(d_n|\lambda)}_{p(\lambda|\mathcal D_{N-1})}\cdot p(d_N|\lambda)\\
-&= \underbrace{p(\lambda|\mathcal D_{N-1})}_{\text{new prior}} p(d_N|\lambda)
+p(\phi|\{d_1, d_2, \ldots, d_N\})&\propto  p(\phi) \prod_{n=1}^N p(d_n|\phi) p(d_N|\phi)\\
+&= \underbrace{p(\phi) \prod_{n=1}^{N-1} p(d_n|\phi)}_{p(\phi|\mathcal D_{N-1})}\cdot p(d_N|\phi)\\
+&= \underbrace{p(\phi|\mathcal D_{N-1})}_{\text{new prior}} p(d_N|\phi)
 \end{align}
 ```
-With observations up to ``N-1``, we obtain a posterior ``p(\lambda|\mathcal D_{N-1})``.
-The posterior now serves as the new prior to update the next observation ``d_N``. It can be shown that the final posterior sequentially updated this way is the same as the off-line posterior.
+With observations up to ``N-1``, we obtain a posterior ``p(\phi|\mathcal D_{N-1})``.
+The posterior now serves as the new prior waiting to be updated with the next observation ``d_N``. It can be shown that the final posterior sequentially updated this way is the same as the off-line posterior.
 
 To be more specific, the sequential update algorithm for the precision example is:
 
-Initialise with a prior ``p(\lambda|\emptyset)``;
+Initialise with a prior ``p(\phi|\varnothing)``;
 for ``n = 1,2,\ldots, N``
 * update ``a_n = a_{n-1} + 0.5 ``, ``b_n = b_{n-1} + 0.5 \cdot (d_n-\mu)^2``
 * report the posterior at ``n`` if needed
 
-To demonstrate the idea, check the following animatin. The posterior update starts from a vague prior. As more data observed and absorbed to the posterior, the posterior distribution is more and more informative and finally recover the ground truth.
+To demonstrate the idea, check the following animation. The posterior update starts from a vague prior. As more data is observed and absorbed into the posterior, the posterior distribution is more and more informative and finally recovers the ground truth.
 """
 
 # ╔═╡ 7ccd4caf-ef8f-4b78-801f-b000f5aad430
 let
-	plot(prior_λ, xlim = [0, 5], ylim=[0, 1.5], lw=2, fill=(0, 0.1), label="Prior "* L"p(\lambda)", xlabel=L"\lambda", ylabel="density", title="Sequential update N=0")
-	plot!(posterior_λ, lw=2, fill=(0, 0.1), label="Posterior "* L"p(\lambda|\mathcal{D})")
-	vline!([true_λ], label="true "*L"λ", lw=2, lc=3)
+	plot(prior_ϕ, xlim = [0, 5], ylim=[0, 1.5], lw=2, fill=(0, 0.1), label="Prior "* L"p(\phi)", xlabel=L"\phi", ylabel="density", title="Sequential update N=0")
+	plot!(posterior_ϕ, lw=2, fill=(0, 0.1), label="Posterior "* L"p(\phi|\mathcal{D})")
+	vline!([true_ϕ], label="true "*L"\phi", lw=2, lc=3)
 	anim=@animate for n in [(1:9)..., (10:10:N)...]
 		an = a₀ + n/2
 		bn = b₀ + sum(gaussian_data[1:n].^2)/2
@@ -455,7 +464,7 @@ The flexibility of introducing priors that reflect a modeller's local expert kno
 # ╔═╡ 3ca3ee53-c744-4474-a8da-6209ec5e6904
 md"""
 
-## More on Bayesian modelling
+## Likelihood model variants
 
 """
 
@@ -537,9 +546,9 @@ $$\mu \sim \mathcal N(m_0, v_0),$$
 
 To show our ignorance, we can set ``m_0=0`` (or the sample average) and ``v_0`` to a very large positive number, say 10,000. The prior then becomes a very flat vague distribution.
 
-It is more convenient to model the observation precision ``\lambda \triangleq 1/\sigma^2`` instead of variance ``\sigma^2``. Here we assume a Gamma prior for the precision parameter:
+It is more convenient to model the observation precision ``\phi \triangleq 1/\sigma^2`` instead of variance ``\sigma^2``. Here we assume a Gamma prior for the precision parameter:
 
-$$\lambda \sim \texttt{Gamma}(a_0, b_0)$$
+$$\phi \sim \texttt{Gamma}(a_0, b_0)$$
 
 Again, to show our ignorance, we can set ``a_0, b_0`` such that the distribution is as flat and vague as possible. A possible parameterisation is ``a_0=b_0=0.5.`` Note that Gamma is a distribution on the positive real line which has matching support for the precision parameter. 
 
@@ -547,8 +556,8 @@ To put them together, the full Bayesian model is:
 ```math
 \begin{align}
 \text{prior}: \mu &\sim \mathcal N(m_0=0, v_0=10000)\\
-\lambda &\sim \texttt{Gamma}(a_0=0.5, b_0=0.5)\\
-\text{likelihood}: d_n &\overset{\mathrm{i.i.d}}{\sim} \mathcal N(\mu, 1/\lambda) \;\; \text{for } n = 1,2,\ldots, 7.
+\phi &\sim \texttt{Gamma}(a_0=0.5, b_0=0.5)\\
+\text{likelihood}: d_n &\overset{\mathrm{i.i.d}}{\sim} \mathcal N(\mu, 1/\phi) \;\; \text{for } n = 1,2,\ldots, 7.
 \end{align}
 ```
 **Computation:**
@@ -556,33 +565,33 @@ After specifying the model, we need to apply Baye's rule to compute the posterio
 
 ```math
 \begin{align}
-p(\mu, \lambda|\mathcal D) &\propto p(\mu, \lambda) p(\mathcal D|\mu, \lambda) 
+p(\mu, \phi|\mathcal D) &\propto p(\mu, \phi) p(\mathcal D|\mu, \phi) 
 \\
-&= p(\mu)p(\lambda) p(\mathcal D|\mu, \lambda) \\
-&= p(\mu)p(\lambda) \prod_{n=1}^N p(d_n|\mu, \lambda);
+&= p(\mu)p(\phi) p(\mathcal D|\mu, \phi) \\
+&= p(\mu)p(\phi) \prod_{n=1}^N p(d_n|\mu, \phi);
 \end{align}
 ```
-where we have assumed the prior for ``\mu`` and ``\lambda`` are independent. Sub-in the definition of the prior and likelihood, we can plot the posterior.
+where we have assumed the prior for ``\mu`` and ``\phi`` are independent. Sub-in the definition of the prior and likelihood, we can plot the posterior.
 """
 
 # ╔═╡ d6056188-9a46-4b5f-801b-e028b6eb0b7f
 let
 	m₀, v₀ = 0, 10000
 	a₀, b₀ = 0.5, 0.5
-	function ℓπ(μ, λ; data)  
-		σ² = 1/λ
-		logprior = logpdf(Normal(m₀, v₀), μ) + logpdf(Gamma(a₀, 1/b₀), λ) 
+	function ℓπ(μ, ϕ; data)  
+		σ² = 1/ϕ
+		logprior = logpdf(Normal(m₀, v₀), μ) + logpdf(Gamma(a₀, 1/b₀), ϕ) 
 		logLik = sum(logpdf.(Normal(μ, sqrt(σ²)), data))
 		return logprior + logLik
 	end
 
-	plot(-13:0.05:20, 0:0.001:0.019, (x, y) -> exp(ℓπ(x, y; data=scientist_data)), st=:contour,fill=true, ylim=[0.001, 0.015], xlabel=L"μ", ylabel=L"λ", title="Contour plot of "*L"p(\mu, \lambda|\mathcal{D})")
+	plot(-13:0.05:20, 0:0.001:0.019, (x, y) -> exp(ℓπ(x, y; data=scientist_data)), st=:contour,fill=true, ylim=[0.001, 0.015], xlabel=L"μ", ylabel=L"\phi", title="Contour plot of "*L"p(\mu, \phi|\mathcal{D})")
 end
 
 # ╔═╡ bbbb73c8-0254-463a-8e81-5acdd08583ac
 md"""
 **Marginal posterior ``p(\mu|\mathcal D)``:**
-The posterior distribution shows the posterior peaks around ``\mu = 3.5``, which is roughly the same as the sample average. However, to better answer the question, we should treat ``\lambda`` as a *nuisance* parameter, and integrate it out to find the marginal posterior for ``\mu`` only. After some algebra, we find the unnormalised marignal posterior is of the form:
+The posterior distribution shows the posterior peaks around ``\mu = 3.5``, which is roughly the same as the sample average. However, to better answer the question, we should treat ``\phi`` as a *nuisance* parameter, and integrate it out to find the marginal posterior for ``\mu`` only. After some algebra, we find the unnormalised marginal posterior is of the form:
 
 ```math
 p(\mu|\mathcal D) \propto p(\mu)\cdot \Gamma\left (a_0+ \frac{N}{2}\right )\left (b_0+\frac{\sum_n (d_n-\mu)^2}{2}\right )^{- (a_0+ \frac{N}{2})},
@@ -637,16 +646,16 @@ md"""
 md"""
 
 **Modelling:**
-The i.i.d assumption does not reflect the sutblties of the data generation process. A better model should assume each observation follows an independent but not identical Gaussian distribution. In particular, for each scientist, we should introduce their own observation precision, ``\lambda_n \triangleq \sigma^2_n`` to reflect their "different levels of experimental skills".
+The i.i.d assumption does not reflect the subtleties of the data generation process. A better model should assume each observation follows an independent but not identical Gaussian distribution. In particular, for each scientist, we should introduce their own observation precision, ``\phi_n \triangleq \sigma^2_n`` to reflect their "different levels of experimental skills".
 
 
-The improved model now includes 7+1 unknown parameters: the unknown signal ``\mu`` and seven observation precisions ``\lambda_n`` for the seven scientists:
+The improved model now includes 7+1 unknown parameters: the unknown signal ``\mu`` and seven observation precisions ``\phi_n`` for the seven scientists:
 
 ```math
 \begin{align}
 \mu &\sim \mathcal N(m_0, v_0)\\
-\lambda_n &\sim \texttt{Gamma}(a_0, b_0)\;\; \text{for }n = 1,2,\ldots,7\\
-d_n &\sim \mathcal N(\mu, 1/\lambda_n)\;\; \text{for }n = 1,2,\ldots,7\\
+\phi_n &\sim \texttt{Gamma}(a_0, b_0)\;\; \text{for }n = 1,2,\ldots,7\\
+d_n &\sim \mathcal N(\mu, 1/\phi_n)\;\; \text{for }n = 1,2,\ldots,7\\
 \end{align}
 ```
 """
@@ -655,7 +664,7 @@ d_n &\sim \mathcal N(\mu, 1/\lambda_n)\;\; \text{for }n = 1,2,\ldots,7\\
 md"""
 **Computation:**
 
-Similarly, we want to find out the marginal posterior distribution. After integrating out the nuisance parameters ``\{\lambda_n\}`` from the posterior, we can find the marginal posterior is of the following form:
+Similarly, we want to find out the marginal posterior distribution. After integrating out the nuisance parameters ``\{\phi_n\}`` from the posterior, we can find the marginal posterior is of the following form:
 
 ```math
 p(\mu|\mathcal D) \propto p(\mu)\prod_{n=1}^N p(d_n|\mu) \propto p(\mu)\prod_{n=1}^N \frac{\Gamma{(a_n)}}{b_n^{a_n}},
@@ -702,17 +711,19 @@ end
 # ╔═╡ 0a8a5aae-3567-41a3-9f15-d07235d07da2
 md"""
 
-## Predictive checks
+## Check your models: Predictive checks
+
+Bayesian inference provides a great amount of modelling freedom to its user. The modeller, for example, can incorporate his or her expert knowledge in the prior distribution and also choose a suitable likelihood that best matches the data generation process. However, greater flexibility comes with a price. The modeller also needs to take full responsibility for the modelling decisions. For example, for a Bayesian model, one needs to check whether
+* the prior makes sense?
+* the generative model as a whole (i.e. prior plus likelihood) match the observed data? 
+In other words, the user needs to **validate the model** before making any final inference decisions. **Predictive checks** are a great way to empirically validate a model.
 """
 
 # ╔═╡ 8fe3ed2f-e826-4faa-ace0-2286b944991f
 md"""
 
 ### Posterior predictive check
-Bayesian inference provides a great amount of modelling freedom to its user. The modeller, for example, can incorporate his or her expert knowledge in the prior distribution and also choose a suitable likelihood that best matches the data generation process. However, greater flexibility comes with a price. The modeller also needs to take full responsibility for the modelling decisions. For example, for a Bayesian model, one needs to check whether
-* the prior makes sense? 
-* the generative model as a whole (i.e. prior plus likelihood) match the observed data? 
-In other words, the user needs to **validate the model** before making any final inference decisions. **Predictive checks** are a great way to empirically validate a model.
+
 
 The idea of predictive checks is to generate future *pseudo observations* based on the assumed model's (posterior) **prediction distribution**:
 
@@ -947,7 +958,7 @@ md"""
 
 [^1]: [MacKay, D. J. C. Information Theory, Inference, and Learning Algorithms. (Cambridge University Press, 2003).](https://www.inference.org.uk/itprnn/book.pdf)
 
-[^2]: Simulating predictive data for this case is bit more involved. The difficulty lies in simulating posterior samples from the posterior distribution: ``p(\mu, \{\lambda_n\}|\mathcal D)``. The joint distribution is not in any simple form. We need algorithms such as MCMC to draw samples from such a complicated posterior. MCMC will be introduced in the next chapter.
+[^2]: Simulating predictive data for this case is bit more involved. The difficulty lies in simulating posterior samples from the posterior distribution: ``p(\mu, \{\phi_n\}|\mathcal D)``. The joint distribution is not in any simple form. We need algorithms such as MCMC to draw samples from such a complicated posterior. MCMC will be introduced in the next chapter.
 """
 
 # ╔═╡ 83bf58df-e2d0-4552-98b7-29ce0ce5fb5e
@@ -998,16 +1009,16 @@ $$p(\theta|\mathcal D) =\text{Beta}(a_N, b_N).$$
 Foldable("Derivation details on the Gamma-Gaussian conjugacy.", md"
 ```math
 \begin{align}
- p(\lambda|\mathcal D)&\propto p(\lambda) p(\mathcal D|\mu, \lambda)\\
-&= \underbrace{\frac{b_0^{a_0}}{\Gamma(a_0)} \lambda^{a_0-1} e^{-b_0 \lambda}}_{p(\lambda)} \underbrace{\frac{1}{ (\sqrt{2\pi})^N}\lambda^{\frac{N}{2}}e^{\frac{-\lambda\cdot \sum_{n} (d_n-\mu)^2}{2}}}_{p(\mathcal D|\lambda, \mu)}\\
-&\propto \lambda^{a_0+\frac{N}{2}-1} \exp\left \{-\left (b_0 + \frac{\sum_{n} (d_n- \mu)^2}{2}\right )\lambda\right \} \\
-&= \lambda^{a_N-1} e^{- b_N \lambda}, 
+ p(\phi|\mathcal D)&\propto p(\phi) p(\mathcal D|\mu, \phi)\\
+&= \underbrace{\frac{b_0^{a_0}}{\Gamma(a_0)} \phi^{a_0-1} e^{-b_0 \phi}}_{p(\phi)} \underbrace{\frac{1}{ (\sqrt{2\pi})^N}\phi^{\frac{N}{2}}e^{\frac{-\phi\cdot \sum_{n} (d_n-\mu)^2}{2}}}_{p(\mathcal D|\phi, \mu)}\\
+&\propto \phi^{a_0+\frac{N}{2}-1} \exp\left \{-\left (b_0 + \frac{\sum_{n} (d_n- \mu)^2}{2}\right )\phi\right \} \\
+&= \phi^{a_N-1} e^{- b_N \phi}, 
 \end{align}
 ```
 where ``a_n= a_0 +\frac{N}{2}, \;\;b_N = b_0 + \frac{\sum_{n} (d_n- \mu)^2}{2}.`` Note this is a unnormalised Gamma distribution (whose normalising constant can be read off directly from a Gamma distribution), therefore 
 
 
-$$p(\lambda|\mathcal D)= \text{Gamma}(a_N, b_N).$$
+$$p(\phi|\mathcal D)= \text{Gamma}(a_N, b_N).$$
 
 ")
 
@@ -1015,22 +1026,22 @@ $$p(\lambda|\mathcal D)= \text{Gamma}(a_N, b_N).$$
 Foldable("Details on the posterior marginal distribution of μ.",  md"
 ```math
 \begin{align}
-p(\mu|\mathcal D) &= \int_0^\infty p(\mu, \lambda|\mathcal D) \mathrm{d}\lambda \\
-&= \int_0^\infty p(\mu, \lambda|\mathcal D) \mathrm{d}\lambda\\
-&= \frac{1}{p(\mathcal D)} \int_0^\infty p(\mu)p(\lambda) p(\mathcal D|\mu, \lambda)\mathrm{d}\lambda\\
-&\propto p(\mu)\int_0^\infty p(\lambda) p(\mathcal D|\mu, \lambda)\mathrm{d}\lambda\\
-&= p(\mu)\int_0^\infty \frac{b_0^{a_0}}{\Gamma(a_0)} \lambda^{a_0-1} e^{-b_0 \lambda} \frac{1}{ (\sqrt{2\pi})^N}\lambda^{\frac{N}{2}}e^{\frac{-\lambda\cdot \sum_{n} (d_n-\mu)^2}{2}}\mathrm{d}\lambda\\
-&\propto p(\mu)\int_0^\infty\lambda^{a_0+\frac{N}{2}-1} \exp\left \{-\left (b_0 + \frac{\sum_{n} (d_n- \mu)^2}{2}\right )\lambda\right \}\mathrm{d}\lambda \\
-&= p(\mu)\int_0^\infty\lambda^{a_N-1} e^{- b_N \lambda}\mathrm{d}\lambda \\
+p(\mu|\mathcal D) &= \int_0^\infty p(\mu, \phi|\mathcal D) \mathrm{d}\phi \\
+&= \int_0^\infty p(\mu, \phi|\mathcal D) \mathrm{d}\phi\\
+&= \frac{1}{p(\mathcal D)} \int_0^\infty p(\mu)p(\phi) p(\mathcal D|\mu, \phi)\mathrm{d}\phi\\
+&\propto p(\mu)\int_0^\infty p(\phi) p(\mathcal D|\mu, \phi)\mathrm{d}\phi\\
+&= p(\mu)\int_0^\infty \frac{b_0^{a_0}}{\Gamma(a_0)} \phi^{a_0-1} e^{-b_0 \phi} \frac{1}{ (\sqrt{2\pi})^N}\phi^{\frac{N}{2}}e^{\frac{-\phi\cdot \sum_{n} (d_n-\mu)^2}{2}}\mathrm{d}\phi\\
+&\propto p(\mu)\int_0^\infty\phi^{a_0+\frac{N}{2}-1} \exp\left \{-\left (b_0 + \frac{\sum_{n} (d_n- \mu)^2}{2}\right )\phi\right \}\mathrm{d}\phi \\
+&= p(\mu)\int_0^\infty\phi^{a_N-1} e^{- b_N \phi}\mathrm{d}\phi \\
 &= p(\mu)\frac{\Gamma(a_N)}{b_N^{a_N}},
 \end{align}
 ```
-where ``a_n= a_0 +\frac{N}{2}`` and ``b_N = b_0 + \frac{\sum_{n} (d_n- \mu)^2}{2}``. Note that we have used the normalising constant trick of Gamma distribution in the second last step, where we recognise ``\lambda^{a_N-1} e^{- b_N \lambda}`` is the unnormalised part of a Gamma distribution with ``a_N, b_N`` as parameters; Then the corresponding Gamma density must integrates to one:
+where ``a_n= a_0 +\frac{N}{2}`` and ``b_N = b_0 + \frac{\sum_{n} (d_n- \mu)^2}{2}``. Note that we have used the normalising constant trick of Gamma distribution in the second last step, where we recognise ``\phi^{a_N-1} e^{- b_N \phi}`` is the unnormalised part of a Gamma distribution with ``a_N, b_N`` as parameters; Then the corresponding Gamma density must integrate to one:
 
 ```math
-\int_{0}^\infty \frac{b_N^{a_N}}{\Gamma(a_N)}\lambda^{a_N-1} e^{- b_N \lambda}\mathrm{d}\lambda =1,
+\int_{0}^\infty \frac{b_N^{a_N}}{\Gamma(a_N)}\phi^{a_N-1} e^{- b_N \phi}\mathrm{d}\phi =1,
 ```
-which leads to ``\int_{0}^\infty \lambda^{a_N-1} e^{- b_N \lambda}\mathrm{d}\lambda= \frac{\Gamma(a_N)}{b_N^{a_N}}.``
+which leads to ``\int_{0}^\infty \phi^{a_N-1} e^{- b_N \phi}\mathrm{d}\phi= \frac{\Gamma(a_N)}{b_N^{a_N}}.``
 ")
 
 # ╔═╡ 15b09064-2c48-4013-8a08-c32e32d1f4df
@@ -1038,17 +1049,17 @@ Foldable("Derivation details on the marginal distribution.", md"
 
 To find the marginal posterior for ``\mu``, we need to find the following marginal likelihood for observation ``d_n``:
 
-$p(d_n|\mu) = \int p(\lambda_n) p(d_n|\mu, \lambda_n)\mathrm{d}\lambda_n,$
+$p(d_n|\mu) = \int p(\phi_n) p(d_n|\mu, \phi_n)\mathrm{d}\phi_n,$
 
-where we have assumed ``\mu, \lambda_n`` are independent, i.e. ``p(\lambda_n|\mu) = p(\lambda_n)``.
+where we have assumed ``\mu, \phi_n`` are independent, i.e. ``p(\phi_n|\mu) = p(\phi_n)``.
 
-The marginal likelihood is the normalising constant of the marginal posterior ``p(\lambda_n|d_n, \mu)``, since
+The marginal likelihood is the normalising constant of the marginal posterior ``p(\phi_n|d_n, \mu)``, since
 
-$$p(\lambda_n|d_n, \mu) = \frac{p(\lambda_n) p(d_n|\mu, \lambda_n)}{p(d_n|\mu)}.$$
+$$p(\phi_n|d_n, \mu) = \frac{p(\phi_n) p(d_n|\mu, \phi_n)}{p(d_n|\mu)}.$$
 
-Due to conjugacy, it can be shown that the conditional posterior of ``\lambda_n`` is of Gamma form 
+Due to conjugacy, it can be shown that the conditional posterior of ``\phi_n`` is of Gamma form 
 
-$p(\lambda_n|\mu, x_n) = \text{Gamma}(a_n, b_n),$ where
+$p(\phi_n|\mu, x_n) = \text{Gamma}(a_n, b_n),$ where
 $$a_n = a_0 + \frac{1}{2}, b_n = b_0+ \frac{1}{2} (d_n-\mu)^2.$$
 
 The normalising constant of the unnormalised posterior is therefore the corresponding Gamma distribution's normalising constant:
@@ -2415,8 +2426,9 @@ version = "1.4.1+0"
 """
 
 # ╔═╡ Cell order:
-# ╠═69b19a54-1c79-11ed-2a22-ebe65ccbfcdb
+# ╟─69b19a54-1c79-11ed-2a22-ebe65ccbfcdb
 # ╟─904c5f8d-e5a9-4f18-a7d7-b4561ad37655
+# ╟─613a65ce-9384-46ed-ab0d-abfda374f73c
 # ╟─5b4c3b01-bd19-4085-8a83-781086c85825
 # ╟─0c123e4e-e0ff-4c47-89d6-fdf514f9e9d0
 # ╟─f479a1f3-a008-4622-82f0-ab154a431a33
@@ -2433,7 +2445,7 @@ version = "1.4.1+0"
 # ╟─754c5fe2-3899-4467-8fd4-828fb0ec5040
 # ╠═f5dfcd1f-9d10-49d1-b68b-eafdf10baaec
 # ╟─2ba73fd3-ae2b-4347-863f-28e6c21e7a91
-# ╠═56e80a69-6f84-498d-b04e-5be59c1488eb
+# ╟─56e80a69-6f84-498d-b04e-5be59c1488eb
 # ╟─65f0dc31-c2bd-464f-983a-9f4ca2c04a35
 # ╟─d2c3bd6d-fb8c-41df-8112-c7bfbc180b0a
 # ╟─76c641dd-c790-4f51-abc0-e157c00e3ba7
