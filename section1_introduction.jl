@@ -9,7 +9,7 @@ begin
     using PlutoUI
 	using Distributions
 	using StatsPlots
-    using Random
+    using LogExpFunctions, Random
 	using LaTeXStrings
 	using Logging; Logging.disable_logging(Logging.Info);
 end;
@@ -47,11 +47,12 @@ There are two camps of statistical inferences: the **frequentist** and the **Bay
 
 Compared with the frequentist approach, Bayesian inference is procedurally standard. All Bayesian inferences start with a generative stochastic model that tells a story of how the data is generated and end with invoking Bayes' rule to find the updated distribution of the unknowns. In other words, as long as you can tell a story about your data, you can be a proper Bayesian statistician. 
 
-However, the same thing cannot be said for the Frequentist's method. Speaking for myself, I cannot recall the ANOVA, (or just choose any from the following: Frequentist's methods: MANOVA, ``\chi^2``,  Paired/Independent T-test) test procedure and I am still not very sure about how we need to carry out the steps. Not only being more flexible, if properly modelled, Bayesian inference often offers numerical stability, better-generalised performance, and natural interpretation.
+However, the same thing cannot be said for the Frequentist's method. Speaking for myself, I cannot recall the ANOVA's (or just choose any from the following: MANOVA, ``\chi^2``,  Paired/Independent T-test) test procedure. And I certainly have forgotten the derivation details behind the steps of those tests. 
 
-The benefits come with a price. Bayesian methods cannot be used like a black box. You do need to understand your data well to be able to come up with a good story (or a proper Bayesian model) first. And after the modelling, one also should be able to diagnose whether the inference algorithms are behaving well. In this course, we are going to learn the tools and techniques that are required for the Bayesian approach.
+Apart from flexibility, if properly specified, Bayesian inference offers more benefits: such as numerical stability, better-generalised performance, and natural interpretation. However, the benefits come with a price: Bayesian methods cannot be used like a black box (that said, neither should Frequentist methods or any scientific method). You do need to understand your data well to be able to come up with a good story (or a proper Bayesian model) first. And after the modelling, one also should be able to diagnose whether the inference algorithms are behaving well. However, modern computational tools, such as probabilistic programming language, make the hurdle easier to overcome.
 
-In this first chapter, we are going to have an overview of Bayesian inference. Firstly, we are going to review Bayes' theorem, which is the cornerstone of Bayesian inference. Next, the coin-tossing problem is used as an example to demonstrate how Bayesian inference is used in practice. To better understand the differences between the two inference camps, a frequentist's take is also shown. 
+
+In this first section, are going to have an overview of Bayesian inference. Firstly, we are going to review Bayes' theorem, which is the cornerstone of Bayesian inference. Next, the coin-tossing problem is used as an example to demonstrate how Bayesian inference is used in practice. To better understand the differences between the two inference camps, a frequentist's take is also shown. 
 """
 
 # ╔═╡ 300929c0-3279-47ef-b165-0e936b757679
@@ -240,36 +241,6 @@ To better understand the Bayesian inference procedure and also draw comparisons 
 We will first see how the frequentist approach solves the problem then the Bayesian method.
 """
 
-# ╔═╡ 14710249-9dc1-4a75-b0b3-25ac565452a5
-begin
-	head, tail = 1, 0
-	𝒟 = [head, head, head, tail, head, tail, head, head, head, tail]
-	h_total = sum(𝒟)
-	N = length(𝒟)
-	ℓ(θ, N, Nₕ) = θ^Nₕ * (1-θ)^(N-Nₕ)
-	θs = 0:0.1:1.0
-	likes = ℓ.(θs, N, h_total)
-end;
-
-# ╔═╡ be2a2acd-5633-45cc-ab8c-8a064324b287
-begin
-	cint_normal(n, k; θ=k/n, z=1.96) = max(k/n - z * sqrt(θ*(1-θ)/n),0), min(k/n + z * sqrt(θ*(1-θ)/n),1.0)
-	within_int(intv, θ=0.5) = θ<intv[2] && θ>intv[1]
-end;
-
-# ╔═╡ bd85c6ef-8623-4e06-8f7e-1e30927b25b7
-begin
-	Random.seed!(100)
-	θ_null = 0.5
-	n_exp = 100
-	trials = 10
-	outcomes = rand(Binomial(trials, θ_null), n_exp)
-	intvs = cint_normal.(trials, outcomes; z= 1.645)
-	true_intvs = within_int.(intvs)
-	ϵ⁻ = outcomes/trials .- [intvs[i][1] for i in 1:length(intvs)]
-	ϵ⁺ = [intvs[i][2] for i in 1:length(intvs)] .- outcomes/trials
-end;
-
 # ╔═╡ 32c1a567-0b61-4927-81fc-f66773ed3e05
 md"""
 
@@ -331,32 +302,10 @@ But what does the confidence interval mean here? Frequentist's methods assume ``
 The animation below illustrates the idea of a confidence interval. Conditional on the hypothesis that the coin is fair, i.e. ``\theta =0.5`` (it works for any ``\theta\in [0,1]``), the above two steps were repeated 100 times, *i.e.* tossing the coin ten times and then forming a confidence interval. The red vertical intervals (there are roughly 10 of them) are the 10% CIs that **do not** trap the true bias. 
 """
 
-# ╔═╡ b113a7ce-7e00-4df3-b1a4-4cf7af005aaf
-begin
-	p = hline([0.5], label=L"\mathrm{true}\;θ=0.5", color= 3, linestyle=:dash, linewidth=2,  xlabel="Experiments", ylim =[0,1])
-	@gif for i in 1:n_exp
-		k_ = outcomes[i]
-		# intv = cint_normal(trials, k_; z= 1.645)
-		# intv = intvs[i]
-		in_out = true_intvs[i]
-		col = in_out ? 1 : 2
-		θ̂ = k_/trials
-		scatter!([i], [θ̂],  label="", yerror= ([ϵ⁻[i]], [ϵ⁺[i]]), markerstrokecolor=col, color=col)
-	end
-end
-
 # ╔═╡ 1c64b953-5a3d-4a80-b523-8b8f213f6849
 md"""
 The final plot of the 100 confidence intervals is also listed below for your reference.
 """
-
-# ╔═╡ 8332304c-2264-46df-baf1-0a1070927152
-begin
-	first_20_intvs = true_intvs[1:100]
-	scatter(findall(first_20_intvs), outcomes[findall(first_20_intvs)]/trials, ylim= [0,1], yerror =(ϵ⁻[findall(first_20_intvs)], ϵ⁺[findall(first_20_intvs)]), label="true", markerstrokecolor=:auto, legend=:outerbottom,legendtitle = "true θ within CI ?")
-	scatter!(findall(.!first_20_intvs), outcomes[findall(.!first_20_intvs)]/trials, ylim= [0,1], yerror =(ϵ⁻[findall(.!first_20_intvs)],ϵ⁺[findall(.!first_20_intvs)]), label="false", markerstrokecolor=:auto)
-	hline!([0.5], label=L"\mathrm{true}\;θ=0.5", linewidth =2, linestyle=:dash, xlabel="Experiments")
-end
 
 # ╔═╡ 65b17042-1e16-4097-86c9-83c516de803d
 md"""
@@ -405,28 +354,6 @@ end)
 
 """
 
-# ╔═╡ 94ae916e-49fb-4426-b261-57b39599a4e7
-md"""
-
-**Step 2. Determine the likelihood function: ``p(\mathcal D|\theta)``**
-
-Next, we need to determine the likelihood function: how the observed data, ``\mathcal D``,  *is generated* conditional on ``\theta``. As shown earlier, a coin toss follows a Bernoulli distribution:
-
-$$p(d|\theta) = \begin{cases} \theta, & d = \texttt{h} \\ 1-\theta, & d= \texttt{t},\end{cases}$$
-
-Due to the independence assumption, the likelihood for ``\mathcal D`` is just the product:
-
-$$p(\mathcal D|\theta) = p(d_1|\theta)p(d_2|\theta)\ldots p(d_{10}|\theta)= \prod_{n=1}^{N} p(d_n|\theta) = \theta^{\sum_{n}d_n} (1-\theta)^{N-\sum_{n}d_n},$$
-
-For our case, we have observed ``N_h=\sum_n d_n = 7`` heads out of ``N=10`` total tosses, we can therefore evaluate the likelihood function at the pre-selected 11 values of $\theta$.
-
-$(begin
-	like_plt = 
-	Plots.plot(0:0.1:1.0, θ -> ℓ(θ, N, h_total), seriestype=:sticks, color=1, markershape=:circle, xlabel=L"θ", ylabel=L"p(𝒟|θ)", label="", title="Likelihood")
-end)
-
-"""
-
 # ╔═╡ 65ef62da-f095-4bb2-aa0f-120827bed6e0
 md"""
 
@@ -457,20 +384,6 @@ $$p(\theta|\mathcal D) = \frac{p(\mathcal D|\theta)}{\sum_{\theta} p(\mathcal D|
 The posterior update procedure is illustrated below. Note that the posterior is of the same shape as the likelihood (since a flat prior has been used). After observing the data, the posterior now centres around 0.7. But it seems 0.8 and 0.6 are also likely.
 """
 
-# ╔═╡ 009a824f-c26d-43e9-bb6d-fd538a19863b
-begin
-	l = @layout [a b; c]
-	posterior_dis = likes/ sum(likes)
-	post_plt = Plots.plot(0:0.1:1.0, posterior_dis, seriestype=:sticks, markershape=:circle, label="", color=2, title="Posterior", xlabel=L"θ", ylabel=L"p(θ|𝒟)", legend=:outerleft)
-	Plots.plot!(post_plt, 0:0.1:1.0, posterior_dis, color=2, label ="Posterior", fill=true, alpha=0.5)
-	Plots.plot!(post_plt, 0:0.1:1.0, 1/11 * ones(11), seriestype=:sticks, markershape=:circle, color =1, label="")
-	Plots.plot!(post_plt, 0:0.1:1.0, 1/11 * ones(11), color=1, label ="Prior", fill=true, alpha=0.5)
-	# Plots.plot!(post_plt, 0.5:0.1:0.9, posterior_dis[6:10], seriestype=:sticks, markershape=:circle, label="95% credible interval", legend=:topleft)
-	Plots.plot(prior_plt, like_plt, post_plt, layout=l)
-
-	
-end
-
 # ╔═╡ d31477e0-35b0-4968-bfbf-aefa727f3a41
 md"""
 
@@ -495,12 +408,62 @@ The fair coin hypothesis, i.e. $\theta=0.5$ is within the 90% HPDI. Therefore, w
 However, compared with Frequentist's confidence interval, **the credible interval is a probability statement about the unknown bias**: the coin's unknown bias is likely to lie within the range 0.5 to 0.9 with a probability of 0.9. 
 """
 
-# ╔═╡ 633ad986-dc19-4994-b04e-4ec34432dbf2
-begin
-	θs_refined = 0:0.01:1
-	posterior_dis_refined = ℓ.(θs_refined, N, h_total)
-	posterior_dis_refined ./= sum(posterior_dis_refined)
-end;
+# ╔═╡ cf054a9c-8617-4d22-a398-f73b2d57139f
+md"""
+
+## An extension: multiple parameter model
+
+"""
+
+# ╔═╡ 0ff3bf61-3bd3-449d-94d6-cd6abff3d41b
+md"""
+
+As mentioned earlier, the Bayesian approach is very flexible in dealing with customised problems. To demonstrate this, we consider an extension of the previous simple inference problem.
+
+Suppose now we have two coins ``A`` and ``B`` with unknown biases: ``0\leq \theta_A \leq 1, 0\leq\theta_B \leq 1``. The two coins are tossed ``N_A=10`` and ``N_B=100`` times, and the numbers of heads, ``N_{A,h}=9, N_{B,h}=89``, are recorded. Now the inference question is
+
+> Which coin has a larger bias?
+
+
+*Remarks. Judging from the empirical frequencies only, one may conclude that coin A has a higher probability of success since ``\frac{9}{10} > \frac{89}{100}``. However, this naive answer clearly does not take all possible uncertainties into account. Coin two's estimator clearly is more reliable and certain than coin one. To answer the question, the frequentist needs to start over to find a suitable test.* 
+"""
+
+# ╔═╡ 397e354d-dd17-4f66-a578-1b6374392953
+md"""
+
+**Step 4. Answer questions.**
+
+Bayesian inference can be used to answer questions directly. Rather than framing a null/alternative hypothesis and doing tests like what the frequentists do. We can instead frame the straight-to-the-point question as a posterior probability statement:
+*In light of the data, how likely coin ``A`` has a higher bias than coin ``B``?*, *i.e.*
+
+```math
+p(\theta_A > \theta_B|\mathcal{D}).
+```
+
+The probability can be calculated based on our posterior distribution by summing up the corresponding entries of the joint distribution table:
+
+```math
+p(\theta_A > \theta_B|\mathcal{D}) = \sum_{\theta_A > \theta_B:\;\theta_A,\theta_B\in \{0.0, \ldots 1.0\}^2} p(\theta_A, \theta_B|\mathcal{D})
+```
+
+"""
+
+# ╔═╡ e100c593-172c-4919-9e5b-b6dd612653f5
+
+
+md"For our problem, the posterior probability is: "
+
+# ╔═╡ c98177ca-e773-4f00-b27f-79ccb143a5c3
+md"""
+
+Figuratively, we are summing up the probability below the line ``\theta_A=\theta_B``, which corresponds to our query's condition. If one happens to want to know the chance that coin ``A``'s bias is twice (or ``k`` times) coin ``B``'s (imagine we are comparing two vaccine's effectiveness rather than two coins), the Bayesian approach can answer that immediately, while the frequentist would need to restart the inference all over again!
+
+```math
+p(\theta_A > 2\cdot \theta_B|\mathcal{D}) = \sum_{\theta_A > 2\cdot\theta_B} p(\theta_A, \theta_B|\mathcal{D})
+```
+
+
+"""
 
 # ╔═╡ bc4d9710-7e6c-4bc9-905b-7b3c0c8e9abe
 md"""
@@ -549,8 +512,106 @@ md"""
 md"""
 ## Appendix
 
-Code used for this chapter.
+Code used for this chapter (Folded).
 """
+
+# ╔═╡ 14710249-9dc1-4a75-b0b3-25ac565452a5
+begin
+	head, tail = 1, 0
+	𝒟 = [head, head, head, tail, head, tail, head, head, head, tail]
+	h_total = sum(𝒟)
+	N = length(𝒟)
+	function ℓ(θ, N, Nₕ; logLik=false) 
+		logℓ = xlogy(Nₕ, θ) + xlogy(N-Nₕ, 1-θ)
+		logLik ? logℓ : exp(logℓ)
+	end
+	θs = 0:0.1:1.0
+	likes = ℓ.(θs, N, h_total)
+end;
+
+# ╔═╡ 94ae916e-49fb-4426-b261-57b39599a4e7
+md"""
+
+**Step 2. Determine the likelihood function: ``p(\mathcal D|\theta)``**
+
+Next, we need to determine the likelihood function: how the observed data, ``\mathcal D``,  *is generated* conditional on ``\theta``. As shown earlier, a coin toss follows a Bernoulli distribution:
+
+$$p(d|\theta) = \begin{cases} \theta, & d = \texttt{h} \\ 1-\theta, & d= \texttt{t},\end{cases}$$
+
+Due to the independence assumption, the likelihood for ``\mathcal D`` is just the product:
+
+$$p(\mathcal D|\theta) = p(d_1|\theta)p(d_2|\theta)\ldots p(d_{10}|\theta)= \prod_{n=1}^{N} p(d_n|\theta) = \theta^{\sum_{n}d_n} (1-\theta)^{N-\sum_{n}d_n},$$
+
+For our case, we have observed ``N_h=\sum_n d_n = 7`` heads out of ``N=10`` total tosses, we can therefore evaluate the likelihood function at the pre-selected 11 values of $\theta$.
+
+$(begin
+	like_plt = 
+	Plots.plot(0:0.1:1.0, θ -> ℓ(θ, N, h_total), seriestype=:sticks, color=1, markershape=:circle, xlabel=L"θ", ylabel=L"p(𝒟|θ)", label="", title="Likelihood")
+end)
+
+"""
+
+# ╔═╡ 009a824f-c26d-43e9-bb6d-fd538a19863b
+begin
+	l = @layout [a b; c]
+	posterior_dis = likes/ sum(likes)
+	post_plt = Plots.plot(0:0.1:1.0, posterior_dis, seriestype=:sticks, markershape=:circle, label="", color=2, title="Posterior", xlabel=L"θ", ylabel=L"p(θ|𝒟)", legend=:outerleft)
+	Plots.plot!(post_plt, 0:0.1:1.0, posterior_dis, color=2, label ="Posterior", fill=true, alpha=0.5)
+	Plots.plot!(post_plt, 0:0.1:1.0, 1/11 * ones(11), seriestype=:sticks, markershape=:circle, color =1, label="")
+	Plots.plot!(post_plt, 0:0.1:1.0, 1/11 * ones(11), color=1, label ="Prior", fill=true, alpha=0.5)
+	# Plots.plot!(post_plt, 0.5:0.1:0.9, posterior_dis[6:10], seriestype=:sticks, markershape=:circle, label="95% credible interval", legend=:topleft)
+	Plots.plot(prior_plt, like_plt, post_plt, layout=l)
+
+	
+end
+
+# ╔═╡ 633ad986-dc19-4994-b04e-4ec34432dbf2
+begin
+	θs_refined = 0:0.01:1
+	posterior_dis_refined = ℓ.(θs_refined, N, h_total)
+	posterior_dis_refined ./= sum(posterior_dis_refined)
+end;
+
+# ╔═╡ be2a2acd-5633-45cc-ab8c-8a064324b287
+begin
+	cint_normal(n, k; θ=k/n, z=1.96) = max(k/n - z * sqrt(θ*(1-θ)/n),0), min(k/n + z * sqrt(θ*(1-θ)/n),1.0)
+	within_int(intv, θ=0.5) = θ<intv[2] && θ>intv[1]
+end;
+
+# ╔═╡ bd85c6ef-8623-4e06-8f7e-1e30927b25b7
+begin
+	Random.seed!(100)
+	θ_null = 0.5
+	n_exp = 100
+	trials = 10
+	outcomes = rand(Binomial(trials, θ_null), n_exp)
+	intvs = cint_normal.(trials, outcomes; z= 1.645)
+	true_intvs = within_int.(intvs)
+	ϵ⁻ = outcomes/trials .- [intvs[i][1] for i in 1:length(intvs)]
+	ϵ⁺ = [intvs[i][2] for i in 1:length(intvs)] .- outcomes/trials
+end;
+
+# ╔═╡ b113a7ce-7e00-4df3-b1a4-4cf7af005aaf
+begin
+	p = hline([0.5], label=L"\mathrm{true}\;θ=0.5", color= 3, linestyle=:dash, linewidth=2,  xlabel="Experiments", ylim =[0,1])
+	@gif for i in 1:n_exp
+		k_ = outcomes[i]
+		# intv = cint_normal(trials, k_; z= 1.645)
+		# intv = intvs[i]
+		in_out = true_intvs[i]
+		col = in_out ? 1 : 2
+		θ̂ = k_/trials
+		Plots.scatter!([i], [θ̂],  label="", yerror= ([ϵ⁻[i]], [ϵ⁺[i]]), markerstrokecolor=col, color=col)
+	end
+end
+
+# ╔═╡ 8332304c-2264-46df-baf1-0a1070927152
+begin
+	first_20_intvs = true_intvs[1:100]
+	Plots.scatter(findall(first_20_intvs), outcomes[findall(first_20_intvs)]/trials, ylim= [0,1], yerror =(ϵ⁻[findall(first_20_intvs)], ϵ⁺[findall(first_20_intvs)]), label="true", markerstrokecolor=:auto, legend=:outerbottom,legendtitle = "true θ within CI ?")
+	Plots.scatter!(findall(.!first_20_intvs), outcomes[findall(.!first_20_intvs)]/trials, ylim= [0,1], yerror =(ϵ⁻[findall(.!first_20_intvs)],ϵ⁺[findall(.!first_20_intvs)]), label="false", markerstrokecolor=:auto)
+	hline!([0.5], label=L"\mathrm{true}\;θ=0.5", linewidth =2, linestyle=:dash, xlabel="Experiments")
+end
 
 # ╔═╡ 5db12a02-7c7c-47f3-8bea-24e4b5d67cae
 # only works for uni-modal
@@ -575,7 +636,7 @@ function find_hpdi(ps, α = 0.95)
 		end
 	end
 	return l+1, u-1, cum_p
-end
+end;
 
 # ╔═╡ ccc239c6-327f-4905-9040-4a7b4a51e6e1
 begin
@@ -607,17 +668,15 @@ We can have a more refined discretisation of the parameter space. For example, w
 
 # ╔═╡ 8076bac8-6501-4792-8e8e-0f57e40cde4d
 begin
-	begin
-		struct Foldable{C}
-		    title::String
-		    content::C
-		end
-		
-		function Base.show(io, mime::MIME"text/html", fld::Foldable)
-		    write(io,"<details><summary>$(fld.title)</summary><p>")
-		    show(io, mime, fld.content)
-		    write(io,"</p></details>")
-		end
+	struct Foldable{C}
+		title::String
+		content::C
+	end
+	
+	function Base.show(io, mime::MIME"text/html", fld::Foldable)
+		write(io,"<details><summary>$(fld.title)</summary><p>")
+		show(io, mime, fld.content)
+		write(io,"</p></details>")
 	end
 end
 
@@ -639,11 +698,180 @@ Foldable("Why it is called normalising constant?*", md"It *normalises* the unnor
 
 $$\sum_\theta p(\theta|\mathcal D) =  \sum_\theta \frac{p(\theta) \cdot p(\mathcal D|\theta)}{p(\mathcal D)} = \sum_\theta \frac{p(\theta) \cdot p(\mathcal D|\theta)}{\sum_\theta p(\theta)\cdot p(\mathcal D|\theta)} = 1.$$")
 
+# ╔═╡ 657a73e1-88c7-4c4d-be22-410aeeb6ef40
+Foldable("More application of the two coin problem.", md"The above problem might look bizarre. But it offers a solution to a wide range of practical problems. One variant is an Amazon sellers' review problem. 
+
+
+!!! note \"Amazon review problem\"
+	There are two second-hand booksellers on Amazon. Seller A has sold 10 books in total and 7 out of the 10 are left with positive ratings; whereas seller B has 69 out of 100 positive reviews. Which seller is likely to be better? 
+
+It is not hard to see the connection between the two problems. Both problems can be modelled with the same stochastic model. And a Bayesian model can be specified as the followings.")
+
+# ╔═╡ 45973b16-a78e-4709-824d-9b319fae0683
+# let
+# using GLMakie
+# GLMakie.activate!()
+
+## using GeometryBasics
+
+# 	function peaks(; n=49)
+# 	    x = LinRange(0, 1, n)
+# 	    y = LinRange(0, 1, n)
+
+# 		ℓ_twos = [ℓ_two_coins(xi, yi; N₁=N₁, N₂=N₂, Nh₁=Nₕ₁, Nh₂=Nₕ₂, logLik=true) for xi in x, yi in y]
+# 		ps = exp.(ℓ_twos .- logsumexp(ℓ_twos))
+# 	    return (x, y, ps)
+# 	end
+	
+# 	x, y, z = peaks(; n=20)
+# 	δx = (x[2] - x[1]) / 2
+# 	δy = (y[2] - y[1]) / 2
+# 	z1 = ones(length(x), length(y)) .* (1/(length(x)*length(y)))
+# 	cbarPal = :Spectral_11
+# 	ztmp = (z .- minimum(z)) ./ (maximum(z .- minimum(z)))
+# 	cmap = get(colorschemes[cbarPal], ztmp)
+# 	cmap2 = reshape(cmap, size(z))
+# 	ztmp2 = abs.(z) ./ maximum(abs.(z)) .+ 0.15
+
+
+# 	function histogram_or_bars_in_3d()
+# 	    fig = Figure(resolution=(2000, 2000), fontsize=30)
+# 	    ax1 = Axis3(fig[1, 1]; aspect=(1, 1, 1), elevation=π/6,
+# 	        perspectiveness=0.4, xlabel=L"\theta_A", ylabel=L"\theta_B", zlabel="density")
+# 	    ax2 = Axis3(fig[2, 1]; aspect=(1, 1, 1), elevation=π/6, perspectiveness=0.4, xlabel=L"\theta_A", ylabel=L"\theta_B", zlabel="density")
+# 	    rectMesh = Rect3f(Vec3f(-0.5, -0.5, 0), Vec3f(1, 1, 1))
+# 	    meshscatter!(ax1, x, y, 0*z1, marker = rectMesh, color = z1[:],
+# 	        markersize = Vec3f.(1.5δx, 1.5δy, z1[:]), 
+# 	        shading=false,transparency=true)
+# 	    limits!(ax1, 0, 1, 0, 1, -0.02, maximum(z))
+# 	    meshscatter!(ax2, x, y, 0*z, marker = rectMesh, color = z[:],
+# 	        markersize = Vec3f.(1.5δx, 1.5δy, z[:]), 
+# 	        shading=false, transparency=true)
+# 		limits!(ax2, 0, 1, 0, 1, -0.02, maximum(z))
+# 	    # for (idx, i) in enumerate(x), (idy, j) in enumerate(y)
+# 	    #     rectMesh = Rect3f(Vec3f(i - δx, j - δy, 0), Vec3f(2δx, 2δy, z[idx, idy]))
+# 	    #     recmesh = GeometryBasics.mesh(rectMesh)
+# 	    #     lines!(ax2, recmesh; )
+# 	    # end
+# 	    fig
+# 	end
+# 	histogram_or_bars_in_3d()
+
+# end
+
+# ╔═╡ e93a7045-e652-433e-9444-2213b93b57d0
+begin
+	N₁, N₂ = 10, 100
+	Nₕ₁, Nₕ₂ = 9, 89
+	dis_size = 51
+	θ₁s, θ₂s = range(0, 1 , dis_size), range(0, 1 , dis_size)
+
+	function ℓ_two_coins(θ₁, θ₂; N₁=10, N₂=100, Nh₁=7, Nh₂=69, logLik=false)
+		logℓ = ℓ(θ₁, N₁, Nh₁; logLik=true) + ℓ(θ₂, N₂, Nh₂; logLik=true)
+		logLik ? logℓ : exp(logℓ)
+	end
+
+	ℓ_twos = [ℓ_two_coins(xi, yi; N₁=N₁, N₂=N₂, Nh₁=Nₕ₁, Nh₂=Nₕ₂, logLik=true) for xi in θ₁s, yi in θ₂s]
+	p𝒟 = exp(logsumexp(ℓ_twos))
+	ps = exp.(ℓ_twos .- logsumexp(ℓ_twos))
+	post_AmoreB = sum([ps[i,j] for j in 1:size(ps)[2] for i in (j+1):size(ps)[1]])
+end;
+
+# ╔═╡ 4db4b59e-d59b-4197-befd-0dfa9f703f64
+md"""
+
+### A two-parameter Bayesian model
+
+According to the problem statement, we now have a two-parameter model. The two unknowns are the two biases ``\theta_A,\theta_B``. The likelihood is simply the count of tosses and also the counts of heads: ``\mathcal{D} = \{N_A, N_B, N_{A,h}, N_{B,h}\}``.
+
+
+**Step 1. Prior for the unknown ``p(\theta_A, \theta_B)``.**
+
+Similar to the single coin model, we discrete the two parameters. Now the two-parameter can take any value in a grid of values: ``(\theta_A, \theta_B) \in \{0, 0.01, 0.02, \ldots, 1\}\times \{0, 0.01, 0.02, \ldots, 1\}.`` That means the tuple can take any ``101^2`` possible combinations of the discretised value pairs, such as ``(0.0, 0.0), (0.0, 0.01), (0.0, 0.02)`` and so on.
+
+To show our ignorance, we can further assume a uniform prior over the ``101^2`` choices, i.e.
+
+$$p(\theta_A, \theta_B) = \begin{cases} 1/11^2, & \theta_A,\theta_B \in \{0, 0.01, \ldots, 1.0\}^2 \\
+0, & \text{otherwise}; \end{cases}$$
+
+The prior distribution is shown below:
+
+$(begin
+p1 = Plots.plot(θ₁s, θ₂s,  (x,y) -> 1/(length(θ₁s)^2), st=:surface, xlabel=L"\theta_A", ylabel=L"\theta_B", ratio=1, xlim=[0,1], ylim=[0,1], zlim =[-0.003, maximum(ps)], colorbar=false, c=:plasma, alpha =0.2, zlabel="density", title="Prior")
+end)
+
+**Step 2. Determine the likelihood for ``p(\mathcal{D}|\theta_A, \theta_B)``**
+
+According to the problem statement, the two coins' tosses are all independent. The joint likelihood there is simply a product of two individual single coin's likelihoods.
+
+```math
+\begin{align}
+p(\mathcal{D}|\theta_A, \theta_B) &= p(\mathcal{D}_A|\theta_A) p(\mathcal{D}_B|\theta_B)\\
+
+&=\theta_A^{N_{A,h}}(1-\theta_A)^{N_A- N_{A,h}}\times\theta_B^{N_{B,h}}(1-\theta_B)^{N_B- N_{B,h}}
+\end{align}
+```
+
+We can evaluate the likelihood at the pre-selected ``101^2`` values of ``(\theta_A, \theta_B)`` pair.
+"""
+
+# ╔═╡ 92d267d5-e808-46a2-aa82-744e66cf5c76
+md"""
+
+
+After finishing specifying the model, what is left is to routinely apply Bayes' rule to find the posterior.
+
+**Step 3. Apply Bayes' rule to find the posterior**
+
+Note the prior is a constant, and the posterior is proportional to the likelihood:
+
+$$p(\theta_A, \theta_B|\mathcal D) \propto p(\theta_A, \theta_B)\cdot p(\mathcal D|\theta_A, \theta_B) = \frac{1}{11^2} \cdot p(\mathcal D|\theta_A, \theta_B).$$
+
+And the normalising constant $p(\mathcal D)$ is
+
+$$p(\mathcal D) = \sum_{\theta_A\in \{0.0, \ldots,1.0\}}\sum_{\theta_B\in \{0.0,\ldots, 1.0\}} p(\theta_A, \theta_B)\cdot p(\mathcal D|\theta_A, \theta_B).$$ 
+
+The updated posterior is plotted below. After observing the data, the posterior now centres around the (0.9, 0.89); however, the ``\theta_A``'s marginal distribution has a much heavier tail than the other, which makes perfect sense. 
+
+
+$(begin
+
+p2 = Plots.plot(θ₁s, θ₂s,  ps', st=:surface, xlabel=L"\theta_A", ylabel=L"\theta_B", ratio=1, xlim=[0,1], ylim=[0,1], zlim =[-0.003, maximum(ps)], colorbar=false, c=:plasma, zlabel="density", alpha=0.7, title="Posterior")
+
+end)
+"""
+
+# ╔═╡ a2fc25e6-e9e7-4ce7-9532-0449e6423545
+md"""
+The heatmap of the posterior density is also plotted for reference.
+
+$(begin
+
+Plots.plot(θ₁s, θ₂s,  ps', st=:heatmap, xlabel=L"\theta_A", ylabel=L"\theta_B", ratio=1, xlim=[0,1], ylim=[0,1], zlim =[-0.003, maximum(ps)], colorbar=false, c=:plasma, zlabel="density", alpha=0.7, title="Posterior's density heapmap")
+
+end)
+"""
+
+# ╔═╡ 78ad6108-8058-4c6e-b254-1b508dee2b6f
+L"p(\theta_A > \theta_B|\mathcal{D}) \approx %$(round(post_AmoreB, digits=2))"
+
+# ╔═╡ 86b7124e-5042-4f9f-91d7-31b8daad4f98
+begin
+	post_p =Plots.plot(θ₁s, θ₂s,  ps', st=:contour, xlabel=L"\theta_A", ylabel=L"\theta_B", ratio=1, xlim=[0,1], ylim=[0,1], colorbar=false, c=:thermal, framestyle=:origin)
+	plot!((x) -> x, lw=1, lc=:gray, label="")
+	equalline = Shape([(0., 0.0), (1,1), (1, 0)])
+	plot!(equalline, fillcolor = plot_color(:gray, 0.2), label=L"\theta_A>\theta_B", legend=:bottomright)
+	k=2
+	kline = Shape([(0., 0.0), (1,1/k), (1, 0)])
+	plot!(kline, fillcolor = plot_color(:gray, 0.5), label=L"\theta_A>%$(k)\cdot \theta_B", legend=:bottomright)
+end
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
+LogExpFunctions = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
@@ -652,6 +880,7 @@ StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
 [compat]
 Distributions = "~0.25.66"
 LaTeXStrings = "~1.3.0"
+LogExpFunctions = "~0.3.18"
 PlutoUI = "~0.7.39"
 StatsPlots = "~0.14.34"
 """
@@ -662,7 +891,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.0"
 manifest_format = "2.0"
-project_hash = "1f21bd69bc5be33b7eb46b5234ff6dcf3d5a301d"
+project_hash = "ce70ec3d65e8ec0ccfd0a42d75cc8637eff8925b"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
@@ -867,6 +1096,11 @@ git-tree-sha1 = "bad72f730e9e91c08d9427d5e8db95478a3c323d"
 uuid = "2e619515-83b5-522b-bb60-26c02a35a201"
 version = "2.4.8+0"
 
+[[deps.Extents]]
+git-tree-sha1 = "5e1e4c53fa39afe63a7d356e30452249365fba99"
+uuid = "411431e0-e8b7-467b-b5e0-f676ba4f2910"
+version = "0.1.1"
+
 [[deps.FFMPEG]]
 deps = ["FFMPEG_jll"]
 git-tree-sha1 = "b57e3acbe22f8484b4b5ff66a7499717fe1a9cc8"
@@ -948,11 +1182,17 @@ git-tree-sha1 = "3a233eeeb2ca45842fe100e0413936834215abf5"
 uuid = "d2c73de3-f751-5644-a686-071e5b155ba9"
 version = "0.64.4+0"
 
+[[deps.GeoInterface]]
+deps = ["Extents"]
+git-tree-sha1 = "fb28b5dc239d0174d7297310ef7b84a11804dfab"
+uuid = "cf35fbd7-0cd7-5166-be24-54bfbe79505f"
+version = "1.0.1"
+
 [[deps.GeometryBasics]]
-deps = ["EarCut_jll", "IterTools", "LinearAlgebra", "StaticArrays", "StructArrays", "Tables"]
-git-tree-sha1 = "83ea630384a13fc4f002b77690bc0afeb4255ac9"
+deps = ["EarCut_jll", "GeoInterface", "IterTools", "LinearAlgebra", "StaticArrays", "StructArrays", "Tables"]
+git-tree-sha1 = "a7a97895780dab1085a97769316aa348830dc991"
 uuid = "5c1252a2-5f33-56bf-86c9-59e7332b4326"
-version = "0.4.2"
+version = "0.4.3"
 
 [[deps.Gettext_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Libiconv_jll", "Pkg", "XML2_jll"]
@@ -1188,9 +1428,9 @@ uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [[deps.LogExpFunctions]]
 deps = ["ChainRulesCore", "ChangesOfVariables", "DocStringExtensions", "InverseFunctions", "IrrationalConstants", "LinearAlgebra"]
-git-tree-sha1 = "09e4b894ce6a976c354a69041a04748180d43637"
+git-tree-sha1 = "94d9c52ca447e23eac0c0f074effbcd38830deb5"
 uuid = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
-version = "0.3.15"
+version = "0.3.18"
 
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
@@ -1848,9 +2088,6 @@ version = "0.9.1+5"
 # ╟─fcb0fab4-d2f7-411f-85f6-0db536f8ee5a
 # ╟─481044fe-07ea-4118-83d8-e9f287406d10
 # ╟─198e2787-4901-4478-a092-a84410ad2dd5
-# ╟─14710249-9dc1-4a75-b0b3-25ac565452a5
-# ╟─bd85c6ef-8623-4e06-8f7e-1e30927b25b7
-# ╟─be2a2acd-5633-45cc-ab8c-8a064324b287
 # ╟─32c1a567-0b61-4927-81fc-f66773ed3e05
 # ╟─ff41d114-0bd4-41ea-9c22-b6af52b3fa21
 # ╟─ccd3bb12-02a9-4593-b53c-d7081c4e743f
@@ -1872,10 +2109,26 @@ version = "0.9.1+5"
 # ╟─8f46fde2-c906-4d2f-804d-0ae83fb4c87f
 # ╟─633ad986-dc19-4994-b04e-4ec34432dbf2
 # ╟─954ea5d8-ba25-44b9-ac7b-7d3e683cc8e0
+# ╟─cf054a9c-8617-4d22-a398-f73b2d57139f
+# ╟─0ff3bf61-3bd3-449d-94d6-cd6abff3d41b
+# ╟─657a73e1-88c7-4c4d-be22-410aeeb6ef40
+# ╟─4db4b59e-d59b-4197-befd-0dfa9f703f64
+# ╟─92d267d5-e808-46a2-aa82-744e66cf5c76
+# ╟─a2fc25e6-e9e7-4ce7-9532-0449e6423545
+# ╟─397e354d-dd17-4f66-a578-1b6374392953
+# ╟─e100c593-172c-4919-9e5b-b6dd612653f5
+# ╟─78ad6108-8058-4c6e-b254-1b508dee2b6f
+# ╟─c98177ca-e773-4f00-b27f-79ccb143a5c3
+# ╟─86b7124e-5042-4f9f-91d7-31b8daad4f98
 # ╟─bc4d9710-7e6c-4bc9-905b-7b3c0c8e9abe
 # ╟─66159a91-6a82-4a52-b3fb-9749bb66d4e2
 # ╟─6a49bd7b-1211-4480-83a3-ca87e26f9b97
-# ╠═5db12a02-7c7c-47f3-8bea-24e4b5d67cae
+# ╟─14710249-9dc1-4a75-b0b3-25ac565452a5
+# ╟─bd85c6ef-8623-4e06-8f7e-1e30927b25b7
+# ╟─be2a2acd-5633-45cc-ab8c-8a064324b287
+# ╟─5db12a02-7c7c-47f3-8bea-24e4b5d67cae
 # ╟─8076bac8-6501-4792-8e8e-0f57e40cde4d
+# ╟─45973b16-a78e-4709-824d-9b319fae0683
+# ╟─e93a7045-e652-433e-9444-2213b93b57d0
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
