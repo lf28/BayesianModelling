@@ -519,10 +519,10 @@ end
 
 # ╔═╡ 024ce64f-29ef-49f2-a66f-87c2d4eb67a7
 md"""
-*Remarks. Based on the plot, scientists C,D,E,F,G all made similar measurements. Scientists A, B's experimental skills seem questionable. This is a problem in which the frequentist method should find challenging. If all 7 measurements were observed by one scientist or scientists with a similar level of experimental skill, the sample mean: 
+*Remarks. Based on the plot, scientists C, D, E, F, and G all made similar measurements. Scientists A and B's experimental skills seem questionable. This is a problem that the frequentist method should find challenging. If all 7 measurements were observed by one scientist or scientists with a similar level of experimental skill, the sample mean: 
 $$\frac{\sum_n d_n}{N} \approx 3.46$$ 
 would have been a good estimator. 
-An ad hoc remedy is probably to treat the first two observations as outliers and take an average over the rest of 5 measurements. This remedy is lack formal justification and does not scale well with problems with a lot of measurements. One cannot check every observation individually.*
+An ad hoc remedy is probably to treat the first two observations as outliers and take an average over the rest of the 5 measurements. This remedy lacks formal justification and does not scale well with a larger dataset.*
 
 """
 
@@ -531,12 +531,12 @@ md"""
 
 ### A bad Bayesian model
 
-**Modelling**
-One possible model is to ignore the sutblies and reuse our coin-flipping model's assumption. Since the observed data is real-valued, we only need to replace a Bernoulli likelihood with a Gaussian. We then assume observations ``d_n`` are i.i.d distributed with a Gaussian 
+**Modelling**:
+One possible model is to ignore the subtleties and reuse our coin-flipping model's assumption. Since the observed data is real-valued, we only need to replace a Bernoulli likelihood with a Gaussian. We then assume observations ``d_n`` are i.i.d distributed with a Gaussian 
 
 $$d_n \overset{\mathrm{i.i.d}}{\sim} \mathcal N(\mu, \sigma^2),$$
 
-where the mean is the unknown signal ``\mu`` and a shared ``\sigma^2`` is the observation variance. The model implies each scientist's observation is the true signal ``\mu`` plus some Gaussian distributed observation noise.
+where the mean is the unknown signal ``\mu`` and a shared ``\sigma^2`` is the observed variance. The model implies each scientist's observation is the true signal ``\mu`` plus some Gaussian distributed observation noise.
 
 To specify a Bayesian model, we need to continue to specify a prior model for the two unknowns ``\mu``, ``\sigma^2``. For computational convenience, we assume a Gaussian prior for the signal ``\mu``:
 
@@ -727,7 +727,7 @@ md"""
 
 The idea of predictive checks is to generate future *pseudo observations* based on the assumed model's (posterior) **prediction distribution**:
 
-$$\mathcal{D}^{(r)} \sim p(\mathcal D_{pred}|\mathcal D, \mathcal M), \;\; \text{for }r= 1\ldots, R$$ 
+$$\mathcal{D}^{(r)} \sim p(\mathcal D_{\textit{pred}}|\mathcal D, \mathcal M), \;\; \text{for }r= 1\ldots, R$$ 
 
 where ``\mathcal D`` is the observed data and ``\mathcal M`` denotes the Bayesian model. Note that the posterior predictive distribution indicates what future data might look like, given the observed data and our model. If the model assumptions (both the prior and likelihood) are reasonable, we should expect the generated pseudo data agree with the observed. 
 
@@ -842,7 +842,7 @@ end
 
 # ╔═╡ 858d3a5f-053d-4282-83f7-ff33ad8b5f58
 md"""
-**A model with mis-specified prior.** Predictive checks can identify potential problems in a misspecified model. Suppose the modeller has mistakenly specified a very strong informative prior:
+**A model with misspecified prior.** Predictive checks can identify potential problems in a misspecified model. Suppose the modeller has mistakenly used a very strongly informative prior:
 
 $$\theta \sim \text{Beta}(50, 1),$$
 
@@ -874,7 +874,7 @@ It can be observed that the prior (blue curve) has a strong belief that the coin
 # ╔═╡ 97f2393d-d433-40b6-8189-61f0aace3760
 md"""
 
-Predictive checks can spot the problem for us. Let's first use the prior predictive check. The figure below shows the prior predictive check result. 5000 pseudo data sample were simulated from the prior predictive distribution. It can be observed that the observed count of heads ``N_h=7`` has zero probability of being generated from the prior.
+Predictive checks can spot the problem for us. Let's first use the prior predictive check. The figure below shows the prior predictive check result. 5000 pseudo-data samples were simulated from the prior predictive distribution. It can be observed that the observed count of heads ``N_h=7`` has a near zero probability of being generated from the prior.
 
 """
 
@@ -911,7 +911,7 @@ md"""
 # ╔═╡ 83f3ee86-567b-4998-9216-2cca4bdaad0a
 md"""
 
-As a final example, we revisit the seven scientist problem and carry out model checks on the two models: the one with an oversimplified i.i.d assumption and also the better one. Instead of computing summary statistics on the predicted pseudo data, we can also simply check their empirical distributions. One possibility is to plot the fitted kernel density estimation (KDE) of the observed and simulated data and check their discrepancy.
+As a final example, we revisit the seven-scientist problem and carry out model checks on the two models: the one with an oversimplified i.i.d assumption and also the better one. Instead of computing summary statistics on the predicted pseudo data, we can also simply check their empirical distributions. One possibility is to plot the fitted **k**ernel **d**ensity **e**stimation (KDE) of the observed and simulated data and check their discrepancy.
 """
 
 # ╔═╡ 9790024a-6cc8-47fe-892e-9ce32d7399a5
@@ -969,17 +969,15 @@ md"""
 
 # ╔═╡ a30e54cb-b843-428b-b2f0-f5cf84961ce0
 begin
-	begin
-		struct Foldable{C}
-		    title::String
-		    content::C
-		end
-		
-		function Base.show(io, mime::MIME"text/html", fld::Foldable)
-		    write(io,"<details><summary>$(fld.title)</summary><p>")
-		    show(io, mime, fld.content)
-		    write(io,"</p></details>")
-		end
+	struct Foldable{C}
+		title::String
+		content::C
+	end
+	
+	function Base.show(io, mime::MIME"text/html", fld::Foldable)
+		write(io,"<details><summary>$(fld.title)</summary><p>")
+		show(io, mime, fld.content)
+		write(io,"</p></details>")
 	end
 end
 
@@ -1083,7 +1081,7 @@ Then conditional on ``\theta``, simulate pseudo observation:
 
 Due to the independence assumption, the joint can be factored as: 
 
-$$p(\theta, \mathcal D_{pred}|\mathcal D, \mathcal M)= p( \mathcal D_{pred}|\theta, \mathcal M)p(\theta|\mathcal D, \mathcal M).$$
+$$p(\theta, \mathcal D_{pred}|\mathcal D, \mathcal M)= p( \mathcal D_{pred}|\theta, \cancel{\mathcal{D}},\mathcal M)p(\theta|\mathcal D, \mathcal M).$$
 
 As a result, the tuple ``\tilde\theta, \tilde{\mathcal{D}}`` is actually drawn from the joint distribution:
 
