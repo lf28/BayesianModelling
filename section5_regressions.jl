@@ -514,9 +514,44 @@ For both examples we have seen so far, the Bayesian method and the frequentist's
 To demonstrate the flexibility of the Bayesian approach, we are going to make improvements to the Advertising data's regression model. Here, we consider the effect of *TV* on *sales* only.
 """
 
+# ╔═╡ 9cb32dc0-8c0c-456e-bbcb-7ff6ae63da60
+ols_tv = lm(@formula(sales ~ TV), Advertising);
+
+# ╔═╡ 2e7f780e-8850-446e-97f8-51ec26f5e36a
+let
+	plt=@df Advertising scatter(:TV, :sales, xlabel="TV", ylabel="Sales", label="")
+	xis = [25, 150, 280]
+	σ²0 = [5, 12, 30]
+	pred(x) = coef(ols_tv)' * [1, x]
+	for i in 1:length(xis)
+		x = xis[i]
+		μi = pred(x)
+		xs_ = μi-2*sqrt(σ²0[i]):0.01:μi+2*sqrt(σ²0[i])
+		ys_ = pdf.(Normal(μi, sqrt(σ²0[i])), xs_)
+		ys_ = 20 * ys_ ./ maximum(ys_)
+		plot!(ys_ .+x, xs_, c=2, label="", linewidth=2)
+	end
+	plt
+end
+
 # ╔═╡ 65d702d6-abec-43a1-89a8-95c30b3e748a
 md"It can be observed that the observation noise's scale ``\sigma^2`` is not constant across the horizontal axis. With a larger investment on TV, the sales are increasing but also the variance of the sales (check the two Gaussians' scales at two ends of the axis). Therefore, the old model which assumes a constant observation variance scale is not a good fit for the data. 
 "
+
+# ╔═╡ 611ad745-f92d-47ac-8d58-6f9baaf3077c
+let
+	# error = Advertising.sales - [ones(length(Advertising.TV)) Advertising.TV] * coef(ols_tv)
+	# σ²_ml = sum(error.^2) / (length(Advertising.sales)-2)
+	pred(x) = coef(ols_tv)' * [1, x]
+	@df Advertising scatter(:TV, :sales, xlabel="TV", ylabel="Sales", label="")
+	plot!(0:1:300, pred, lw=2, lc=2, label="OLS", legend=:topleft)
+	test_data = DataFrame(TV= 0:300)
+	pred_ = predict(ols_tv, test_data, interval = :prediction, level = 0.9)
+	# plot!(0:1:300, (x) -> pred(x) + 2 * , lw=2, label="OLS", legend=:topleft)
+	# plot!(0:1:300, pred, lw=2, label="OLS", legend=:topleft)
+	plot!(0:300, pred_.prediction, linewidth = 0.1,
+        ribbon = (pred_.prediction .- pred_.lower, pred_.upper .- pred_.prediction), label=L"90\% "* " OLS prediction interval")
+end
 
 # ╔═╡ ddb0d87e-cf0a-4b09-9bb6-4ee267fcdb9d
 md"""
@@ -603,44 +638,6 @@ end;
 
 # ╔═╡ cece17c2-bacb-4b4a-897c-4116688812c6
 describe(chain2)
-
-# ╔═╡ c1e96563-849a-415a-b28a-b45b3a9548bb
-ols_tv = lm(@formula(sales ~ TV), Advertising)
-
-# ╔═╡ 2e7f780e-8850-446e-97f8-51ec26f5e36a
-let
-	plt=@df Advertising scatter(:TV, :sales, xlabel="TV", ylabel="Sales", label="")
-	xis = [25, 150, 280]
-	σ²0 = [5, 12, 30]
-	pred(x) = coef(ols_tv)' * [1, x]
-	for i in 1:length(xis)
-		x = xis[i]
-		μi = pred(x)
-		xs_ = μi-2*sqrt(σ²0[i]):0.01:μi+2*sqrt(σ²0[i])
-		ys_ = pdf.(Normal(μi, sqrt(σ²0[i])), xs_)
-		ys_ = 20 * ys_ ./ maximum(ys_)
-		plot!(ys_ .+x, xs_, c=2, label="", linewidth=2)
-	end
-	plt
-end
-
-# ╔═╡ 611ad745-f92d-47ac-8d58-6f9baaf3077c
-let
-	error = Advertising.sales - [ones(length(Advertising.TV)) Advertising.TV] * coef(ols_tv)
-	σ²_ml = sum(error.^2) / (length(Advertising.sales)-2)
-	pred(x) = coef(ols_tv)' * [1, x]
-	@df Advertising scatter(:TV, :sales, xlabel="TV", ylabel="Sales", label="")
-	plot!(0:1:300, pred, lw=2, lc=2, label="OLS", legend=:topleft)
-	test_data = DataFrame(TV= 0:300)
-	pred_ = predict(ols_tv, test_data, interval = :prediction, level = 0.9)
-	# plot!(0:1:300, (x) -> pred(x) + 2 * , lw=2, label="OLS", legend=:topleft)
-	# plot!(0:1:300, pred, lw=2, label="OLS", legend=:topleft)
-	plot!(0:300, pred_.prediction, linewidth = 0.1,
-        ribbon = (pred_.prediction .- pred_.lower, pred_.upper .- pred_.prediction), label=L"90\% "* " OLS prediction interval")
-end
-
-# ╔═╡ 62582b10-924c-4ab8-9c2a-efa45c3ce57c
-error=Advertising.sales - [ones(length(Advertising.TV)) Advertising.TV] * coef(ols_tv)
 
 # ╔═╡ 29175b82-f208-4fcf-9704-4a1996cc6e3c
 plot(chain2)
@@ -2712,6 +2709,7 @@ version = "0.9.1+5"
 # ╟─6a330f81-f581-4ccd-8868-8a5b22afe9b8
 # ╠═b1f6c262-1a2d-4973-bd1a-ba363bcc5c41
 # ╟─659a3760-0a18-4a95-8168-fc6ca237c4d5
+# ╟─9cb32dc0-8c0c-456e-bbcb-7ff6ae63da60
 # ╟─2e7f780e-8850-446e-97f8-51ec26f5e36a
 # ╟─65d702d6-abec-43a1-89a8-95c30b3e748a
 # ╟─611ad745-f92d-47ac-8d58-6f9baaf3077c
@@ -2721,8 +2719,6 @@ version = "0.9.1+5"
 # ╠═08c52bf6-0920-43e7-92a9-275ed298c9ac
 # ╠═11021fb7-b072-46ac-8c23-f92825182c8c
 # ╠═cece17c2-bacb-4b4a-897c-4116688812c6
-# ╠═c1e96563-849a-415a-b28a-b45b3a9548bb
-# ╠═62582b10-924c-4ab8-9c2a-efa45c3ce57c
 # ╠═29175b82-f208-4fcf-9704-4a1996cc6e3c
 # ╟─05b90ddb-8479-4fbf-a469-d5b0bf4a91c8
 # ╠═2d7f773e-9fa1-475d-9f74-c13908209aeb
