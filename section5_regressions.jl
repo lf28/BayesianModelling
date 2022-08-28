@@ -60,7 +60,7 @@ The Frequentist's model above can also be equivalently written as:
 ```math
 p(y_n|\mathbf{x}_n, \boldsymbol{\beta}, \sigma^2) = \mathcal{N}(y_n; \beta_0+\mathbf{x}_n^\top \boldsymbol{\beta}_1, \sigma^2),
 ```
-where ``\boldsymbol{\beta}^\top = [\beta_0, \boldsymbol{\beta}_1]`` is used to denote the both the intercept and regression parameters. In other words, a **likelihood model** for the observed data ``\mathbf{y} = \{y_n\}`` for ``n=1,\ldots, N``. And each ``y_n`` is Gaussian distributed with mean $\beta_0+\mathbf{x}_n^\top \boldsymbol{\beta}$ and variance $\sigma^2$. The model also assumes the independent variables ``\mathbf{x}_n`` are fixed (i.e. non-random).
+where ``\boldsymbol{\beta}^\top = [\beta_0, \boldsymbol{\beta}_1]`` is used to denote the both the intercept and regression parameters. In other words, a **likelihood model** for the observed data ``\mathbf{y} = \{y_n\}`` for ``n=1,\ldots, N``. And each ``y_n`` is Gaussian distributed with mean $\beta_0+\mathbf{x}_n^\top \boldsymbol{\beta}_1$ and variance $\sigma^2$. The model also assumes the independent variables ``\mathbf{x}_n`` are fixed (i.e. non-random).
 
 By using matrix notation, the above model can be compactly written as:
 
@@ -198,41 +198,67 @@ let
 	plot!(-5:0.1:25, (x) -> pdf(truncated(Cauchy(0, 10), lower=0), x), lw=1.5, label=L"\texttt{HalfCauchy}(10.0)")
 end
 
-# ╔═╡ 59dd8a13-89c6-4ae9-8546-877bb7992570
+# ╔═╡ d3f4ac7b-1482-4840-b24b-d08066d1d70c
 md"""
-### Regression analysis with `Turing`
-Together with the likelihood function, we have a fully specified Bayesian model. We consider the simple linear regression in which there is only one predictor, i.e. ``D=1`` first. The corresponding Bayesian model can be written as 
 
+The full Bayesian model is summarised below.
 
 
 !!! infor "Bayesian linear regression"
 	```math
 	\begin{align}
 	\text{Priors: }\;\;\;\;\;\;\beta_0 &\sim \mathcal{N}(0, v_0^{\beta_0})\\
-	\beta_1 &\sim \mathcal{N}(0, v_0^{\beta_1})\\
+	\boldsymbol{\beta}_1 &\sim \mathcal{N}(0, \mathbf{V}_0^{\boldsymbol{\beta}_1 })\\
 	\sigma^2 &\sim \texttt{HalfCauchy}(s_0) \\
 	\text{Likelihood: }\;\;\text{for } n &= 1,2,\ldots, N:\\
-	\mu_n &=\beta_0 + \beta_1 x_n \\
+	\mu_n &=\beta_0 + \boldsymbol{\beta}_1^\top  \mathbf{x}_n \\
 	y_n &\sim \mathcal{N}(\mu_n, \sigma^2).
 	\end{align}
 	```
+"""
 
+# ╔═╡ 59dd8a13-89c6-4ae9-8546-877bb7992570
+md"""
+### Bayesian simple linear regression with `Turing`
+
+Now we move on to show how `Turing` can be used to do the inference. For simplicity, we consider simple linear regression first, *i.e.* regression with one predictor. The corresponding Bayesian model can be written as 
+
+
+```math
+\begin{align}
+\text{Priors: }\;\;\;\;\;\;\beta_0 &\sim \mathcal{N}(0, v_0^{\beta_0})\\
+\beta_1 &\sim \mathcal{N}(0, v_0^{\beta_1})\\
+\sigma^2 &\sim \texttt{HalfCauchy}(s_0) \\
+\text{Likelihood: }\;\;\text{for } n &= 1,2,\ldots, N:\\
+\mu_n &=\beta_0 + \beta_1 x_n \\
+y_n &\sim \mathcal{N}(\mu_n, \sigma^2).
+\end{align}
+```
+
+Compared with the general model, we have just replaced all the multivariate assumptions for ``\beta_1`` with its uni-variant equivalent.
 """
 
 # ╔═╡ 632575ce-a1ce-4a36-95dc-010229367446
 md"""
 
-The above model can almost be translated to `Turing` literally. Note that ``\texttt{HalfCauchy}`` distribution is a Cauchy distribution truncated from zero onwards, which can be implemented in `Julia` by:
+The model can be "translated" to `Turing` literally. Note that ``\texttt{HalfCauchy}`` distribution is a Cauchy distribution truncated from zero onwards, which can be implemented in `Julia` by:
 
 ```julia
 truncated(Cauchy(0, s₀), lower=0)  # HalfCauchy distribution with mean 0 and scale s₀ 
 ```
+"""
 
-We have also used very weak priors for all the parameters. For example, the ``\texttt{HalfCauchy}(s_0=5)`` prior (check the ``\texttt{HalfCauchy}`` plot above) for ``\sigma^2`` easily covers the true value, which is ``0.5``. 
+# ╔═╡ c0f926f1-85e6-4d2c-8e9a-26cd099fd600
+md"""
+
+In terms of the prior parameters, we have set weak priors as default. For example, the ``\texttt{HalfCauchy}(s_0=5)`` prior for ``\sigma^2`` easily covers the true value, which is ``0.5``. 
+
+And the prior variances of the regression parameters are set to ``v_0^{\beta_0}= v_0^{\beta_1}=10^2``, leading to a very vague prior (and the true parameters are well covered within the prior's density area).
+
 """
 
 # ╔═╡ e9bb7a3c-9143-48c5-b33f-e7d6b48cb224
-@model function simple_1d_blr(Xs, ys; v₀ = 10^2, V₀ = 20^2, s₀ = 5)
+@model function simple_1d_blr(Xs, ys; v₀ = 10^2, V₀ = 10^2, s₀ = 5)
 	# Priors
 	# Gaussian is parameterised with sd rather than variance
 	β₀ ~ Normal(0, sqrt(v₀)) 
@@ -2645,8 +2671,10 @@ version = "0.9.1+5"
 # ╟─43191a7a-f1a2-41df-910d-cf85907e8f7a
 # ╟─98ef1cca-de03-44c2-bcf4-6e79da139e11
 # ╟─9387dcb4-3f4e-4ec7-8393-30a483e00c63
+# ╟─d3f4ac7b-1482-4840-b24b-d08066d1d70c
 # ╟─59dd8a13-89c6-4ae9-8546-877bb7992570
 # ╟─632575ce-a1ce-4a36-95dc-010229367446
+# ╟─c0f926f1-85e6-4d2c-8e9a-26cd099fd600
 # ╠═e9bb7a3c-9143-48c5-b33f-e7d6b48cb224
 # ╟─1ef001cc-fe70-42e5-8b97-690bb725a734
 # ╠═4ae89384-017d-4937-bcc9-3d8c63edaeb5
