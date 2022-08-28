@@ -506,7 +506,7 @@ md"""
 
 ## Extensions
 
-For both examples we have seen so far, the Bayesian method and the frequentist's method return very similar results. So the reader might wonder why to bother learning the Bayesian inference. The benefit of a Bayesian approach lies in its flexibility: by modifying the model as the modeller sees fit, everyone can do statistical inference like a statistician. With the help of `Turing`, the modeller only needs to do the modelling and leave the computation to the powerful MCMC inference engine.
+For both examples we have seen so far, the Bayesian method and the frequentist's method return very similar results. So the reader may wonder why to bother learning the Bayesian inference. The benefit of the Bayesian approach lies in its flexibility: by modifying the model as the modeller sees fit, everyone can do statistical inference like a statistician. With the help of `Turing`, the modeller only needs to do the modelling and leave the computation to the powerful MCMC inference engine.
 
 
 ### Heterogeneous observation σ
