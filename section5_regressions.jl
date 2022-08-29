@@ -360,7 +360,7 @@ An animation is created below to demonstrate the posterior update equation. The 
 p\left(\begin{bmatrix}\beta_0\\ \beta_1\end{bmatrix}\right) = \mathcal{N}\left (\begin{bmatrix}0\\ 0\end{bmatrix}, \begin{bmatrix}10^2& 0 \\ 0 & 10^2\end{bmatrix}\right).
 ```
 
-The posterior distribution is then updated sequentially with the first 10 observations. As can be observed, initially the prior distribution is circular and covers a wide range of possible values. With more data observed, the posterior quickly converges to the posterior centre: ``[3,3]^\top``. Also, note the shrinking posterior variance (or increasing estimation precision) as more data is absorbed.
+The posterior distribution is then updated sequentially with the first 10 observations. As can be observed, initially the prior distribution is circular and covers a wide range of possible values. With more data observed, the posterior quickly converges to the posterior centre: ``[3,3]^\top``. Also, note the shrinking posterior variance (or increasing estimation precision) as more data being observed.
 """
 
 # ╔═╡ 71bb2994-7fd2-4e11-b2f1-d88b407f86c1
