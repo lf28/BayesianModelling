@@ -24,10 +24,12 @@ md"""
 
 # Bayesian linear regressions
 
-In this chapter, we are going to do regressions in a Bayesian way. A regression task is to predict a *dependent variable* ``Y`` based on *independent variables* ``X``. In other words, regression analysis tries to access how ``X`` affects ``Y``. In this chapter, we consider the case when ``Y`` is real-valued, or ``Y\in R``. And we will move on to discuss other cases e.g. when ``Y\in \{\texttt{true}, \texttt{false}\}`` is binary or integer-valued in the next chapter.
+Supervised learning in general is to predict a *dependent variable* ``Y`` based on *independent variables* ``X``. In other words, it tries to access how ``X`` affects ``Y``. Depending on the value type of the labelled targets ``Y``, the analysis can be further classified as *regression* and *classification*. When ``Y`` can take a spectrum of continuous values, such as real value, the learning task is known as regression. When ``Y`` take discrete choices, the task is commonly referred to as classification.
 
 
-In this chapter, we will first briefly review the Frequentist's regression model and then move on to introduce the Bayesian's treatment. From modelling perspective, the Bayesian model is almost the same as the Frequentist's model except the additional prior distribution. We will see the importance of introducing a prior distribution and how choosing different prior forms lead to various different useful applied  regression models.
+In this chapter, we consider the case of ``Y`` being real-valued, ``Y\in R``, *i.e.* regression. And leave the discussion on other general cases such as ``Y\in \{\texttt{true}, \texttt{false}\}`` or ``Y\in \{0,1,2,\ldots\}`` in the following chapters. We will first briefly review the Frequentist's regression model and then move on to introduce the Bayesian treatment. From a modelling perspective, the Bayesian model is almost the same as the Frequentist's model except for the additional prior distributions. It turns out the additional prior not only offers a way to incorporate the modeller's prior expert knowledge but also has a *regularisation* effect in estimating the model parameters.
+
+Lastly, we are going to see how to do practical Bayesian linear regression analysis with `Turing`. Some extensions are also considered at the end.
 """
 
 # ╔═╡ c8547607-92be-4700-9468-863798c2ddce
@@ -76,7 +78,7 @@ The likelihood assumption is illustrated below for a simple linear regression mo
 # ╔═╡ 3a46c193-5a25-423f-bcb5-038f3756d7ba
 md"""
 
-**OLS Estimation*.** Frequentists estimate the model by using maximum likelihood estimation (MLE). The idea is to find point estimators ``\hat{\beta_0}, \hat{\boldsymbol{\beta}}_1, \hat{\sigma^2}`` such that the likelihood function is maximised. 
+**OLS (MLE) Estimation*.** Frequentists estimate the model by using maximum likelihood estimation (MLE). The idea is to find point estimators ``\hat{\beta_0}, \hat{\boldsymbol{\beta}}_1, \hat{\sigma^2}`` such that the likelihood function is maximised. 
 ```math
 \hat{\beta_0}, \hat{\boldsymbol{\beta}}_1, \hat{\sigma^2} \leftarrow \arg\max p(\mathbf y|\mathbf X, \beta_0, \boldsymbol{\beta}_1, \sigma^2)
 ```
@@ -85,6 +87,14 @@ It can be shown that the MLE are equivalent to the more widely known ordinary le
 ```math
 \hat{\beta_0}, \hat{\boldsymbol{\beta}}_1 \leftarrow \arg\min \sum_{n=1}^N (y_n - \mathbf{x}_n^\top \boldsymbol{\beta}_1 -\beta_0)^2.
 ```
+
+By taking the derivative and setting it to zero, the closed-form OLS estimator is:
+
+```math
+\hat{\boldsymbol{\beta}} = (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\mathbf{y},
+```
+
+where we have assumed ``\boldsymbol{\beta}^\top = [\beta_0, \boldsymbol{\beta}_1]``, and the design matrix ``\mathbf{X}`` is augmented with ``\mathbf{1}_N`` as the first column (*i.e.* dummy variable for intercept).
 """
 
 # ╔═╡ effcd3d2-ba90-4ca8-a69c-f1ef1ad697ab
@@ -167,27 +177,89 @@ md"""
 # ╔═╡ 98ef1cca-de03-44c2-bcf4-6e79da139e11
 md"""
 
-The Bayesian model reuses the likelihood model:
+The Bayesian model reuses the frequentist's likelihood model for ``\mathbf{y}``:
 
-$$p(\mathbf y|\mathbf{X}, \beta_0, \boldsymbol{\beta}_1, \sigma^2);$$
-
-but imposes additional priors on the unknown parameters.
-
-A commonly used set of prior choices are:
-
-* ``p(\beta_0)``: a typical choice for the intercept parameter is Gaussian: $$\beta_0 \sim \mathcal N(m_0^{\beta_0}, v_0^{\beta_0});$$ 
-  *  where ``m_0=0`` is usually set to zero to encourage a sparse model (more on this next time)
-  * ``v_0`` is set to a large number, say ``v_0=10^2``
+```math
+p(y_n|\mathbf{x}_n, \boldsymbol{\beta}, \sigma^2) = \mathcal{N}(y_n; \beta_0+\mathbf{x}_n^\top \boldsymbol{\beta}_1, \sigma^2),
+```
+where the model parameters are
+* ``\beta_0\in R`` -- intercept
+* ``\boldsymbol{\beta}_1 \in R^D`` -- regression coefficient vector
+* ``\sigma^2\in R^+`` -- Gaussian noise's variance
 
 
+In addition, the Bayesian model also needs to impose a suitable prior for the unknowns
 
-* ``p(\boldsymbol \beta_1)``: since ``\boldsymbol{\beta}_1\in R^D`` is a real-valued vector, a suitable prior choice is multivariate Gaussian $$\boldsymbol{\beta}_1 \sim \mathcal N_{D}(\mathbf m_0^{\boldsymbol{\beta}_1}, \mathbf V_0^{\boldsymbol{\beta}_1})$$
-  * ``\mathbf{m}_0^{\boldsymbol{\beta}_1}`` again is usually set to a zero vector: ``\mathbf{m}_0^{\boldsymbol{\beta}_1}= \mathbf{0}_D``
-  * ``\mathbf{V}_0^{\boldsymbol{\beta}_1}``, without subjective prior knowledge, ``\mathbf{V}_0^{\boldsymbol{\beta}_1}`` is usually set to a diagonal matrix with large variance diagonal entries, e.g. `` \mathbf{V}_0^{\boldsymbol{\beta}_1}= k \mathbf{I}_{D}`` and ``k`` is set to a large number;
-* ``p(\sigma^2)``: since ``\sigma^2 >0`` is a positive real number, a good choice is truncated real-valued distribution, where which the negative part is truncated. A particular popular choice is Half-Cauchy: *i.e.* $$\sigma^2 \sim \texttt{HalfCauchy}(s_0^{\sigma^2})$$ (some distributions are plotted below);
-  * Cauchy distributions have heavy tails, making them suitable choices to express uncertain beliefs on the modelling parameter. In other words, the prior's density is more likely to cover the true parameter;
-  * and ``s_0^{\sigma^2}`` is the scale parameter of a Cauchy distribution, which controls the tail of a Cauchy. The larger the scale parameter ``s_0^{\sigma^2}`` is, the weaker the prior is. A few 
+```math
+p(\beta_0, \boldsymbol{\beta}_1, \sigma^2).
+```
 
+In most cases, we further assume the joint prior is independent, *i.e.*
+
+```math
+p(\beta_0, \boldsymbol{\beta}_1, \sigma^2)= p(\beta_0)p(\boldsymbol{\beta}_1)p( \sigma^2).
+```
+
+
+
+"""
+
+# ╔═╡ a1421ccb-2d6e-4406-b770-ad7dff007c69
+md"""
+
+Based on their value ranges, a commonly used set of prior choices is summarised below.
+
+**Prior for the intercept ``p(\beta_0)``** 
+
+Since ``\beta_0`` takes an unconstrained real value, a common choice is Gaussian 
+
+$$p(\beta_0) = \mathcal N(m_0^{\beta_0}, v_0^{\beta_0});$$ 
+
+where the hyper-parameters ``m_0^{\beta_0}, v_0^{\beta_0}`` can be specified based on the data or independently.
+
+*Data-dependent hyper-parameter:* e.g. ``\mathcal{N}(m_0^{\beta_0}={\bar{\mathbf{y}}}, v_0^{\beta_0}= 2.5^2 \sigma_{\mathbf{y}}^2 )``
+
+* the corresponding prior on ``\beta_0`` centres around the sample average ``\bar{\mathbf{y}}`` with variance 2.5 times the standard deviation of ``\bar{\mathbf{y}}``
+* covering a wide range of possible values, the prior is a weakly informative prior
+
+
+*Data-independent hyper-parameter:* e.g. ``\mathcal{N}(m_0^{\beta_0}=0, v_0^{\beta_0}= 10^2)`` 
+
+
+* the prior guess centres around ``0`` but with a great amount of uncertainty (very large variance)
+* the zero prior mean here encourages the posterior shrinks towards 0 (but very weakly).
+
+
+"""
+
+# ╔═╡ e1552414-e701-42b5-8eaf-21ae04a829a8
+md"""
+
+
+**Prior for the coefficient ``p(\boldsymbol{\beta}_1)``** 
+
+
+Since ``\boldsymbol{\beta}_1\in R^D`` is an unconstrained real vector, a suitable prior choice is a D-dimensional multivariate Gaussian (or other similar distributions such as Student-``t``):
+
+$$p(\boldsymbol{\beta}_1) = \mathcal N_{D}(\mathbf m_0^{\boldsymbol{\beta}_1}, \mathbf V_0^{\boldsymbol{\beta}_1}),$$
+
+
+where the hyper-parameters are usually set data-independently:
+
+* ``\mathbf{m}_0^{\boldsymbol{\beta}_1}=\mathbf{0}``, the prior encourages the posterior shrinks towards zeros, which has a regularisation effect
+* ``\mathbf{V}_0^{\boldsymbol{\beta}_1} = v_0 \mathbf{I}_D``, *i.e.* a diagonal matrix with a common variance ``v_0``; 
+    * the common variance ``v_0`` is often set to a large number, *e.g.``v_0=10^2``* to impose a vague prior. 
+
+
+**Prior for the observation variance ``p(\sigma)``**
+
+
+``\sigma^2 >0`` is a positive real number, a good choice is truncated real-valued distribution, where the negative part is truncated, such as ``\texttt{Half-Cauchy}`` (Some ``\texttt{Half-Cauchy}`` distributions are plotted below): 
+
+$$p(\sigma^2) = \texttt{HalfCauchy}(s_0^{\sigma^2});$$ 
+
+  * Cauchy distributions have heavy tails, making them suitable choices to express uncertain beliefs on the modelling parameter. And the hyperparameter ``s_0^{\sigma^2}`` controls the tail of a Cauchy. The larger the scale parameter ``s_0^{\sigma^2}`` is, the weaker the prior is. 
+  * ``s_0^{\sigma^2} > 2`` usually is good enough.
 """
 
 # ╔═╡ 9387dcb4-3f4e-4ec7-8393-30a483e00c63
@@ -201,14 +273,14 @@ end
 # ╔═╡ d3f4ac7b-1482-4840-b24b-d08066d1d70c
 md"""
 
-The full Bayesian model is summarised below.
+To put everything together, a fully-specified (data independent) Bayesian model is summarised below.
 
 
 !!! infor "Bayesian linear regression"
 	```math
 	\begin{align}
-	\text{Priors: }\;\;\;\;\;\;\beta_0 &\sim \mathcal{N}(0, v_0^{\beta_0})\\
-	\boldsymbol{\beta}_1 &\sim \mathcal{N}(0, \mathbf{V}_0^{\boldsymbol{\beta}_1 })\\
+	\text{Priors: }\;\;\;\;\;\;\beta_0 &\sim \mathcal{N}(m_0^{\beta_0}, v_0^{\beta_0})\\
+	\boldsymbol{\beta}_1 &\sim \mathcal{N}(\mathbf{m}_0^{\boldsymbol{\beta}_1}, \mathbf{V}_0^{\boldsymbol{\beta}_1 })\\
 	\sigma^2 &\sim \texttt{HalfCauchy}(s_0) \\
 	\text{Likelihood: }\;\;\text{for } n &= 1,2,\ldots, N:\\
 	\mu_n &=\beta_0 + \boldsymbol{\beta}_1^\top  \mathbf{x}_n \\
@@ -217,11 +289,115 @@ The full Bayesian model is summarised below.
 	```
 """
 
+# ╔═╡ bab3a19c-deb0-4b1c-a8f9-f713d66d9199
+md"""
+### Connection to ridge regression 
+
+"""
+
+# ╔═╡ b433c147-f547-4234-9817-2b29e7d57219
+md"""
+
+Setting the prior's mean to zero, *i.e.* ``\mathbf{m}_0^{\beta_1}= \mathbf{0}``, seems an arbitrary choice. However, it can be justified from a regularisation perspective. For regression problems with many predictors, the regression model can be too flexible. In some extreme cases, the regression model can be under-determined, *i.e.* the number of predictors is greater than the number of observations. For problems like this, the ordinary OLS estimator is not stable or not even existed. 
+
+
+By introducing a zero-mean Gaussian prior for ``\boldsymbol{\beta}``, the log posterior density becomes:
+
+$$\begin{align}
+\ln p(\boldsymbol{\beta}|\mathbf y, \mathbf{X}) &= \ln p(\boldsymbol{\beta}) +\ln p(\mathbf y|\boldsymbol{\beta}, \mathbf{X}) + C\\
+&= -\frac{1}{2v_0} \|\boldsymbol{\beta}\|^2 - \frac{1}{2\sigma^2}\sum_{n=1}^N( y_n-\mathbf{x}_n^\top \boldsymbol{\beta})^2 + C
+\end{align}$$
+
+If one minimises the negative log posterior by:
+
+```math
+\hat{\boldsymbol{\beta}}_{\text{ridge}} \leftarrow \arg\min_{\boldsymbol{\beta}}\frac{\lambda}{2} \|\boldsymbol{\beta}\|^2 + \frac{1}{2}\sum_{n=1}^N( y_n-\mathbf{x}_n^\top \boldsymbol{\beta})^2,
+
+```
+where ``\lambda \triangleq \frac{\sigma^2}{v_0}``, and the estimator is called the **ridge estimator**. The corresponding regression model is Frequentist's **ridge regression**. Note that the first term serves as a penalty that regulates the estimation of ``\boldsymbol{\beta}`` such that large-magnitude estimators are discouraged. 
+"""
+
+# ╔═╡ 824aa830-c958-4063-9ef7-39eeb743fc06
+md"""
+
+### Posterior distribution in analytical form*
+"""
+
+# ╔═╡ d825e29d-3e0b-4c25-852f-0c9a544aa916
+md"""
+
+After specifying the Bayesian model, what is left is to apply Bayes' rule to find the posterior distribution:
+
+```math
+p(\boldsymbol{\beta}, \sigma^2|\mathcal{D}) \propto p(\boldsymbol{\beta}, \sigma^2) p(\mathbf{y}|\boldsymbol{\beta}, \sigma^2,\mathbf{X}),
+```
+where ``\mathcal{D}`` denotes all the observed data *i.e.* ``\mathcal{D} = \{\mathbf{X}, \mathbf{y}\}``, and ``\boldsymbol{\beta}^\top = [\beta_0, \boldsymbol{\beta}_1]`` denotes the concatenated regression parameter vector. Due to the independence assumption, the joint prior for ``\boldsymbol{\beta}`` can be formed as a ``D+1`` dimensional Gaussian with mean ``\mathbf{m}_0^\top = [m_0^{\beta_0}, \mathbf{m}_0^{\beta_1}]`` and variance ``\mathbf{V}_0 = \text{diag}\{v_0^{\beta_0}, \mathbf{V}_0^{\boldsymbol{\beta}_1}\}.``
+
+Unfortunately, the full joint posterior distribution has no closed-form analytical form, and an approximation method such as MCMC is required to do a full-scale analysis. However, if the observation variance ``\sigma^2`` is assumed known, the *conditional posterior* ``p(\boldsymbol{\beta}|\mathcal{D}, \sigma^2)`` can be computed exactly. And it can be shown that the posterior admits a multivariate Gaussian form:
+
+```math
+p(\boldsymbol{\beta}|\mathcal{D}, \sigma^2) =\mathcal{N}_{D+1}(\mathbf{m}_N, \mathbf{V}_N),
+```
+
+where 
+
+
+```math
+\mathbf{m}_N = \mathbf{V}_N\left (\mathbf{V}_0^{-1}\mathbf{m}_0 +\frac{1}{\sigma^2}\mathbf{X}^\top\mathbf{y}\right ) ,\;\;\mathbf{V}_N =\left (\mathbf{V}_0^{-1} + \frac{1}{\sigma^2}\mathbf{X}^\top \mathbf{X}^\top\right )^{-1}.
+```
+
+
+It is one of very few models that the posterior can be evaluated in closed form.
+"""
+
+# ╔═╡ d02d5490-cf53-487d-a0c6-651725600f52
+md"""
+
+The posterior's parameter provides us with some insights into what Bayesian computation is doing. If we assume the matrix inverse ``(\mathbf{X}^\top\mathbf{X})^{-1}`` exists, 
+the posterior's mean can be rewritten as 
+
+
+```math
+
+\mathbf{m}_N = \left (\mathbf{V}_0^{-1} + \frac{1}{\sigma^2}\mathbf{X}^\top \mathbf{X}\right )^{-1}\left (\mathbf{V}_0^{-1}\mathbf{m}_0 +\frac{1}{\sigma^2}\mathbf{X}^\top \mathbf{X}\hat{\boldsymbol{\beta}}\right ) .
+
+```
+
+Defining ``\tilde{\mathbf{V}}^{-1} = \frac{1}{\sigma^2}\mathbf{X}^\top \mathbf{X}``, the above formula becomes
+
+
+```math
+\mathbf{m}_N = \left (\mathbf{V}_0^{-1} + \tilde{\mathbf{V}}^{-1}\right )^{-1}\left (\mathbf{V}_0^{-1}\mathbf{m}_0 +\tilde{\mathbf{V}}^{-1}\hat{\boldsymbol{\beta}}\right ) .
+
+```
+Therefore, the posterior mean is a matrix-weighted average between the prior guess ``\mathbf{m}_0`` and the MLE estimator ``\hat{\boldsymbol{\beta}}``; and the weights are ``\mathbf{V}_0^{-1}``, the precision of the prior guess, and ``\tilde{\mathbf{V}}^{-1}`` the precision for the MLE. If the prior mean is zero, *i.e.* ``\mathbf{m}_0 =\mathbf{0}``, the posterior mean as an average will shrink towards ``\mathbf{0}``.
+
+This can be understood better to consider some de-generate examples. Assume ``D=1``, and both the intercept and observation noise's variance are known, say ``\beta_0=0, \sigma^2=1``. The posterior degenerates to 
+
+
+```math
+
+m_N = \frac{v_0^{-1}}{v_0^{-1} + \tilde{v}^{-1}}m_0 + \frac{\tilde{v}^{-1} }{v_0^{-1} + \tilde{v}^{-1}}\hat{\beta}_1, v_N = \frac{1}{ v_0^{-1} + \tilde{v}^{-1}},
+```
+where ``\tilde{v}^{-1} = \sum_n x_n^2`` by definition. 
+
+Note that if we assume ``m_0=0``, and the prior precision ``v_0^{-1}`` gets large, ``v_0^{-1} \rightarrow \infty``, in other words, we strongly believe the slope is zero, the posterior mean ``m_N`` will get closer to zero: ``m_N\rightarrow m_0=0``.
+The posterior variance is reduced in comparison with the prior variance ``v_0``. It makes sense since the posterior update reduces the estimation uncertainty.
+"""
+
 # ╔═╡ 59dd8a13-89c6-4ae9-8546-877bb7992570
 md"""
-### Bayesian simple linear regression with `Turing`
+## Implementation in `Turing`
 
-Now we move on to show how `Turing` can be used to do the inference. For simplicity, we consider simple linear regression first, *i.e.* regression with one predictor. The corresponding Bayesian model can be written as 
+
+
+Now we move on to show how to implement the modelling and inference in `Turing`. For simplicity, we consider simple linear regression, *i.e.* regression with one predictor, with simulated data first and move on to see a multiple regression example by using a real-world dataset.
+
+
+
+### Simple linear regression
+
+The corresponding Bayesian simple linear regression model is a specific case of the general model in which ``D=1``. The model can be specified as:
 
 
 ```math
@@ -235,7 +411,7 @@ y_n &\sim \mathcal{N}(\mu_n, \sigma^2).
 \end{align}
 ```
 
-Compared with the general model, we have just replaced all the multivariate assumptions for ``\beta_1`` with its uni-variant equivalent.
+Note that we have just replaced all the multivariate assumptions for ``\beta_1`` with its uni-variant equivalent.
 """
 
 # ╔═╡ 632575ce-a1ce-4a36-95dc-010229367446
@@ -258,7 +434,7 @@ And the prior variances of the regression parameters are set to ``v_0^{\beta_0}=
 """
 
 # ╔═╡ e9bb7a3c-9143-48c5-b33f-e7d6b48cb224
-@model function simple_1d_blr(Xs, ys; v₀ = 10^2, V₀ = 10^2, s₀ = 5)
+@model function simple_bayesian_regression(Xs, ys; v₀ = 10^2, V₀ = 10^2, s₀ = 5)
 	# Priors
 	# Gaussian is parameterised with sd rather than variance
 	β₀ ~ Normal(0, sqrt(v₀)) 
@@ -285,7 +461,7 @@ Next, we use the above Turing model to infer the simulated dataset. A Turing mod
 # ╔═╡ 4ae89384-017d-4937-bcc9-3d8c63edaeb5
 begin
 	Random.seed!(100)
-	sim_data_model = simple_1d_blr(X, yy)
+	sim_data_model = simple_bayesian_regression(X, yy)
 	chain_sim_data = sample(sim_data_model, NUTS(), MCMCThreads(), 2000, 3; discard_initial=500)
 end;
 
@@ -377,7 +553,7 @@ To simulate the pseudo data, we first create a dummy `Turing` with the targets f
 # ╔═╡ 435036f6-76fc-458b-b0eb-119de02eabb7
 pred_y_matrix = let
 	# define the predictive model by passing `missing` targets y such that the values will be samples
-	pred_model = simple_1d_blr(X, Vector{Union{Missing, Float64}}(undef, length(yy)))
+	pred_model = simple_bayesian_regression(X, Vector{Union{Missing, Float64}}(undef, length(yy)))
 	# simulate the predictive pseudo observations
 	predict(pred_model, chain_sim_data) |> Array
 end;
@@ -417,7 +593,7 @@ end
 
 # ╔═╡ 21aaa2db-6df0-4573-8951-bdfd9b6be6f9
 md"""
-### A real-world multiple linear regression example
+### A multiple linear regression example
 
 Consider the *Advertising* dataset which is described in the book [Introduction to Statistical Learning](https://hastie.su.domains/ISLR2/ISLRv2_website.pdf). The dataset records how advertising on TV, radio, and newspaper affects sales of a product. 
 """
@@ -844,7 +1020,7 @@ md"""The robust Bayesian regression model can be specified by replacing the Gaus
 	\sigma^2 &\sim \texttt{HalfCauchy}(s_0) \\
 	\text{Likelihood: for } n &= 1,2,\ldots, N:\\
 	\mu_n &=\beta_0 + \beta_1 x_n \\
-	y_n &\sim \texttt{Cauchy}(\mu_n, \sigma).
+	y_n &\sim \texttt{Cauchy}(\mu_n, \sigma^2).
 	\end{align}
 	```
 
@@ -945,9 +1121,29 @@ where we have assumed ``\sigma^2`` is known.
 
 ")
 
+# ╔═╡ 89414966-5447-4133-80cb-0933c8b0d5d0
+Foldable("Derivation details.", md"
+
+The prior is 
+
+$$p(\boldsymbol{\beta}) = \mathcal{N}(\mathbf{0}, v_0 \mathbf{I}) = \frac{1}{\sqrt{(2\pi)^d |v_0 \mathbf{I}|}} \text{exp}\left (-\frac{1}{2v_0 }\boldsymbol{\beta}^\top \boldsymbol{\beta} \right ).$$ 
+
+Take the log and add the log-likelihood function, we have
+
+```math
+\begin{align}
+\ln p(\boldsymbol{\beta}|\mathbf y, \mathbf{X}) &= \ln p(\boldsymbol{\beta}) +\ln p(\mathbf y|\boldsymbol{\beta}, \mathbf{X}) + C\\
+&= -\frac{1}{2v_0}\boldsymbol{\beta}^\top \boldsymbol{\beta} - \frac{1}{2\sigma^2}(\mathbf y-\mathbf{X} \boldsymbol{\beta})^\top (\mathbf y-\mathbf{X} \boldsymbol{\beta}) + C\\
+&=-\frac{1}{2v_0} \|\boldsymbol{\beta}\|^2 - \frac{1}{2\sigma^2}\sum_{n=1}^N( y_n-\mathbf{x}_n^\top \boldsymbol{\beta})^2.
+\end{align}
+```
+
+
+")
+
 # ╔═╡ 969df742-bc8a-4e89-9e5e-62cb9e7c2215
 begin
-	chain_outlier_data = sample(simple_1d_blr(X_new, yy_new), NUTS(), 2000)
+	chain_outlier_data = sample(simple_bayesian_regression(X_new, yy_new), NUTS(), 2000)
 	parms_turing = describe(chain_outlier_data)[1][:, :mean]
 	β_samples = Array(chain_outlier_data[[:β₀, :β]])
 	pred(x) = parms_turing[1:2]' * [1, x]
@@ -2667,8 +2863,16 @@ version = "0.9.1+5"
 # ╟─af2e55f3-08b8-48d4-ae95-e65168a23eeb
 # ╟─43191a7a-f1a2-41df-910d-cf85907e8f7a
 # ╟─98ef1cca-de03-44c2-bcf4-6e79da139e11
+# ╟─a1421ccb-2d6e-4406-b770-ad7dff007c69
+# ╟─e1552414-e701-42b5-8eaf-21ae04a829a8
 # ╟─9387dcb4-3f4e-4ec7-8393-30a483e00c63
 # ╟─d3f4ac7b-1482-4840-b24b-d08066d1d70c
+# ╟─bab3a19c-deb0-4b1c-a8f9-f713d66d9199
+# ╟─b433c147-f547-4234-9817-2b29e7d57219
+# ╟─89414966-5447-4133-80cb-0933c8b0d5d0
+# ╟─824aa830-c958-4063-9ef7-39eeb743fc06
+# ╟─d825e29d-3e0b-4c25-852f-0c9a544aa916
+# ╟─d02d5490-cf53-487d-a0c6-651725600f52
 # ╟─59dd8a13-89c6-4ae9-8546-877bb7992570
 # ╟─632575ce-a1ce-4a36-95dc-010229367446
 # ╟─c0f926f1-85e6-4d2c-8e9a-26cd099fd600
@@ -2749,6 +2953,6 @@ version = "0.9.1+5"
 # ╟─85a22998-d3e7-4c48-b191-4ebbe9e813f3
 # ╟─139b5acb-c938-4fc9-84a5-fdcbd697b9da
 # ╟─d8dae6b8-00fb-4519-ae45-36d36a9c90bb
-# ╟─969df742-bc8a-4e89-9e5e-62cb9e7c2215
+# ╠═969df742-bc8a-4e89-9e5e-62cb9e7c2215
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
