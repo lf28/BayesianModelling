@@ -350,9 +350,48 @@ where
 It is one of very few models that the posterior can be evaluated in closed form.
 """
 
+# ╔═╡ f6cedb98-0d29-40f0-b9f3-430dd283fa36
+md"""
+
+**Demonstration:**
+An animation is created below to demonstrate the posterior update equation. The toy dataset is reused here. Recall the true parameters are ``\beta_0=\beta_1=3``. A zero-mean vague Gaussian prior is placed on ``\boldsymbol{\beta}``:
+
+```math
+p\left(\begin{bmatrix}\beta_0\\ \beta_1\end{bmatrix}\right) = \mathcal{N}\left (\begin{bmatrix}0\\ 0\end{bmatrix}, \begin{bmatrix}10^2& 0 \\ 0 & 10^2\end{bmatrix}\right).
+```
+
+The posterior distribution is then updated sequentially with the first 10 observations. As can be observed, initially the prior distribution is circular and covers a wide range of possible values. With more data observed, the posterior quickly converges to the posterior centre: ``[3,3]^\top``. Also, note the shrinking posterior variance (or increasing estimation precision) as more data is absorbed.
+"""
+
+# ╔═╡ 71bb2994-7fd2-4e11-b2f1-d88b407f86c1
+let
+	xs = range(-10, 10, 200)
+	ys = range(-10, 10, 200)
+	m₀, V₀ = zeros(2), 10^2 * Matrix(1.0I,2,2)
+	prior = heatmap(xs, ys, (x,y)-> pdf(MvNormal(m₀, V₀), [x,y]), levels=20, colorbar=false , fill=true, ratio=1, color= :jet1, xlim=[-10, 10], xlabel=L"\beta_0", ylabel=L"\beta_1")
+	# lik1 = heatmap(xs, ys, (x,y)-> pdf(Normal(x + y * X[1] , sqrt(σ²)), yy[1]), levels=10,  colorbar=false, ratio=1, color= :jet1, xlim=[-15, 15], xlabel=L"\beta_0", ylabel=L"\beta_1")
+	function seq_update(x, y, m0, V0, σ²)
+		xx = [1  x]
+		mn = m0 + V0 * xx'* (dot(xx, V0, xx') + σ²)^(-1)*(y - dot(xx, m0) )
+		Vn = inv(1/σ²* xx'* xx + inv(V0))
+		return mn[:], Symmetric(Vn)
+	end
+
+
+	posts = [prior]
+	anim = @animate for i in 1:10	
+		post = heatmap(xs, ys, (x,y)-> pdf(MvNormal(m₀, V₀), [x,y]), levels=20, colorbar=false , fill=true, ratio=1, color= :jet1, xlim=[-10, 10], xlabel=L"\beta_0", ylabel=L"\beta_1", title="Update with N=$(i-1) data")
+		m₀, V₀ = seq_update(X[i], yy[i], m₀, V₀, σ²)
+		push!(posts, post)
+	end
+
+	gif(anim, fps=1)
+end
+
 # ╔═╡ d02d5490-cf53-487d-a0c6-651725600f52
 md"""
 
+**Interpretation:**
 The posterior's parameter provides us with some insights into what Bayesian computation is doing. If we assume the matrix inverse ``(\mathbf{X}^\top\mathbf{X})^{-1}`` exists, 
 the posterior's mean can be rewritten as 
 
@@ -2872,6 +2911,8 @@ version = "0.9.1+5"
 # ╟─89414966-5447-4133-80cb-0933c8b0d5d0
 # ╟─824aa830-c958-4063-9ef7-39eeb743fc06
 # ╟─d825e29d-3e0b-4c25-852f-0c9a544aa916
+# ╟─f6cedb98-0d29-40f0-b9f3-430dd283fa36
+# ╟─71bb2994-7fd2-4e11-b2f1-d88b407f86c1
 # ╟─d02d5490-cf53-487d-a0c6-651725600f52
 # ╟─59dd8a13-89c6-4ae9-8546-877bb7992570
 # ╟─632575ce-a1ce-4a36-95dc-010229367446
