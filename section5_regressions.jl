@@ -1066,7 +1066,7 @@ md"""The robust Bayesian regression model can be specified by replacing the Gaus
 The `Turing` translation of the model is listed below. Note the model is almost the same as the ordinary model except the likelihood part."""
 
 # ╔═╡ e4a67732-ff93-476e-8f5b-8433c1bf015e
-@model function simple_robust_blr(Xs, ys; v₀ = 10^2, V₀ = 20^2, s₀ = 5)
+@model function simple_robust_blr(Xs, ys; v₀ = 5^2, V₀ = 5^2, s₀ = 5)
 	# Priors
 	# Gaussian is parameterised with sd rather than variance
 	β₀ ~ Normal(0, sqrt(v₀)) 
@@ -1084,6 +1084,7 @@ end
 
 # ╔═╡ 92206a26-d361-4be5-b215-3ae388dd7f2f
 begin
+	Random.seed!(100)
 	robust_mod = simple_robust_blr(X_new, yy_new)
 	chain_robust = sample(robust_mod, NUTS(), MCMCThreads(), 2000,4)
 end;
