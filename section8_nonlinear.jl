@@ -24,12 +24,6 @@ end;
 # ╔═╡ ff6fcfa7-dcd1-4529-ac83-46f9f1e17bc7
 using Splines2
 
-# ╔═╡ 722a52f0-b7bc-4159-adce-b9e8487bf0a9
-# begin
-# 	Turing.setadbackend(:reversediff)
-# 	Turing.setrdcache(true)
-# end
-
 # ╔═╡ 709e2b13-67d2-4e5b-b148-aba16431b0ae
 TableOfContents()
 
@@ -594,21 +588,9 @@ md"""
 ### Basis expansion with RBF
 """
 
-# ╔═╡ 009ff641-1cf6-475b-8e63-2594bb40878f
-md"""
-
-To solve the problem, we apply (multi-dimensional) RBF basis expansions with randomly selected 30 data points as centres and a fixed scale ``s^2=1.0``:
-
-```math
-\text{rbf}(\mathbf{x}, \boldsymbol{\mu}, s^2) = \exp\left( -\frac{1}{2s^2} (\mathbf{x}- \boldsymbol{\mu})^\top (\mathbf{x}- \boldsymbol{\mu})\right)
-```
-
-The randomly picked expansion locations and the contour plots of the corresponding RBF functions are plotted below. Each circle represents a new feature in the expanded design matrix ``\mathbf{\Phi}_{\text{class}}``.
-"""
-
 # ╔═╡ 5f053027-33ce-4915-b4ba-3cafb99001a6
 md"""
-As a reference, we fit a logistic regression with the expanded design matrix. The estimated model is plotted below. The frequentist method returns an irregular decision boundary that follows the shape of class 2's data. And the posterior prediction is very clean-cut (or overconfident), either 0% or 100% verdicts are returned for all input locations.
+As a reference, we fit a logistic regression with the expanded design matrix. The estimated model is plotted below. The frequentist method returns an irregular decision boundary that follows the shape of class 2's data. And the posterior prediction is very clean-cut (or overconfident), *i.e.* either 0% or 100% classification predictions are made for all input locations. However, one may argue input locations further away from the data centre should be given less confident predictions.
 """
 
 # ╔═╡ 9837843d-c1a2-4782-8872-3547de23dc8f
@@ -671,9 +653,9 @@ predict(pred_model,  chain_bayes_class)
 # ╔═╡ eaaaaf70-78f5-4da7-a3c4-b10757702991
 md"The Bayesian's expected predictions are plotted below together with the Frequentists prediction. It can be observed that Bayesian prediction is more reasonable. 
 
-* a circular decision boundary is formed rather than an irregular one
+* a circular decision boundary is formed (check the .5 contour line) rather than an irregular one
 * the prediction is no longer black and white; 
-  * at locations without many observed data, the prediction is around 0.7 rather than 1.0 "
+  * at input locations further away from the observed data, the predictions are around 0.7 rather than 1.0 "
 
 # ╔═╡ e1f91394-8da7-490a-acb9-d39b95ebdf33
 md"""
@@ -774,7 +756,7 @@ end;
 # ╔═╡ 31647188-cb5b-4e92-8ae3-91247c15d976
 begin
 	Random.seed!(100)
-	nknots = 30
+	nknots = 25
 	xknots = randperm(size(D)[1])[1:nknots]
 	rbf(xs, μ, σ²) = exp.(- 0.5 .* sum((xs .- μ).^2, dims=2) ./ σ²)[:]
 	function apply_rbs_expansion(D, μs, σ²)
@@ -786,6 +768,18 @@ begin
 		Φ_class[:, j] = rbf(D, D[xknots[j], :]', σ²_rbf)
 	end
 end
+
+# ╔═╡ 009ff641-1cf6-475b-8e63-2594bb40878f
+md"""
+
+To solve the problem, we apply (multi-dimensional) RBF basis expansions with randomly selected $(nknots) data points as centres and a fixed scale ``s^2=1.0``:
+
+```math
+\text{rbf}(\mathbf{x}, \boldsymbol{\mu}, s^2) = \exp\left( -\frac{1}{2s^2} (\mathbf{x}- \boldsymbol{\mu})^\top (\mathbf{x}- \boldsymbol{\mu})\right)
+```
+
+The randomly picked expansion locations and the contour plots of the corresponding RBF functions are plotted below. Each circle represents a new feature in the expanded design matrix ``\mathbf{\Phi}_{\text{class}}``.
+"""
 
 # ╔═╡ 267c8824-ad28-4e50-b331-7b6174778562
 let
@@ -806,7 +800,7 @@ end
 rbf_freq_fit=glm([ones(length(targets)) Φ_class], targets, Binomial(), LogitLink());
 
 # ╔═╡ 30547131-c50b-4ab0-a3ce-c55385f070cd
-pred_class_feq=let
+pred_class_feq, pred_class_freq_surf=let
 	xs = -10:0.2:10
 	ys = -10:0.2:10
 
@@ -815,9 +809,14 @@ pred_class_feq=let
 	end
 
 	plt = contour(xs, ys, pred, levels=10, fill=true,  c=:jet1, alpha=0.5, title="Frequentist prediction: "*L"p(y=1|x)")
-	@df df_class scatter!(:x₁, :x₂, group=:y, legend=:right, xlabel=L"x_1", alpha=0.2, ylabel=L"x_2", size=(400,350), framestyle=:box )
-	plt
-end
+
+	plt2 = surface(xs, ys, pred, levels=10, fill=true,  c=:jet1, alpha=0.5, title="Frequentist prediction: "*L"p(y=1|x)")
+	@df df_class scatter!(plt, :x₁, :x₂, group=:y, legend=:right, xlabel=L"x_1", alpha=0.2, ylabel=L"x_2", size=(400,350), framestyle=:box )
+	plt, plt2
+end;
+
+# ╔═╡ 73718d33-7a81-41fd-bb80-66f805e08c50
+plot(pred_class_feq, pred_class_freq_surf, size=(990,400))
 
 # ╔═╡ 1d3b5326-be29-4c8d-b32a-853a7b46fd2b
 chain_bayes_class=let
@@ -826,7 +825,7 @@ chain_bayes_class=let
 end;
 
 # ╔═╡ fd46999c-ad42-4ad3-a94c-271263a5d7ad
-pred_class_bayes =let
+pred_class_bayes, pred_class_bayes_surf =let
 
 	pred_class_mod = hier_logistic_reg(Φ_class, Vector{Union{Missing, Bool}}(undef, length(targets)))
 
@@ -840,12 +839,17 @@ pred_class_bayes =let
 	end
 
 	plt = contour(xs, ys, (x,y)-> pred(x, y, β_samples), levels= 10,fill=true, alpha=0.5, c=:jet, lw=1, colorbar=true, xlim=[-10,10], framestyle=:box, title="Bayesian prediction: "*L"p(y=1|x)")
-	@df df_class scatter!(:x₁, :x₂, group=:y, legend=:right, xlabel=L"x_1", alpha=0.2, ylabel=L"x_2", size=(400,350) )
-	plt;
+
+	plt2 = surface(xs, ys, (x,y)-> pred(x, y, β_samples), levels= 10,fill=true, alpha=0.5, c=:jet, lw=1, colorbar=true, xlim=[-10,10], framestyle=:box, title="Bayesian prediction: "*L"p(y=1|x)")
+	@df df_class scatter!(plt, :x₁, :x₂, group=:y, legend=:right, xlabel=L"x_1", alpha=0.2, ylabel=L"x_2", size=(400,350) )
+	plt, plt2
 end;
 
 # ╔═╡ fa87351a-80dc-4486-85e6-e852ec244497
 plot(pred_class_feq, pred_class_bayes, size=(990,400))
+
+# ╔═╡ 84af3bc4-e82f-4049-96a6-2d5ee018bd97
+plot(pred_class_freq_surf, pred_class_bayes_surf, size=(990,400))
 
 # ╔═╡ 2951083d-79c3-4850-9d00-8a6fe030edd0
 p_nl_cls = let
@@ -2630,7 +2634,6 @@ version = "1.4.1+0"
 
 # ╔═╡ Cell order:
 # ╟─f49dc24c-2220-11ed-0ff2-2df7e9f3a0cf
-# ╟─722a52f0-b7bc-4159-adce-b9e8487bf0a9
 # ╟─709e2b13-67d2-4e5b-b148-aba16431b0ae
 # ╟─2c50b998-12e7-4bba-a29c-5b892aa1612a
 # ╟─81a47ad3-18de-4437-a5b2-c803e7938842
@@ -2688,6 +2691,7 @@ version = "1.4.1+0"
 # ╟─5f053027-33ce-4915-b4ba-3cafb99001a6
 # ╠═e0067b9a-dc9e-4dcb-95b9-71f040dd3d5c
 # ╟─30547131-c50b-4ab0-a3ce-c55385f070cd
+# ╟─73718d33-7a81-41fd-bb80-66f805e08c50
 # ╟─9837843d-c1a2-4782-8872-3547de23dc8f
 # ╟─dc4715c7-83f5-48bb-9990-1aacdd3050d5
 # ╠═d46e2d45-92ea-47df-99d6-9e4b11fedfba
@@ -2697,6 +2701,7 @@ version = "1.4.1+0"
 # ╟─eaaaaf70-78f5-4da7-a3c4-b10757702991
 # ╟─fd46999c-ad42-4ad3-a94c-271263a5d7ad
 # ╟─fa87351a-80dc-4486-85e6-e852ec244497
+# ╟─84af3bc4-e82f-4049-96a6-2d5ee018bd97
 # ╟─e1f91394-8da7-490a-acb9-d39b95ebdf33
 # ╟─3c06eb27-6147-4092-9ac5-312d7332cebd
 # ╠═a0b03301-805e-4d05-98ce-a320efff9667
