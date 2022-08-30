@@ -1105,17 +1105,6 @@ describe(chain_robust)[1]
 # ╔═╡ 559660b8-1e69-41fe-9139-d031eb26e31c
 describe(chain_robust)[2]
 
-# ╔═╡ 85a22998-d3e7-4c48-b191-4ebbe9e813f3
-md"""
-## What's next
-
-In this lecture, we have so far set all regression coefficients prior mean to be zeros. It seems a casual choice without enough justifications. However, it turns out that by setting the hyperparameter this way, we can control the complexity of a regression model: that is irrelevant predictors can be automatically excluded from the final prediction model. And such a property is called sparsity, 
-which is another important key feature of the Bayesian way of doing regression analysis.
-
-In the next section, we are going to see how sparse models can be achieved by tweaking the prior distributions.
-
-"""
-
 # ╔═╡ 139b5acb-c938-4fc9-84a5-fdcbd697b9da
 md"""
 ## Appendix
@@ -2992,7 +2981,6 @@ version = "0.9.1+5"
 # ╟─40f528f0-acca-43ff-a500-16aeb97898c8
 # ╠═9fdaefb8-28b4-4b70-8412-1275dc1ed224
 # ╠═559660b8-1e69-41fe-9139-d031eb26e31c
-# ╟─85a22998-d3e7-4c48-b191-4ebbe9e813f3
 # ╟─139b5acb-c938-4fc9-84a5-fdcbd697b9da
 # ╟─d8dae6b8-00fb-4519-ae45-36d36a9c90bb
 # ╠═969df742-bc8a-4e89-9e5e-62cb9e7c2215
