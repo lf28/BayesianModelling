@@ -1006,7 +1006,7 @@ end
 
 # ╔═╡ 1d5835ad-4e04-48f0-90e6-aa1776d9406f
 md"""
-### Handling outlier
+### Handle outlier -- Bayesian robust linear regression
 
 A handful of outliers might skew the final OLS estimation. For example, some outliers were added to the simulated dataset we consider earlier. The new dataset is plotted together with the estimated OLS estimated model. The model now deviates a lot from the ground true model.
 """

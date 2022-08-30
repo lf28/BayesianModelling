@@ -38,16 +38,17 @@ md"""
 6. [Bayesian linear regression](./section5_regressions.html)
 7. [Bayesian logistic regression](./section6_logistic_regression.html)
 8. [Bayesian generalised linear models](./section7_glm.html)
-"""
-
-# ╔═╡ 0edb7166-5be6-49e7-8ccb-9e36bd1e3c0a
-html"""
-<a href=`"https://github.com/lf28/BayesianModelling"> <font size=\"3\">Link to the project's Github repository</font></a>
+9. [Bayesian non-linear model analysis](./section8_nonlinear.html)
 """
 
 # ╔═╡ 7708f15d-d3b2-4f17-a9f9-a54939bee183
 md"---
 "
+
+# ╔═╡ 0edb7166-5be6-49e7-8ccb-9e36bd1e3c0a
+html"""
+<a href=`"https://github.com/lf28/BayesianModelling"> <font size=\"3\">Link to the project's Github repository</font></a>
+"""
 
 # ╔═╡ ee9e219f-d7ab-466e-afff-765fef2d0bf8
 html"""
