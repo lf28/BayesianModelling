@@ -47,7 +47,7 @@ md"---
 
 # ╔═╡ 0edb7166-5be6-49e7-8ccb-9e36bd1e3c0a
 html"""
-<a href=`"https://github.com/lf28/BayesianModelling"> <font size=\"3\">Link to the project's Github repository</font></a>
+<a href="https://github.com/lf28/BayesianModelling"> <font size=\"3\">Link to the project's Github repository</font></a>
 """
 
 # ╔═╡ ee9e219f-d7ab-466e-afff-765fef2d0bf8
