@@ -69,7 +69,7 @@ By using matrix notation, the above model can be compactly written as:
 ```math
 p(\mathbf{y}|\mathbf{X}, \boldsymbol{\beta}, \sigma^2) = \mathcal{N}_N(\mathbf{y}; \beta_0 \mathbf{1}_N + \mathbf{X} \boldsymbol{\beta}_1, \sigma^2\mathbf{I}_N),
 ```
-where ``\mathbf{y} = [y_1, y_2,\ldots,y_N]^\top, \mathbf{X} = [\mathbf{x}_1, \mathbf{x}_1, \ldots, \mathbf{x}_1]^\top``, ``\mathbf{1}_N=[1, \ldots, 1]^\top`` is a ``N\times 1`` column vector of ones and ``\mathbf{I}_{N}`` is a ``N\times N`` identity matrix.
+where ``\mathbf{y} = [y_1, y_2,\ldots,y_N]^\top, \mathbf{X} = [\mathbf{x}_1, \mathbf{x}_2, \ldots, \mathbf{x}_n]^\top``, ``\mathbf{1}_N=[1, \ldots, 1]^\top`` is a ``N\times 1`` column vector of ones and ``\mathbf{I}_{N}`` is a ``N\times N`` identity matrix.
 
 The likelihood assumption is illustrated below for a simple linear regression model with a one-dimensional predictor, i.e. ``D=1``. Conditioning on where ``x_n`` is, ``y_n`` is Gaussian distributed with a mean determined by the regression line and an observation variance ``\sigma^2``.
 
@@ -415,13 +415,15 @@ This can be understood better to consider some de-generate examples. Assume ``D=
 
 
 ```math
-
-m_N = \frac{v_0^{-1}}{v_0^{-1} + \tilde{v}^{-1}}m_0 + \frac{\tilde{v}^{-1} }{v_0^{-1} + \tilde{v}^{-1}}\hat{\beta}_1, v_N = \frac{1}{ v_0^{-1} + \tilde{v}^{-1}},
+\begin{align}
+m_N &= \frac{v_0^{-1}}{v_0^{-1} + \tilde{v}^{-1}}m_0 + \frac{\tilde{v}^{-1} }{v_0^{-1} + \tilde{v}^{-1}}\hat{\beta}_1\\
+v_N &= \frac{1}{ v_0^{-1} + \tilde{v}^{-1}}
+\end{align}
 ```
 where ``\tilde{v}^{-1} = \sum_n x_n^2`` by definition. 
 
-Note that if we assume ``m_0=0``, and the prior precision ``v_0^{-1}`` gets large, ``v_0^{-1} \rightarrow \infty``, in other words, we strongly believe the slope is zero, the posterior mean ``m_N`` will get closer to zero: ``m_N\rightarrow m_0=0``.
-The posterior variance is reduced in comparison with the prior variance ``v_0``. It makes sense since the posterior update reduces the estimation uncertainty.
+Note that if we assume ``m_0=0``, and the prior precision ``v_0^{-1}`` gets large, say ``v_0^{-1} \rightarrow \infty`` (in other words, we strongly believe the slope is zero), the posterior mean ``m_N`` will get closer to zero: ``m_N\rightarrow m_0=0``.
+Also note the posterior variance ``v_N`` is reduced in comparison with the prior variance ``v_0``. It makes sense since the posterior update reduces the estimation uncertainty.
 """
 
 # ╔═╡ 59dd8a13-89c6-4ae9-8546-877bb7992570
