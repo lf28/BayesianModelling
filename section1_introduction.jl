@@ -35,7 +35,7 @@ $$d_1, d_2, \ldots, d_N \sim \mathcal P,$$
 where "``\sim``" means the data are *distributed according to*, or equivalently, drawn from the distribution. And we want to *infer* some properties of the population distribution ``\mathcal P`` based on the sample ``\mathcal D = \{d_n\}``. 
 
 
-The most common inference case is parametric inference: that is when the population ``\mathcal P`` is some probability distribution with some finite number of parameters. For example, to test whether a coin is fair, we toss the coin ``N`` times. In this case, the population distribution is a Bernoulli distribution, i.e. a random variable with binary outcomes. The population distribution is fully determined by one parameter ``\theta \in [0,1]``, i.e. the bias of the coin:
+The most common inference case is parametric inference: that is when the population ``\mathcal P`` is some probability distribution with some finite number of parameters. For example, to test whether a coin is fair, we toss the coin ``N`` times. In this case, the population distribution is a Bernoulli distribution, *i.e.* a random variable with binary outcomes. The population distribution is fully determined by one parameter ``\theta \in [0,1]``, *i.e.* the bias of the coin:
 
 $$\mathcal P \triangleq \text{Bernoulli}(d; \theta)= \begin{cases} \theta, & d=\texttt{head} \\ 1-\theta, & d= \texttt{tail}\end{cases}$$
 
@@ -121,7 +121,7 @@ The following example demonstrates how Bayes' rule is used to answer a non-trivi
 # ╔═╡ c91937d3-1a46-4dc2-9d0d-f6fda482ea36
 md"""
 
-**Example (Switch point detection)** Your friend has two coins: one fair (i.e. with the probability of a head turning up $p=0.5$) and one bent (with a probability of head turning up $p= 0.2$). He always uses the fair coin at the beginning and then switches to the bent coin at some unknown time.
+**Example (Switch point detection)** Your friend has two coins: one fair (*i.e.* with the probability of a head turning up $p=0.5$) and one bent (with a probability of head turning up $p= 0.2$). He always uses the fair coin at the beginning and then switches to the bent coin at some unknown time.
 You have observed the following tossing results: ``\mathcal{D}= [0,1, 0,0,0,0]``. We use 1 to represent the head and 0 for the tail. When did he switch the coin? 
 """
 
@@ -141,11 +141,11 @@ end;
 md"""
 **Solution** 
 
-We identify the unknown $\theta \triangleq S$: i.e. the unknown switching point ``S``:
+We identify the unknown $\theta \triangleq S$: *i.e.* the unknown switching point ``S``:
 * ``S\in \{1,2,3,\ldots, 5\}``: after $S$-th toss, he switches the coin; 
 
 
-First, we determine the **likelihood**, or **forward probability**: the conditional probability of observing the data ``\mathcal D`` assuming (i.e. conditioning on) we know the switching point S. It is worth noting that this forward probability is straightforward to specify. Knowing the switching point, the whole data becomes two segments of independent coin tosses:
+First, we determine the **likelihood**, or **forward probability**: the conditional probability of observing the data ``\mathcal D`` assuming (*i.e.* conditioning on) we know the switching point S. It is worth noting that this forward probability is straightforward to specify. Knowing the switching point, the whole data becomes two segments of independent coin tosses:
 
 $$p(\mathcal D|S) = \underbrace{\prod_{i=1}^S p(d_i|p =0.5)}_{\text{coin 1}} \underbrace{\prod_{j=S+1}^N p(d_j|p = 0.2)}_{\text{coin 2}};$$ 
 
@@ -187,10 +187,10 @@ and **computation**.
 
 **Bayesian *modelling* stage**
 
-At the modelling stage, we are *telling a story* of the forward probability: i.e. how the data is generated hypothetically.  
+At the modelling stage, we are *telling a story* of the forward probability: *i.e.* how the data is generated hypothetically.  
 
 Different from the frequentist approach, Bayesian inference assumes both the **unknown parameter** ``\theta`` and the **observed data** ``\mathcal D`` random.
-Therefore, Bayesian's storyline includes the data generation process for ``theta``, i.e. **prior** and the observed ``\mathcal D``, i.e. **likelihood**. 
+Therefore, Bayesian's storyline includes the data generation process for ``\theta``, *i.e.* **prior** and the observed ``\mathcal D``, *i.e.* **likelihood**. 
 
 In other words, both methods require the likelihood but specifying priors for the unknowns is unique to the Bayesian approach.
 
@@ -198,7 +198,7 @@ In other words, both methods require the likelihood but specifying priors for th
 
 At the **computation** stage, we routinely apply Bayes' rule to answer the inverse inference question or the posterior distribution and finally summarise the posterior to answer specific downstream inference questions.
 
-However, the computation step is only *conceptually* straightforward. There is no technical difficulty when the parameter space $\Theta$ is discrete and finite: e.g. the unknown switching point can take one of the five discrete choices. In practice, this exact enumeration method becomes unattainable when the parameter space is continuous and higher-dimensional. And we need more advanced algorithms, e.g. Markov Chain Monte Carlo (MCMC) or variational method, to make the computation scalable. We will discuss the advanced computation algorithm in the next chapter.
+However, the computation step is only *conceptually* straightforward. There is no technical difficulty when the parameter space $\Theta$ is discrete and finite: *e.g.* the unknown switching point can take one of the five discrete choices. In practice, this exact enumeration method becomes unattainable when the parameter space is continuous and higher-dimensional. And we need more advanced algorithms, *e.g.* Markov Chain Monte Carlo (MCMC) or variational method, to make the computation scalable. We will discuss the advanced computation algorithm in the next chapter.
 
 """
 
@@ -222,7 +222,7 @@ In summary, Bayesian inference is formed by two blocks of steps: modelling, and 
 
 
 !!! note "Computation"
-	3. Compute **Posterior** distribution: ``p(\theta|\mathcal D)``. The third step is straightforward, at least conceptually: i.e. mechanically apply Bayes' rule to find the posterior.
+	3. Compute **Posterior** distribution: ``p(\theta|\mathcal D)``. The third step is straightforward, at least conceptually: *i.e.* mechanically apply Bayes' rule to find the posterior.
 	4. (optional) Report findings. Summarise the posterior to answer the inference question at hand. This step is optional as Bayesians report the posterior distribution from step three as the answer.
 """
 
@@ -241,7 +241,7 @@ To better understand the Bayesian inference procedure and also draw comparisons 
 
 > A coin 🪙 is tossed 10 times. And the tossing results are recorded: 
 > $$\mathcal D=\{1, 1, 1, 0, 1, 0, 1, 1, 1, 0\}$$; 
-> i.e. seven out of the ten tosses are heads (ones). Is the coin **fair**?
+> *i.e.* seven out of the ten tosses are heads (ones). Is the coin **fair**?
 
 
 We will first see how the frequentist approach solves the problem then the Bayesian method.
@@ -305,7 +305,7 @@ But what does the confidence interval mean here? Frequentist's methods assume ``
 	Over the 10,000 realised random intervals, approximately 90% of them trap the true parameter.
 
 
-The animation below illustrates the idea of a confidence interval. Conditional on the hypothesis that the coin is fair, i.e. ``\theta =0.5`` (it works for any ``\theta\in [0,1]``), the above two steps were repeated 100 times, *i.e.* tossing the coin ten times and then forming a confidence interval. The red vertical intervals (there are roughly 10 of them) are the 10% CIs that **do not** trap the true bias. 
+The animation below illustrates the idea of a confidence interval. Conditional on the hypothesis that the coin is fair, *i.e.* ``\theta =0.5`` (it works for any ``\theta\in [0,1]``), the above two steps were repeated 100 times, *i.e.* tossing the coin ten times and then forming a confidence interval. The red vertical intervals (there are roughly 10 of them) are the 10% CIs that **do not** trap the true bias. 
 """
 
 # ╔═╡ 1c64b953-5a3d-4a80-b523-8b8f213f6849
@@ -347,7 +347,7 @@ The bias, denoted as ``\theta``, is the unknown parameter. To make the posterior
 
 $\theta \in [0.0, 0.1, 0.2, \ldots, 1.0],$
 
-To show our ignorance, we can further assume a uniform prior over the 11 discrete choices, i.e.
+To show our ignorance, we can further assume a uniform prior over the 11 discrete choices, *i.e.*
 
 $$p(\theta) = \begin{cases} 1/11, & \theta \in \{0, 0.1, \ldots, 1.0\} \\
 0, & \text{otherwise}; \end{cases}$$
@@ -363,11 +363,11 @@ end)
 # ╔═╡ 65ef62da-f095-4bb2-aa0f-120827bed6e0
 md"""
 
-After spelling out the model (i.e. prior and likelihood), we apply Bayes' rule to find the posterior.
+After spelling out the model (*i.e.* prior and likelihood), we apply Bayes' rule to find the posterior.
 
 **Step 3. Apply Bayes' theorem**
 
-Mechanically apply Bayes' rule: i.e. multiplying the prior and likelihood then normalise.
+Mechanically apply Bayes' rule: *i.e.* multiplying the prior and likelihood then normalise.
 
 Note the prior is a constant, and the posterior is proportional to the likelihood:
 
@@ -397,11 +397,11 @@ md"""
 
 Technically, the Bayesian approach has finished once the posterior is finalised. One can ship the full posterior as an answer. However, to answer the particular question of the coin's fairness, we can proceed to *summarise the posterior*.
 
-One way to summarise a posterior distribution is to find the most likely region of the posterior, or **highest probability density interval (HPDI)** such that the enclosed probability within the interval is some number close to 100 %, e.g. 90%:
+One way to summarise a posterior distribution is to find the most likely region of the posterior, or **highest probability density interval (HPDI)** such that the enclosed probability within the interval is some number close to 100 %, *e.g.* 90%:
 
 $$p(l \leq \theta \leq u|\mathcal D) = 90 \%.$$
 
-Based on the posterior, we find the corresponding interval is between 0.5 and 0.9 inclusive: i.e.
+Based on the posterior, we find the corresponding interval is between 0.5 and 0.9 inclusive: *i.e.*
 
 $$p(0.5 \leq \theta \leq 0.9|\mathcal D) \approx 0.90.$$
 """
@@ -409,7 +409,7 @@ $$p(0.5 \leq \theta \leq 0.9|\mathcal D) \approx 0.90.$$
 # ╔═╡ dcc5758e-b1da-48c6-a9cf-5f906fcf76a9
 md"""
 
-The fair coin hypothesis, i.e. $\theta=0.5$ is within the 90% HPDI. Therefore, we should *not* reject the hypothesis that the coin is fair, which agrees with the frequentist's judgement.
+The fair coin hypothesis, *i.e.* $\theta=0.5$ is within the 90% HPDI. Therefore, we should *not* reject the hypothesis that the coin is fair, which agrees with the frequentist's judgement.
 
 However, compared with Frequentist's confidence interval, **the credible interval is a probability statement about the unknown bias**: the coin's unknown bias is likely to lie within the range 0.5 to 0.9 with a probability of 0.9. 
 """
@@ -481,7 +481,7 @@ In the following sections, we are going to discuss topics revolving around the t
 
 **Modelling**
 
-We will introduce more Bayesian modelling concepts in the next chapter, e.g. generative model and prior choices, and model checking. However, the modelling step is more an art than science. Ideally, each problem should have its own bespoke model. Therefore, more model-specific details will be introduced later when we introduce the individual models.
+We will introduce more Bayesian modelling concepts in the next chapter, *e.g.* generative model and prior choices, and model checking. However, the modelling step is more an art than a science. Ideally, each problem should have its own bespoke model. Therefore, more model-specific details will be introduced later when we introduce the individual models.
 
 **Computation**
 
@@ -795,7 +795,7 @@ According to the problem statement, we now have a two-parameter model. The two u
 
 Similar to the single coin model, we discrete the two parameters. Now the two-parameter can take any value in a grid of values: ``(\theta_A, \theta_B) \in \{0, 0.01, 0.02, \ldots, 1\}\times \{0, 0.01, 0.02, \ldots, 1\}.`` That means the tuple can take any ``101^2`` possible combinations of the discretised value pairs, such as ``(0.0, 0.0), (0.0, 0.01), (0.0, 0.02)`` and so on.
 
-To show our ignorance, we can further assume a uniform prior over the ``101^2`` choices, i.e.
+To show our ignorance, we can further assume a uniform prior over the ``101^2`` choices, *i.e.*
 
 $$p(\theta_A, \theta_B) = \begin{cases} 1/11^2, & \theta_A,\theta_B \in \{0, 0.01, \ldots, 1.0\}^2 \\
 0, & \text{otherwise}; \end{cases}$$

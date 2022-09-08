@@ -99,7 +99,7 @@ where ``a_0,b_0 >0`` are the prior's parameter and ``B(a_0,b_0)``, the beta func
 
 
 *Remarks.
-A few Beta distributions with different parameterisations are plotted below. Note that when ``a_0=b_0=1``, the prior reduces to a uniform distribution. Also note that when ``a_0> b_0``, e.g. ``\texttt{Beta}(5,2)``, the prior belief has its peak, or mode, greather 0.5, which implies the prior believe the coin is biased towards the head; and vice versa.*
+A few Beta distributions with different parameterisations are plotted below. Note that when ``a_0=b_0=1``, the prior reduces to a uniform distribution. Also note that when ``a_0> b_0``, e.g. ``\texttt{Beta}(5,2)``, the prior belief has its peak, or mode, greater than 0.5, which implies the prior believes the coin is biased towards the head; and vice versa.*
 
 
 """
@@ -219,7 +219,7 @@ Note that the function ``\mathbf{1}(\cdot)`` returns 1 if the test result of the
 
 # ╔═╡ 2ba73fd3-ae2b-4347-863f-28e6c21e7a91
 md"""
-We apply the sequantial learning algorithm on the simulated data. The posterior update starts from a vague flat prior. As more data is observed and absorbed into the posterior, the posterior distribution is more and more informative and finally recovers the final posterior.
+We apply the sequantial learning algorithm to the simulated data. The posterior update starts from a vague flat prior. As more data are observed and absorbed into the posterior, the posterior distribution is more and more informative and finally recovers the final posterior.
 """
 
 # ╔═╡ 56e80a69-6f84-498d-b04e-5be59c1488eb
@@ -786,7 +786,7 @@ $$p(\mathcal D_{pred}|\mathcal D, \mathcal M) \approx \frac{1}{R} \sum_{r} p(\ma
 We are making predictions of future data on an ensemble of ``R`` models by taking the average, and each ensemble element model is indexed by one posterior (prior) sample. 
 
 
-The ensemble view highlights a key difference between the Bayesian and frequentist methods. When it comes to prediction, the frequentist usually applies the plut-in principle: use a point estimator of ``\theta`` (e.g. the maximum likelihood estimator) and that singleton model to predict:
+The ensemble view highlights a key difference between the Bayesian and frequentist methods. When it comes to prediction, the frequentist usually applies the plug-in principle: use a point estimator of ``\theta`` (e.g. the maximum likelihood estimator) and that singleton model to predict:
 
 $$p(\mathcal D_{pred}|\hat{\theta}, \mathcal M).$$
 On the other hand, the Bayesian adopts a more democratic approach: an ensemble of models is consulted.

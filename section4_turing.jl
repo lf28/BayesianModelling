@@ -32,7 +32,7 @@ md"""
 
 In the previous chapters, we have introduced some basic concepts of Bayesian inference and MCMC samplers. In a nutshell, Bayesian inference requires a full generative model which includes both prior assumptions for the unknown and the likelihood function for the observed. After the modelling step, efficient algorithms, such as MCMC, are used to compute the posterior distribution. 
 
-So far, we have implemented all of the Bayesian models and their inference algorithms manually. Writing programs from scratch require prior programming experience and effort. Therefore, starting everything from scratch is not practical for general applied practitioners. 
+So far, we have implemented all of the Bayesian models and their inference algorithms manually. Writing programs from scratch requires prior programming experience and effort. Therefore, starting everything from scratch is not practical for general applied practitioners. 
 
 Fortunately, with the help of probabilistic programming languages (PPL), such as `Turing.jl` or `Stan`, one can do Bayesian inferences easily without worrying too much about the technical details. A PPL is a programming language to specify and infer general-purpose probabilistic models. They provide a high-level and intuitive-to-use way of specifying Bayesian models. Moreover, a PPL unifies the modelling and computation blocks. Bayesian computations, such as MCMC, can be (almost) carried out automatically once a model is specified. 
 
@@ -226,9 +226,9 @@ Some MCMC algorithms such as Hamiltonian Monte Carlo (HMC) or No-U-Turn sampler 
 
 As shown in chapter 3, packages such as `ForwardDiff.jl` can automatically differentiate a Julia program. With the auto-differentiation (AD) packages serving as backends, `Turing` can compute the gradient automatically. Different backends and algorithms supported in `Turing.jl` include:
 - [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl): forward-mode AD, the default backend
-- [Tracker.jl](https://github.com/JuliaDiff/Tracker.jl): reverse-mode AD
+- [Tracker.jl](https://github.com/FluxML/Tracker.jl): reverse-mode AD
 - [ReverseDiff.jl](https://github.com/JuliaDiff/ReverseDiff.jl): reverse-mode AD, has to be loaded explicitly (optional cache for some models)
-- [Zygote.jl](https://github.com/JuliaDiff/Zygote.jl): reverse-mode AD, has to be loaded explicitly
+- [Zygote.jl](https://github.com/FluxML/Zygote.jl): reverse-mode AD, has to be loaded explicitly
 """
 
 # ╔═╡ fefbf8e9-8920-4555-87bc-daf2e2a231f1
@@ -594,7 +594,7 @@ begin
 end
 
 # ╔═╡ 5b01a0b7-affd-465d-b9f1-422d76ce6dca
-md"""Remember `cf_chain` is a posterior MCMC chain sampled earlier. The prediction method will return another `MCMCChain` object of ``\mathcal D_{pred}``. For this case, it should contain 6000 simulated ``\mathcal D_{pred}`` (and each sample contains 10 tosses), since `cf_chain` were simulated with 3 parallel chains and each chain with 3000 iterations. 
+md"""Remember `cf_chain` is the posterior MCMC chain sampled earlier. The prediction method will return another `MCMCChain` object of ``\mathcal D_{pred}``. For this case, it should contain 6000 simulated ``\mathcal D_{pred}`` (and each sample contains 10 tosses), since `cf_chain` were simulated with 3 parallel chains and each chain with 2000 iterations. 
 
 
 To summarise the simulated data, we sum each ``\mathcal D^{(r)}_{pred}`` to find the simulated ``\tilde{N}_h^{(r)}`` and use histogram to do visual check. 
@@ -723,7 +723,7 @@ $$p(\theta|\mathcal D) = \texttt{Beta}(8, 4).$$ The corresponding prior and upda
 Foldable("Julia code explanation.", md"`sum(Array(post_pred_chain), dims=2)[:]` 
 * `Array(post_pred_chain)` casts an `MCMCChain` object to `Array` object so it can be processed later 
 * `sum(., dims=2)` sums the first argument (a matrix here) by rows and return a row array
-* `[:]` reduces a row array to a column vector (optional)
+* `[:]` reduces a row array to a column vector
 ")
 
 # ╔═╡ 5202ef8d-dcd5-4882-a18e-b1d2d4769387

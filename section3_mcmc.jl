@@ -385,7 +385,7 @@ To demonstrate the idea, consider sampling from a bivariate Gaussian distributio
 
 $$\begin{bmatrix} \theta_1 \\ \theta_2 \end{bmatrix} \sim \mathcal N\left (\begin{bmatrix} 0 \\ 0 \end{bmatrix} , \begin{bmatrix} 1 & \rho  \\ \rho & 1 \end{bmatrix}\right ).$$
 
-The Gaussian distribution has a mean of zero and variances of 1; ``\rho`` measures the correlation between the two dimensions. Here we use ``\rho = 0.9``. The probability density can be written as 
+The Gaussian distribution has a mean of zero and variance of 1; ``\rho`` measures the correlation between the two dimensions. Here we use ``\rho = 0.9``. The probability density can be written as 
 
 $$p^\ast(\boldsymbol \theta) \propto \text{exp}\left (-\frac{1}{2} \boldsymbol  \theta^\top \mathbf  \Sigma^{-1} \boldsymbol  \theta\right ),$$ where
 ``\mathbf \Sigma = \begin{bmatrix} 1 & 0.9  \\ 0.9 & 1 \end{bmatrix}.`` The target distribution's contour plot is shown below. 
@@ -470,7 +470,7 @@ md"""
 
 An animation is listed below to demonstrate the MH algorithm with a proposal distribution ``\sigma^2_q = 1.0``, where
 * the ``{\color{red}\text{red dots}}`` dots are the rejected proposals
-* the ``{\color{green}\text{red dots}}`` dots are the MCMC samples (either accepted new proposals or stay-put old samples)
+* the ``{\color{green}\text{green dots}}`` dots are the MCMC samples (either accepted new proposals or stay-put old samples)
 """
 
 # ╔═╡ 5b3f3b8a-1cfa-4b32-9a20-1e1232549e78
@@ -546,7 +546,7 @@ md"""
 
 # ╔═╡ 0802dc90-8312-4509-82f0-6eca735e852b
 md"""
-MH algorithm's performance depends on the proposal's quality. And setting a suitable proposal distribution for an MH algorithm is not easy, especially when the target distribution is high-dimensional. As a rule of thumb, we should aim at an acceptance rate between 0.2 to 0.6. Too high or too low signals the chain is struggling. 
+MH algorithm's performance depends on the proposal's quality. And setting a suitable proposal distribution for an MH algorithm is not easy, especially when the target distribution is high-dimensional. As a rule of thumb, we should aim at an acceptance rate between 0.2 to 0.6. Too high or too low implies the chain is struggling. 
 
 **Acceptance rate too high** 
 
@@ -816,12 +816,12 @@ md"""
 	0. Initialise ``\boldsymbol \theta^{(0)}=[\theta_1^{(0)},\theta_2^{(0)}, \ldots, \theta_D^{(0)} ]`` arbitrary
 	1. For ``r = 1,2,\ldots``:
 	   * sample dimension ``1``: 
-	   $$\theta_1^{(r)} \sim p(\theta_1|\theta_2^{(0)}, \ldots, \theta_D^{(0)})$$
+	   $$\theta_1^{(r)} \sim p(\theta_1|\theta_2^{(r-1)}, \ldots, \theta_D^{(r-1)})$$
 	   * sample dimension ``2``: 
-	   $$\theta_2^{(r)} \sim p(\theta_2|\theta_1^{(1)}, \ldots, \theta_D^{(0)})$$
+	   $$\theta_2^{(r)} \sim p(\theta_2|\theta_1^{(r)}, \theta_3^{(r-1)}, \ldots, \theta_D^{(r-1)})$$
 	   $$\vdots$$
 	   * sample dimension ``D``: 
-	   $$\theta_D^{(r)} \sim p(\theta_D|\theta_1^{(1)}, \ldots, \theta_{D-1}^{(1)})$$
+	   $$\theta_D^{(r)} \sim p(\theta_D|\theta_1^{(r)}, \ldots, \theta_{D-1}^{(r)})$$
 """
 
 # ╔═╡ 16be37d7-f6d5-469b-b0fd-20816b42d4e5
@@ -890,7 +890,7 @@ end;
 begin
 	con_p = contour(-9:0.1:9, -6:0.1:6, (x,y) -> pdf(d, [x,y]), legend=false, ratio=1, xlim =[-9,9], ylim=[-6,6])
 	surf_p = surface(-9:0.1:9, -6:0.1:6, (x,y) -> pdf(d, [x,y]), legend=false)
-	Plots.plot(con_p, surf_p, layout=(1,2))
+	Plots.plot(con_p, surf_p, layout=(1,2), size=(780,400))
 end
 
 # ╔═╡ d20cf19f-70fc-47dd-a031-22079bbd10b9
