@@ -426,7 +426,7 @@ md"""
 
 As mentioned earlier, the Bayesian approach is very flexible in dealing with customised problems. To demonstrate this, we consider an extension of the previous simple inference problem.
 
-Suppose now we have two coins ``A`` and ``B`` with unknown biases: ``0\leq \theta_A \leq 1, 0\leq\theta_B \leq 1``. The two coins are tossed ``N_A=10`` and ``N_B=100`` times, and the numbers of heads, ``N_{A,h}=9, N_{B,h}=89``, are recorded. Now the inference question is
+Suppose now we have two coins ``A`` and ``B`` with unknown biases: ``0\leq \theta_A \leq 1, 0\leq\theta_B \leq 1``. The two coins are tossed ``N_A=10`` and ``N_B=100`` times, and the numbers of heads, ``N_{A,h}=9, N_{B,h}=89,`` are recorded. Now the inference question is
 
 > Which coin has a larger bias?
 
@@ -895,7 +895,7 @@ StatsPlots = "~0.14.34"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.8.0"
+julia_version = "1.8.1"
 manifest_format = "2.0"
 project_hash = "ce70ec3d65e8ec0ccfd0a42d75cc8637eff8925b"
 
@@ -2109,7 +2109,7 @@ version = "0.9.1+5"
 # ╟─65ef62da-f095-4bb2-aa0f-120827bed6e0
 # ╟─db7f7652-c37d-4f3c-a7c6-0fc57112c3ba
 # ╟─785bdafd-4bfc-441b-bd79-f1bbced4efb9
-# ╟─009a824f-c26d-43e9-bb6d-fd538a19863b
+# ╠═009a824f-c26d-43e9-bb6d-fd538a19863b
 # ╟─d31477e0-35b0-4968-bfbf-aefa727f3a41
 # ╟─ccc239c6-327f-4905-9040-4a7b4a51e6e1
 # ╟─dcc5758e-b1da-48c6-a9cf-5f906fcf76a9

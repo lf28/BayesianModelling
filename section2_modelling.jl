@@ -1208,7 +1208,7 @@ StatsPlots = "~0.15.1"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.8.0"
+julia_version = "1.8.1"
 manifest_format = "2.0"
 project_hash = "9e7c33f8b66bcf1aff44f5bd106dce65ecb9c825"
 
