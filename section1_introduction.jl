@@ -797,7 +797,7 @@ Similar to the single coin model, we discrete the two parameters. Now the two-pa
 
 To show our ignorance, we can further assume a uniform prior over the ``101^2`` choices, *i.e.*
 
-$$p(\theta_A, \theta_B) = \begin{cases} 1/11^2, & \theta_A,\theta_B \in \{0, 0.01, \ldots, 1.0\}^2 \\
+$$p(\theta_A, \theta_B) = \begin{cases} 1/101^2, & \theta_A,\theta_B \in \{0, 0.01, \ldots, 1.0\}^2 \\
 0, & \text{otherwise}; \end{cases}$$
 
 The prior distribution is shown below:
@@ -2109,7 +2109,7 @@ version = "0.9.1+5"
 # ╟─65ef62da-f095-4bb2-aa0f-120827bed6e0
 # ╟─db7f7652-c37d-4f3c-a7c6-0fc57112c3ba
 # ╟─785bdafd-4bfc-441b-bd79-f1bbced4efb9
-# ╠═009a824f-c26d-43e9-bb6d-fd538a19863b
+# ╟─009a824f-c26d-43e9-bb6d-fd538a19863b
 # ╟─d31477e0-35b0-4968-bfbf-aefa727f3a41
 # ╟─ccc239c6-327f-4905-9040-4a7b4a51e6e1
 # ╟─dcc5758e-b1da-48c6-a9cf-5f906fcf76a9
