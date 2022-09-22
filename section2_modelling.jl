@@ -95,7 +95,7 @@ For the coin flipping example, the conjugate prior is
 ```math
 p(\theta) = \texttt{Beta}(\theta; a_0, b_0) = \frac{1}{\text{B}(a_0, b_0)} \theta^{a_0-1}(1-\theta)^{b_0-1},
 ```
-where ``a_0,b_0 >0`` are the prior's parameter and ``B(a_0,b_0)``, the beta function, is a normalising constant for the Beta distribution: i.e. ``\mathrm{B}(a_0, b_0) = \int \theta^{a_0-1}(1-\theta)^{b_0-1}\mathrm{d}\theta``. 
+where ``a_0,b_0 >0`` are the prior's parameter and ``B(a_0,b_0)``, the beta function, is a normalising constant for the Beta distribution: *i.e.* ``\mathrm{B}(a_0, b_0) = \int \theta^{a_0-1}(1-\theta)^{b_0-1}\mathrm{d}\theta``. 
 
 
 *Remarks.
@@ -417,7 +417,7 @@ md"""
 
 All priors can be largely classified into two groups: **informative** prior and **non-informative** prior.
 
-**Non-informative** prior, as the name suggests, contains no information in the prior [^1] and *let the data speak to itself*. For our coin-flipping case, a possible choice is a flat uniform prior: i.e. ``p(\theta) \propto 1`` when ``\theta\in[0,1]``. 
+**Non-informative** prior, as the name suggests, contains no information in the prior [^1] and *let the data speak to itself*. For our coin-flipping case, a possible choice is a flat uniform prior: *i.e.* ``p(\theta) \propto 1`` when ``\theta\in[0,1]``. 
 
 
 **Informative** prior, on the other hand, contains the modeller's subjective prior judgement. 
@@ -482,7 +482,7 @@ However, there are problems in which more elaborate modelling assumptions are re
 md"""
 
 !!! question "Seven scientist problem"
-	[*The question is adapted from [^1]*] Seven scientists (A, B, C, D, E, F, G) with widely-differing experimental skills measure some signal ``\mu``. You expect some of them to do accurate work (i.e. to have small observation variance ``\sigma^2``, and some of them to turn in wildly inaccurate answers (i.e. to have enormous measurement error). What is the unknown signal ``\mu``?
+	[*The question is adapted from [^1]*] Seven scientists (A, B, C, D, E, F, G) with widely-differing experimental skills measure some signal ``\mu``. You expect some of them to do accurate work (*i.e.* to have small observation variance ``\sigma^2``, and some of them to turn in wildly inaccurate answers (*i.e.* to have enormous measurement error). What is the unknown signal ``\mu``?
 
 	The seven measurements are:
 
@@ -536,7 +536,7 @@ One possible model is to ignore the subtleties and reuse our coin-flipping model
 
 $$d_n \overset{\mathrm{i.i.d}}{\sim} \mathcal N(\mu, \sigma^2),$$
 
-where the mean is the unknown signal ``\mu`` and a shared ``\sigma^2`` is the observed variance. The model implies each scientist's observation is the true signal ``\mu`` plus some Gaussian distributed observation noise.
+where the mean is the unknown signal ``\mu`` and a shared ``\sigma^2`` is the observation variance. The model implies each scientist's observation is the true signal ``\mu`` plus some Gaussian distributed observation noise.
 
 To specify a Bayesian model, we need to continue to specify a prior model for the two unknowns ``\mu``, ``\sigma^2``. For computational convenience, we assume a Gaussian prior for the signal ``\mu``:
 
@@ -603,7 +603,7 @@ where ``N=7`` for our problem.
 # ╔═╡ 2f2e3e34-76c0-4f35-8c9b-21184f86cf66
 md"""
 
-We can implement the (log) density in Julia (check `log_marginal_μ_wrong` function below). It is more common to compute log probability to avoid numerical issues. For reference, the log posterior density is:
+We can implement the (log) un-normalised density in Julia (check `log_marginal_μ_wrong` function below). It is more common to compute log probability to avoid numerical issues. For reference, the log posterior density is:
 
 ```math
 
@@ -621,7 +621,7 @@ end
 
 # ╔═╡ 9d737cc5-c533-4e86-8654-b1adba943fc0
 md"""
-We plot the unnormalised marginal posterior below. It shows the most likely estimate for the signal is about 3.46, which is counter-intuitive.
+The unnormalised marginal posterior is plotted below. It shows the most likely estimate for the signal is about 3.46, which is counter-intuitive.
 """
 
 # ╔═╡ 1d7783bf-a8d0-47d6-812d-b31ae0c0b138
@@ -649,7 +649,7 @@ md"""
 The i.i.d assumption does not reflect the subtleties of the data generation process. A better model should assume each observation follows an independent but not identical Gaussian distribution. In particular, for each scientist, we should introduce their own observation precision, ``\phi_n \triangleq \sigma^2_n`` to reflect their "different levels of experimental skills".
 
 
-The improved model now includes 7+1 unknown parameters: the unknown signal ``\mu`` and seven observation precisions ``\phi_n`` for the seven scientists:
+The improved model now includes 7+1 unknown parameters: the unknown signal ``\mu`` and the observation precisions ``\{\phi_n\}_{n=1}^7`` for each of the seven scientists:
 
 ```math
 \begin{align}
@@ -658,6 +658,8 @@ The improved model now includes 7+1 unknown parameters: the unknown signal ``\mu
 d_n &\sim \mathcal N(\mu, 1/\phi_n)\;\; \text{for }n = 1,2,\ldots,7\\
 \end{align}
 ```
+
+Intuitively, the precision ``\phi_n`` reflects a scientist's experimental skill level. Higher precision (lower observation variance) implies better skill.
 """
 
 # ╔═╡ a06f8785-fbbc-4973-b3d0-5a6db967b3cc
@@ -694,7 +696,7 @@ The posterior distribution looks more complicated now but makes much better sens
 * the mode now correctly sits around 10 (circa 9.7)
 * also note a few small bumps near locations of -27 and 3.5
 
-The posterior makes much better sense. It not only correctly identifies the consensus of the majority of the scientists (i.e. scientists C, D, E,..., G) and also takes into account scientists A and B's noisy observations.
+The posterior makes much better sense. It not only correctly identifies the consensus of the majority of the scientists (*i.e.* scientists C, D, E,..., G) and also takes into account scientists A and B's noisy observations.
 """
 
 # ╔═╡ d6341bf9-7a95-4a10-8a26-9495b724b907
@@ -713,10 +715,10 @@ md"""
 
 ## Check your models: Predictive checks
 
-Bayesian inference provides a great amount of modelling freedom to its user. The modeller, for example, can incorporate his or her expert knowledge in the prior distribution and also choose a suitable likelihood that best matches the data generation process. However, greater flexibility comes with a price. The modeller also needs to take full responsibility for the modelling decisions. For example, for a Bayesian model, one needs to check whether
+Bayesian inference provides a great amount of modelling freedom to its user. The modeller, for example, can incorporate his or her expert knowledge in the prior distribution and also choose a suitable likelihood that best matches the data generation process. However, greater flexibility comes with a price. The modeller also needs to take full responsibility for the modelling decisions. To be more specific, for a Bayesian model, one at least needs to check whether
 * the prior makes sense?
-* the generative model as a whole (i.e. prior plus likelihood) match the observed data? 
-In other words, the user needs to **validate the model** before making any final inference decisions. **Predictive checks** are a great way to empirically validate a model.
+* the generative model as a whole (*i.e.* prior plus likelihood) match the observed data? 
+In other words, the user needs to **validate the model** before making any final inference decisions. **Predictive checks** are a great way to empirically validate a model's assumptions.
 """
 
 # ╔═╡ 8fe3ed2f-e826-4faa-ace0-2286b944991f
@@ -729,15 +731,22 @@ The idea of predictive checks is to generate future *pseudo observations* based 
 
 $$\mathcal{D}^{(r)} \sim p(\mathcal D_{\textit{pred}}|\mathcal D, \mathcal M), \;\; \text{for }r= 1\ldots, R$$ 
 
-where ``\mathcal D`` is the observed data and ``\mathcal M`` denotes the Bayesian model. Note that the posterior predictive distribution indicates what future data might look like, given the observed data and our model. If the model assumptions (both the prior and likelihood) are reasonable, we should expect the generated pseudo data agree with the observed. 
+where ``\mathcal D`` is the observed data and ``\mathcal M`` denotes the Bayesian model. Note that the posterior predictive distribution indicates what future data might look like, given the observed data and our model. If the model assumptions (both the prior and likelihood) are reasonable, we should expect the generated pseudo data "agree with" the observed. 
 
-Comparing vector data is not easy (note that a sample ``\mathcal D`` is usually a vector). In practice, we compute the predictive distribution of some summary statistics, say mean, variance, median, or any meaningful statistic instead, and visually check whether the observed statistic falls within the prediction. Based on the Monte Carlo principle, after simulating ``R`` pseudo samples,
+Comparing vector data is not easy (note that a sample ``\mathcal D`` is usually high-dimensional). In practice, we compute the predictive distribution of some summary statistics, say mean, variance, median, or any meaningful statistic instead, and visually check whether the observed statistic falls within the predictions' possible ranges. 
 
-$$\tilde{\mathcal D}^{(1)}, \tilde{\mathcal D}^{(2)}, \tilde{\mathcal D}^{(3)},\ldots, \tilde{\mathcal D}^{(R)} \sim p(\mathcal D_{pred}|\mathcal D, \mathcal M),$$ the predictive distribution of a summary statistic ``t(\cdot)``: ``p(t(D_{pred})|\mathcal D, \mathcal M)``, can be approximated by the empirical distribution of ``\{t(\tilde{\mathcal D}^{(1)}), t(\tilde{\mathcal D}^{(2)}), \ldots, t(\tilde{\mathcal D}^{(R)})\}``. 
+
+The possible credible ranges can be calculated based on the Monte Carlo method. Based on the Monte Carlo principle, after simulating ``R`` pseudo samples,
+
+$$\tilde{\mathcal D}^{(1)}, \tilde{\mathcal D}^{(2)}, \tilde{\mathcal D}^{(3)},\ldots, \tilde{\mathcal D}^{(R)} \sim p(\mathcal D_{pred}|\mathcal D, \mathcal M),$$ the predictive distribution of a summary statistic ``t(\cdot)``: 
+
+$$p(t(D_{pred})|\mathcal D, \mathcal M)$$ 
+
+can be approximated by the empirical distribution of ``\{t(\tilde{\mathcal D}^{(1)}), t(\tilde{\mathcal D}^{(2)}), \ldots, t(\tilde{\mathcal D}^{(R)})\}``. One can check whether the observed statistic ``t(\mathcal{D})`` falls within a credible region within the empirical distribution of ``\{t(\tilde{\mathcal D}^{(1)}), t(\tilde{\mathcal D}^{(2)}), \ldots, t(\tilde{\mathcal D}^{(R)})\}``. We will see some examples soon to demonstrate the idea.
 
 
 ### Prior predictive check
-Alternatively, one can use a **prior predictive distribution** to simulate the *future* data: i.e.
+Alternatively, one can use a **prior predictive distribution** to simulate the *future* data: *i.e.*
 
 $$\mathcal{D}^{(r)} \sim p(\mathcal D_{pred}|\mathcal M), \;\; \text{for }r= 1\ldots, R$$
 and the visual check based on the sample is called **prior predictive check**. The prior predictive distribution is a distribution of possible data sets given the priors and the likelihood, *before any real observations are taken into account*. Since the distribution relies on the prior information only, a prior predictive check is particularly useful to validate a prior's specification. 
@@ -762,7 +771,7 @@ The predictive distribution, in general, can be found by applying the sum rule,
 p(\mathcal D_{pred}|\mathcal D, \mathcal M) = \int p(\mathcal D_{pred}, \theta|\mathcal D, \mathcal M) \mathrm{d}\theta=  \int p(\mathcal D_{pred} |\theta, \mathcal D, \mathcal M) p(\theta|\mathcal D, \mathcal M) \mathrm{d}\theta
 
 ```
-in which the unknown parameters ``\theta`` are integrated out. Assuming that past and future observations are conditionally independent given  ``\theta``, i.e. ``p(\mathcal D_{pred} |\theta, \mathcal D, \mathcal M) = p(\mathcal D_{pred} |\theta, \mathcal M)``, the above equation can be written as:
+in which the unknown parameters ``\theta`` are integrated out. Assuming that past and future observations are conditionally independent given  ``\theta``, *i.e.* ``p(\mathcal D_{pred} |\theta, \mathcal D, \mathcal M) = p(\mathcal D_{pred} |\theta, \mathcal M)``, the above equation can be written as:
 
 ```math
 
@@ -842,11 +851,11 @@ end
 
 # ╔═╡ 858d3a5f-053d-4282-83f7-ff33ad8b5f58
 md"""
-**A model with misspecified prior.** Predictive checks can identify potential problems in a misspecified model. Suppose the modeller has mistakenly used a very strongly informative prior:
+**A model with misspecified prior.** Predictive checks can identify potential problems in a misspecified model. Suppose the modeller has mistakenly used a very strongly informative prior
 
 $$\theta \sim \text{Beta}(50, 1),$$
 
-And the posterior becomes 
+which contradicts the observation. As a result, the posterior is dominated by the prior: 
 
 $$\theta \sim \text{Beta}(50+7, 1+3).$$
 
@@ -882,8 +891,8 @@ Predictive checks can spot the problem for us. Let's first use the prior predict
 let
 	Random.seed!(100)
 	D = predictive_simulate(50, 1; N=10 , R=5000)
-	histogram(sum(D, dims=1)[:], xlim = [0,11], xticks=0:10, normed=false, label="Prior predictive on Nₕ", legend=:outerbottom, xlabel="number of heads", title="Prior predictive check with a₀=50, b₀=1", ylabel=L"\#"* " of counts")
-	vline!([7], lw=4, lc=2, label="Observed Nₕ")
+	histogram(sum(D, dims=1)[:], xlim = [0,11], xticks=0:10, normed=false, label="Prior predictive on " *L"N_h", legend=:outerbottom, xlabel="number of heads", title="Prior predictive check with "*L"a_0=50, b_0=1", ylabel=L"\#"* " of counts")
+	vline!([7], lw=4, lc=2, label="Observed "*L"N_h")
 end
 
 # ╔═╡ edf0f6ab-3ace-47b0-9b6f-26154859862b
@@ -896,9 +905,9 @@ The posterior predictive check shows a similar story: the observed and what is e
 let
 	Random.seed!(100)
 	D = predictive_simulate(50+7, 1+3; N=10 , R=5000)
-	histogram(sum(D, dims=1)[:], xlim = [0,11], xticks=0:10,normed=false, label="Posterior predictive on Nₕ", legend=:outerbottom, xlabel="number of heads", title="Posterior predictive check with a₀=50, b₀=1", ylabel=L"\#"* " of counts")
+	histogram(sum(D, dims=1)[:], xlim = [0,11], xticks=0:10,normed=false, label="Posterior predictive on "*L"N_h", legend=:outerbottom, xlabel="number of heads", title="Posterior predictive check with "*L"a_0=50, b_0=1", ylabel=L"\#"* " of counts")
 	# density!(sum(D, dims=1)[:], xlim=[0,10], lc=1, lw=2, label="")
-	vline!([7], lw=4, lc=2, label="Observed Nₕ")
+	vline!([7], lw=4, lc=2, label="Observed "*L"N_h")
 end
 
 # ╔═╡ 1ee811d8-36f7-42b1-be50-c68ee9cabf23
@@ -1025,7 +1034,6 @@ Foldable("Details on the posterior marginal distribution of μ.",  md"
 ```math
 \begin{align}
 p(\mu|\mathcal D) &= \int_0^\infty p(\mu, \phi|\mathcal D) \mathrm{d}\phi \\
-&= \int_0^\infty p(\mu, \phi|\mathcal D) \mathrm{d}\phi\\
 &= \frac{1}{p(\mathcal D)} \int_0^\infty p(\mu)p(\phi) p(\mathcal D|\mu, \phi)\mathrm{d}\phi\\
 &\propto p(\mu)\int_0^\infty p(\phi) p(\mathcal D|\mu, \phi)\mathrm{d}\phi\\
 &= p(\mu)\int_0^\infty \frac{b_0^{a_0}}{\Gamma(a_0)} \phi^{a_0-1} e^{-b_0 \phi} \frac{1}{ (\sqrt{2\pi})^N}\phi^{\frac{N}{2}}e^{\frac{-\phi\cdot \sum_{n} (d_n-\mu)^2}{2}}\mathrm{d}\phi\\
@@ -2464,7 +2472,7 @@ version = "1.4.1+0"
 # ╟─2cb31d23-a542-4f8d-a056-025fa574f0d7
 # ╠═31afbad6-e447-44d2-94cf-c8f99c7fa64a
 # ╟─de5c3254-1fbe-46ec-ab09-77889405510d
-# ╠═ff49403c-8e0e-407e-8141-6ccf178c152b
+# ╟─ff49403c-8e0e-407e-8141-6ccf178c152b
 # ╟─024ce64f-29ef-49f2-a66f-87c2d4eb67a7
 # ╟─52fd1028-05aa-4b37-b57c-daabf4d77f50
 # ╟─d6056188-9a46-4b5f-801b-e028b6eb0b7f
@@ -2502,7 +2510,7 @@ version = "1.4.1+0"
 # ╟─9790024a-6cc8-47fe-892e-9ce32d7399a5
 # ╟─36ba6267-db0b-4147-b376-49106a15426f
 # ╟─dd91becf-167e-40eb-83e1-d1f004eb5491
-# ╟─b035c02f-9362-4f8c-926c-71eefed7fbc5
+# ╠═b035c02f-9362-4f8c-926c-71eefed7fbc5
 # ╟─2ca82ec8-5350-4d21-9738-487d4181bf73
 # ╠═dae0d74e-3f6d-4f5d-8ece-390a4e1a170a
 # ╟─0864aa09-97b0-4421-b3be-2c621323503a
