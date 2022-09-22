@@ -831,7 +831,7 @@ After finishing specifying the model, what is left is to routinely apply Bayes' 
 
 Note the prior is a constant, and the posterior is proportional to the likelihood:
 
-$$p(\theta_A, \theta_B|\mathcal D) \propto p(\theta_A, \theta_B)\cdot p(\mathcal D|\theta_A, \theta_B) = \frac{1}{11^2} \cdot p(\mathcal D|\theta_A, \theta_B).$$
+$$p(\theta_A, \theta_B|\mathcal D) \propto p(\theta_A, \theta_B)\cdot p(\mathcal D|\theta_A, \theta_B) = \frac{1}{101^2} \cdot p(\mathcal D|\theta_A, \theta_B).$$
 
 And the normalising constant $p(\mathcal D)$ is
 
