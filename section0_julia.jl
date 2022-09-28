@@ -201,7 +201,7 @@ md"""
 * Floating number: `2.0`
 * and even Complex numbers: `2 + 0im`
 
-`Julia`'s parsers can automatically infer the appropriate type for the value. The following examples demonstrate how the number 2 can be represented as different forms: i.e. as an integer, a rational number, a floating number, and a complex number.
+`Julia`'s parsers can automatically infer the appropriate type for the value. The following examples demonstrate how the number 2 can be represented as different forms: *i.e.* as an integer, a rational number, a floating number, and a complex number.
 """
 
 # ╔═╡ c3fe7693-8425-4f6b-8529-c9b242073334
