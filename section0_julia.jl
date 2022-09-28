@@ -40,10 +40,10 @@ md"""# A quick introduction to Julia $(Resource("https://julialang.org/assets/in
 # ╔═╡ c85214aa-83b1-41f0-b856-f85435db6e1d
 md"""
 
-[Julia](https://docs.julialang.org/en/v1/) is a general-purpose, open-source, dynamic, and high-performance language. The language is easy to learn and use like other script languages such as R and Python but works as fast as C/Fortran. The language also offers high-level, easy-to-use and expressive syntax that is particularly convenient for scientific or numerical computing. One often finds code written in Julia look like the maths equations erived and written on paper. 
+[Julia](https://docs.julialang.org/en/v1/) is a general-purpose, open-source, dynamic, and high-performance language. The language is easy to use like other script languages such as R and Python but works as fast as C/Fortran. The language also offers high-level, easy-to-use and expressive syntax that is particularly convenient for scientific or numerical computing. One often finds code written in Julia look like the maths equations they have derived and written on paper. 
 
 
-In this course, we are going to use Julia. Although Bayesian modelling concepts transcends the underlying implementation language, the reader should gain better understanding of the subjects if she/he can understand the basic syntax and do some basic programming. This note covers some basic features of Julia that are used later in the course. To fully understand the note, some prior programming experience is assumed.
+In this course, we are going to use Julia. Although Bayesian modelling concepts transcends the underlying implementation language, the reader should gain better understanding of the subjects if she/he can understand the basic Julia syntax and do some basic programming. This note covers some basic features of Julia that are used later in the course. To fully understand the note, some prior programming experience is however assumed.
 """
 
 # ╔═╡ e6c8aca8-1907-49b0-ba11-62fda98418fc
@@ -1026,10 +1026,10 @@ uuid = "c87230d0-a227-11e9-1b43-d7ebe4e7570a"
 version = "0.4.1"
 
 [[deps.FFMPEG_jll]]
-deps = ["Artifacts", "Bzip2_jll", "FreeType2_jll", "FriBidi_jll", "JLLWrappers", "LAME_jll", "Libdl", "Ogg_jll", "OpenSSL_jll", "Opus_jll", "Pkg", "Zlib_jll", "libaom_jll", "libass_jll", "libfdk_aac_jll", "libvorbis_jll", "x264_jll", "x265_jll"]
-git-tree-sha1 = "ccd479984c7838684b3ac204b716c89955c76623"
+deps = ["Artifacts", "Bzip2_jll", "FreeType2_jll", "FriBidi_jll", "JLLWrappers", "LAME_jll", "Libdl", "Ogg_jll", "OpenSSL_jll", "Opus_jll", "PCRE2_jll", "Pkg", "Zlib_jll", "libaom_jll", "libass_jll", "libfdk_aac_jll", "libvorbis_jll", "x264_jll", "x265_jll"]
+git-tree-sha1 = "40c63abc94311b4e2bff4cd9a6a59bda1873c95b"
 uuid = "b22a6f82-2f65-5046-a5b2-351ab43fb4e5"
-version = "4.4.2+0"
+version = "4.4.2+1"
 
 [[deps.FFTW]]
 deps = ["AbstractFFTs", "FFTW_jll", "LinearAlgebra", "MKL_jll", "Preferences", "Reexport"]
@@ -1475,6 +1475,11 @@ version = "1.3.2+0"
 git-tree-sha1 = "85f8e6578bf1f9ee0d11e7bb1b1456435479d47c"
 uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 version = "1.4.1"
+
+[[deps.PCRE2_jll]]
+deps = ["Artifacts", "Libdl"]
+uuid = "efcefdf7-47ab-520b-bdef-62a2eaa19f15"
+version = "10.40.0+0"
 
 [[deps.PCRE_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
