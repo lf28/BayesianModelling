@@ -64,7 +64,7 @@ md"""## Interact with `Julia`
 """
 
 # ╔═╡ b145ea5b-9fc0-4a57-b41b-ad8c825eaccc
-md"""There are many different ways to interact with the reading and printing. For example: the interactive command line interface REPL (read-eval-print loop) .
+md"""There are many different ways to interact with Julia. For example: the interactive command line interface REPL (read-eval-print loop) .
 """
 
 # ╔═╡ de6fc3a6-78dc-489a-8ac3-3642e0760d6a
