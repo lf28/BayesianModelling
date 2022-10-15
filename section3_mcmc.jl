@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.11
+# v0.19.13
 
 using Markdown
 using InteractiveUtils
@@ -41,7 +41,7 @@ md"""
 
 ## Bayesian computation is hard
 
-At a first glance, it might be hard to see why Bayesian computation can be difficult. After all, **Baye's theorem** has provided us with a very straightforward mechanism to compute the posterior:
+At a first glance, it might be hard to see why Bayesian computation can be difficult. After all, **Bayes' theorem** has provided us with a very straightforward mechanism to compute the posterior:
 
 $$\text{posterior}=\frac{\text{prior} \times \text{likelihood}}{\text{evidence}}\;\;\text{or}\;\;p(\theta|\mathcal D) =\frac{p(\theta) p(\mathcal D|\theta)}{p(\mathcal D)},$$
 where 
@@ -1926,7 +1926,7 @@ StatsPlots = "~0.15.0"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.8.1"
+julia_version = "1.8.2"
 manifest_format = "2.0"
 project_hash = "276b15c64407c890cf52786c63ecb31bab29d199"
 
@@ -2230,10 +2230,10 @@ uuid = "c87230d0-a227-11e9-1b43-d7ebe4e7570a"
 version = "0.4.1"
 
 [[deps.FFMPEG_jll]]
-deps = ["Artifacts", "Bzip2_jll", "FreeType2_jll", "FriBidi_jll", "JLLWrappers", "LAME_jll", "Libdl", "Ogg_jll", "OpenSSL_jll", "Opus_jll", "Pkg", "Zlib_jll", "libaom_jll", "libass_jll", "libfdk_aac_jll", "libvorbis_jll", "x264_jll", "x265_jll"]
-git-tree-sha1 = "ccd479984c7838684b3ac204b716c89955c76623"
+deps = ["Artifacts", "Bzip2_jll", "FreeType2_jll", "FriBidi_jll", "JLLWrappers", "LAME_jll", "Libdl", "Ogg_jll", "OpenSSL_jll", "Opus_jll", "PCRE2_jll", "Pkg", "Zlib_jll", "libaom_jll", "libass_jll", "libfdk_aac_jll", "libvorbis_jll", "x264_jll", "x265_jll"]
+git-tree-sha1 = "74faea50c1d007c85837327f6775bea60b5492dd"
 uuid = "b22a6f82-2f65-5046-a5b2-351ab43fb4e5"
-version = "4.4.2+0"
+version = "4.4.2+2"
 
 [[deps.FFTW]]
 deps = ["AbstractFFTs", "FFTW_jll", "LinearAlgebra", "MKL_jll", "Preferences", "Reexport"]
@@ -2735,6 +2735,11 @@ git-tree-sha1 = "85f8e6578bf1f9ee0d11e7bb1b1456435479d47c"
 uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 version = "1.4.1"
 
+[[deps.PCRE2_jll]]
+deps = ["Artifacts", "Libdl"]
+uuid = "efcefdf7-47ab-520b-bdef-62a2eaa19f15"
+version = "10.40.0+0"
+
 [[deps.PCRE_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "b2a7af664e098055a7529ad1a900ded962bca488"
@@ -3044,7 +3049,7 @@ version = "1.7.0"
 [[deps.Tar]]
 deps = ["ArgTools", "SHA"]
 uuid = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
-version = "1.10.0"
+version = "1.10.1"
 
 [[deps.TensorCore]]
 deps = ["LinearAlgebra"]
@@ -3481,7 +3486,7 @@ version = "0.9.1+5"
 # ╟─6a9863cb-3067-4250-ad89-6a1c8dc1fddc
 # ╟─ca2662a9-2754-45c1-9ce8-5b8599eef240
 # ╟─9375f800-7c4b-4cae-b263-f17198b04011
-# ╟─280069b8-f9fe-4cd6-866d-a20b9eab036e
+# ╠═280069b8-f9fe-4cd6-866d-a20b9eab036e
 # ╟─0138dedf-f874-4bbd-bf87-7f6bbe8ca816
 # ╠═af617b31-396f-465e-b27e-2fa14b3b2423
 # ╟─18ebc039-1656-4f74-8e9f-f03a8d39d7c4
