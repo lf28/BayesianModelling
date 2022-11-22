@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.11
+# v0.19.14
 
 using Markdown
 using InteractiveUtils
@@ -639,10 +639,10 @@ To plot a series of `sin` functions with different frequencies: ``\sin(k x)``
 
 # ╔═╡ 8416fec3-5460-441a-b415-40d04075ccf3
 let
-	plt = plot(-π: 0.01: π, sin, xlabel="x", ylabel="sin(x)", label="sin(x)", lw=1.5, legend=:outerbottom)
+	plt = plot(-π: 0.01: π, sin, xlabel=L"x", ylabel=L"\sin(x)", label=L"\sin(x)", lw=1.5, legend=:outerbottom)
 
 	for k in [2, 3]
-		plot!(-π: 0.01: π, (x) -> sin(k*x), label="sin($(k)x)", lw=1.5)
+		plot!(-π: 0.01: π, (x) -> sin(k*x), label=L"\sin(%$(k)x)", lw=1.5)
 	end
 	plt
 end
@@ -704,7 +704,7 @@ let
 	xs = -π : 0.1: π
 	f, ∇f = sin, cos
 	anim = @animate for Δx in π:-0.1:0.0
-		plot(xs, sin, label="f(x)", ylim = [-1.5, 1.5], xlabel=L"x", lw=2, legend=:topleft)
+		plot(xs, sin, label=L"f(x)", ylim = [-1.5, 1.5], xlabel=L"x", lw=2, legend=:topleft)
 		df = f(x₀ + Δx)-f(x₀)
 		k = Δx == 0 ? ∇f(x₀) : df/Δx
 		b = f(x₀) - k * x₀ 
@@ -801,7 +801,7 @@ StatsPlots = "~0.15.1"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.8.1"
+julia_version = "1.8.2"
 manifest_format = "2.0"
 project_hash = "eecf0cae6fc8c0adb32e2f7d29a05c28aed97e5c"
 
@@ -1027,9 +1027,9 @@ version = "0.4.1"
 
 [[deps.FFMPEG_jll]]
 deps = ["Artifacts", "Bzip2_jll", "FreeType2_jll", "FriBidi_jll", "JLLWrappers", "LAME_jll", "Libdl", "Ogg_jll", "OpenSSL_jll", "Opus_jll", "PCRE2_jll", "Pkg", "Zlib_jll", "libaom_jll", "libass_jll", "libfdk_aac_jll", "libvorbis_jll", "x264_jll", "x265_jll"]
-git-tree-sha1 = "40c63abc94311b4e2bff4cd9a6a59bda1873c95b"
+git-tree-sha1 = "74faea50c1d007c85837327f6775bea60b5492dd"
 uuid = "b22a6f82-2f65-5046-a5b2-351ab43fb4e5"
-version = "4.4.2+1"
+version = "4.4.2+2"
 
 [[deps.FFTW]]
 deps = ["AbstractFFTs", "FFTW_jll", "LinearAlgebra", "MKL_jll", "Preferences", "Reexport"]
@@ -1546,9 +1546,9 @@ uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [[deps.Qt5Base_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Fontconfig_jll", "Glib_jll", "JLLWrappers", "Libdl", "Libglvnd_jll", "OpenSSL_jll", "Pkg", "Xorg_libXext_jll", "Xorg_libxcb_jll", "Xorg_xcb_util_image_jll", "Xorg_xcb_util_keysyms_jll", "Xorg_xcb_util_renderutil_jll", "Xorg_xcb_util_wm_jll", "Zlib_jll", "xkbcommon_jll"]
-git-tree-sha1 = "c6c0f690d0cc7caddb74cef7aa847b824a16b256"
+git-tree-sha1 = "0c03844e2231e12fda4d0086fd7cbe4098ee8dc5"
 uuid = "ea2cea3b-5b76-57ae-a6ef-0a8af62496e1"
-version = "5.15.3+1"
+version = "5.15.3+2"
 
 [[deps.QuadGK]]
 deps = ["DataStructures", "LinearAlgebra"]
@@ -1738,7 +1738,7 @@ version = "1.7.0"
 [[deps.Tar]]
 deps = ["ArgTools", "SHA"]
 uuid = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
-version = "1.10.0"
+version = "1.10.1"
 
 [[deps.TensorCore]]
 deps = ["LinearAlgebra"]
@@ -2121,7 +2121,7 @@ version = "1.4.1+0"
 # ╟─56961f01-40b2-4a18-90a2-a0ebeeebd16c
 # ╠═e65a6edb-12ab-44c4-a1ff-94a457583c49
 # ╟─c8ab39c8-a3e0-4ef5-8a47-365b5c484042
-# ╟─9f420af3-f080-411d-bc14-e2e45572ac77
+# ╠═9f420af3-f080-411d-bc14-e2e45572ac77
 # ╟─da4fb082-1f42-41ac-a0eb-55a087b4b4a5
 # ╠═d0646d89-64a4-4eb3-8739-2cac268abcf3
 # ╟─a5212ff7-0416-440d-8ad6-9b6e0ac35a8d
