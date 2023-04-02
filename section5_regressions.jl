@@ -24,7 +24,7 @@ md"""
 
 # Bayesian linear regressions
 
-Supervised learning in general is to predict a *dependent variable* ``Y`` based on *independent variables* ``X``. In other words, it tries to access how ``X`` affects ``Y``. Depending on the value type of the labelled targets ``Y``, the analysis can be further classified as *regression* and *classification*. When ``Y`` can take a spectrum of continuous values, such as real value, the learning task is known as regression. When ``Y`` take discrete choices, the task is commonly referred to as classification.
+Supervised learning in general is to predict a *dependent variable* ``Y`` based on *covariate features* ``X``. In other words, it tries to access how ``X`` affects ``Y``. Depending on the value type of the labelled targets ``Y``, the analysis can be further classified as *regression* and *classification*. When ``Y`` can take a spectrum of continuous values, such as real value, the learning task is known as regression. When ``Y`` take discrete choices, the task is commonly referred to as classification.
 
 
 In this chapter, we consider the case of ``Y`` being real-valued, ``Y\in R``, *i.e.* regression. And leave the discussion on other general cases such as ``Y\in \{\texttt{true}, \texttt{false}\}`` or ``Y\in \{0,1,2,\ldots\}`` in the following chapters. We will first briefly review the Frequentist's regression model and then move on to introduce the Bayesian treatment. From a modelling perspective, the Bayesian model is almost the same as the Frequentist's model except for the additional prior distributions. It turns out the additional prior not only offers a way to incorporate the modeller's prior expert knowledge but also has a *regularisation* effect in estimating the model parameters.

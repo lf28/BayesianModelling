@@ -307,9 +307,9 @@ p(\phi|\mathcal D, \mu) = \texttt{Gamma}(a_N, b_N),
 
 where 
 
-$$a_n= a_0 +\frac{N}{2}, \;\;b_N = b_0 + \frac{\sum_{n} (d_n- \mu)^2}{2}.$$
+$$a_N= a_0 +\frac{N}{2}, \;\;b_N = b_0 + \frac{\sum_{n} (d_n- \mu)^2}{2}.$$
 
-The Bayesian computation reduces to hyperparameter update again. Note the posterior mean (standard result of a Gamma distribution) is 
+The Bayesian computation reduces to hyperparameter update again. Note the posterior mean is 
 
 $$\mathbb{E}[\phi|\mathcal D] = \frac{a_N}{b_N} = \frac{a_0 + N/2}{b_0 + {\sum_n (d_n -\mu)^2}/{2}}.$$
 
@@ -344,7 +344,7 @@ end
 
 # ╔═╡ 59975c2b-c537-4950-aeea-985377f22d93
 md"""
-We have used a relatively vague Gamma prior with ``a_0=b_0=0.5``; and the posterior can be easily calculated by updating the hyperparameters: ``\texttt{Gamma}(a_0+ 100/2, b_0+ \texttt{sse}/2).`` The update can be easily in Julia:
+We have used a relatively vague Gamma prior with ``a_0=b_0=0.5``; and the posterior can be easily calculated by updating the hyperparameters: ``\texttt{Gamma}(a_0+ 100/2, b_0+ \texttt{sse}/2).`` The update is implemented below in Julia:
 """
 
 # ╔═╡ cb9ad8b5-7975-4d54-bb94-afc9f4953a67
@@ -417,12 +417,12 @@ md"""
 
 All priors can be largely classified into two groups: **informative** prior and **non-informative** prior.
 
-**Non-informative** prior, as the name suggests, contains no information in the prior [^1] and *let the data speak to itself*. For our coin-flipping case, a possible choice is a flat uniform prior: *i.e.* ``p(\theta) \propto 1`` when ``\theta\in[0,1]``. 
+**Non-informative** prior, as the name suggests, contains no information in the prior [^1] and *let the data speak for itself*. For our coin-flipping case, a possible choice is a flat uniform prior: *i.e.* ``p(\theta) \propto 1`` when ``\theta\in[0,1]``. 
 
 
 **Informative** prior, on the other hand, contains the modeller's subjective prior judgement. 
 
-For example, if we believe our coin should be fair, we can impose an informative prior such as ``p(\theta) =\texttt{Beta}(n,n)``. When ``n`` gets larger, e.g. ``n=5``,  the prior becomes more concentrated around ``\theta=0.5``, which implies a stronger prior belief on the coin being fair.
+For example, if we believe our coin should be fair, we can impose an informative prior such as ``p(\theta) =\texttt{Beta}(n,n)``. When ``n`` gets larger, e.g. ``n=5``,  the prior becomes more concentrated around ``\theta=0.5``, which implies a stronger prior belief in the coin being fair.
 
 $(begin
 plot(Beta(1,1), lw=2, xlabel=L"\theta", ylabel="density", label=L"\texttt{Unif}(0,1)", title="Priors with different level of information", legend=:topleft)
@@ -742,7 +742,7 @@ $$\tilde{\mathcal D}^{(1)}, \tilde{\mathcal D}^{(2)}, \tilde{\mathcal D}^{(3)},\
 
 $$p(t(D_{pred})|\mathcal D, \mathcal M)$$ 
 
-can be approximated by the empirical distribution of ``\{t(\tilde{\mathcal D}^{(1)}), t(\tilde{\mathcal D}^{(2)}), \ldots, t(\tilde{\mathcal D}^{(R)})\}``. One can check whether the observed statistic ``t(\mathcal{D})`` falls within a credible region within the empirical distribution of ``\{t(\tilde{\mathcal D}^{(1)}), t(\tilde{\mathcal D}^{(2)}), \ldots, t(\tilde{\mathcal D}^{(R)})\}``. We will see some examples soon to demonstrate the idea.
+can be approximated by the empirical distribution of ``\{t(\tilde{\mathcal D}^{(1)}), t(\tilde{\mathcal D}^{(2)}), \ldots, t(\tilde{\mathcal D}^{(R)})\}``. One can check whether the observed statistic ``t(\mathcal{D})`` falls within a credible region of the empirical distribution ``\{t(\tilde{\mathcal D}^{(1)}), t(\tilde{\mathcal D}^{(2)}), \ldots, t(\tilde{\mathcal D}^{(R)})\}``. We will see some examples soon to demonstrate the idea.
 
 
 ### Prior predictive check
@@ -786,7 +786,7 @@ The integration in general is intractable. However, we can rely on sampling-base
 	Repeat the following many times:
 	
 	1. Draw one sample from the posterior (or the prior for prior predictive): $$\tilde \theta \sim p(\theta|\mathcal D)$$
-	2. Conditioning on ``\tilde \theta``, simulate the pseudo observations: ``\tilde{\mathcal D}\sim p(\mathcal D|\tilde{\theta}) ``
+	2. Conditioning on ``\tilde \theta``, simulate pseudo observations: ``\tilde{\mathcal D}\sim p(\mathcal D|\tilde{\theta}) ``
 
 The Monte Carlo approximation method can also be viewed as an ensemble method:
 
@@ -2462,9 +2462,9 @@ version = "1.4.1+0"
 # ╟─76c641dd-c790-4f51-abc0-e157c00e3ba7
 # ╟─cb3191ef-3b54-48ff-996c-d4993c876063
 # ╟─edbf5fa3-a064-47a4-9ff4-a93dbd7b9112
-# ╠═958d6028-e38f-4a56-a606-47b6f8ee86f1
+# ╟─958d6028-e38f-4a56-a606-47b6f8ee86f1
 # ╟─59975c2b-c537-4950-aeea-985377f22d93
-# ╠═cb9ad8b5-7975-4d54-bb94-afc9f4953a67
+# ╟─cb9ad8b5-7975-4d54-bb94-afc9f4953a67
 # ╟─03a650cb-7610-4d20-8ae7-2c6e308770f6
 # ╟─cb37f8a8-83aa-44f6-89a5-43fe0e4a5fa8
 # ╟─2d7792cd-5b32-4228-bfef-e1ab250724f3
@@ -2501,7 +2501,7 @@ version = "1.4.1+0"
 # ╟─7b4d6471-59f5-4167-bc35-a61549aaaef9
 # ╟─e9a87ae2-f906-4be9-a969-7b681c2cff7b
 # ╠═ebdb9711-20cc-458c-9474-8e3ace69797e
-# ╠═13fae558-d12e-4e27-b36f-ec59eabb65cf
+# ╟─13fae558-d12e-4e27-b36f-ec59eabb65cf
 # ╟─5bc82f81-1c49-47e3-b9c8-6c5b79b4e88a
 # ╟─858d3a5f-053d-4282-83f7-ff33ad8b5f58
 # ╟─4c1f3725-ddfa-4a19-adaf-4b48ef47c79b

@@ -19,363 +19,60 @@ begin
 	using Logging; Logging.disable_logging(Logging.Info);
 end;
 
+# ╔═╡ 50243c1a-0a90-411d-ab13-1b943e222f7a
+using PlutoTeachingTools
+
 # ╔═╡ 8daf0123-b22e-4cda-8eec-7cad3484c8e0
 TableOfContents()
 
-# ╔═╡ 70f5222b-aadf-4dc0-bc03-b1d10e7db8b6
-md"""
-# Bayesian inference with MCMC
-"""
+# ╔═╡ e0037b21-618c-41e3-95c1-58ea9363e1d4
+present_button()
 
-# ╔═╡ 46af5470-afc8-47a8-a6c4-07de22105e91
-md"""
-In this chapter, we introduce a technique called Markov Chain Monte Carlo (MCMC), which is arguably the most important algorithm for Bayesian inference. 
-In a nutshell, MCMC aims at computing the posterior distribution ``p(\theta|\mathcal{D})`` efficiently. Without it, most Bayesian computations cannot be finished in a realistic timeframe. Therefore, it is safe to say the algorithm is instrumental to the very success of the modern Bayesian method. 
-
-In the following sections, we will first explain why the algorithm is needed for Bayesian inference. Different forms of MCMC algorithms, such as Metropolis-Hastings, Gibbs sampling, and Hamiltonian sampler, are introduced afterwards. The intuitions behind the algorithms are given higher priority than their theoretical buildups. From a Bayesian practitioner's perspective, it is probably more important to know how to use the algorithm in real-world analysis. Therefore, the practical aspects of the technique, such as MCMC diagnostic tools, are also explained in detail.
-"""
-
-# ╔═╡ f9584f19-9020-481d-93b2-8d52e8c4bdfc
+# ╔═╡ 6f038f82-ba93-4657-8354-33daf5955b99
 md"""
 
-
-## Bayesian computation is hard
-
-At a first glance, it might be hard to see why Bayesian computation can be difficult. After all, **Bayes' theorem** has provided us with a very straightforward mechanism to compute the posterior:
-
-$$\text{posterior}=\frac{\text{prior} \times \text{likelihood}}{\text{evidence}}\;\;\text{or}\;\;p(\theta|\mathcal D) =\frac{p(\theta) p(\mathcal D|\theta)}{p(\mathcal D)},$$
-where 
-
-$$p(\mathcal D) = \int p(\theta) p(\mathcal D|\theta) \mathrm{d}\theta,$$ known as *evidence* or *marginal likelihood*, is a constant with respect to the model parameter ``\theta``.
-
-The recipe is only easy to write down, but the daunting bit actually lies in the computation of the normalising constant: ``p(\mathcal D)``. The integration is often high-dimensional, therefore usually *intractable*. 
-
-As a result, posterior probability calculations, such as $\theta \in A$
-
-$$\mathbb{P}(\theta \in A|\mathcal D) = \int_{\theta \in A} p(\theta |\mathcal D) \mathrm{d}\theta = \frac{ \int_{\theta \in A} p(\theta) p(\mathcal D|\theta) \mathrm{d}\theta}{p(\mathcal D)},$$ can not be evaluated exactly. For example, in the coin tossing example introduced last time, we may consider any coin with a bias ``0.5 \pm 0.05`` fair, the posterior we want to know is 
-
-$$\mathbb{P}(0.45 \leq \theta \leq 0.55|\mathcal D).$$ 
+# Bayesian modelling
 
 
-
-We sidestepped the integration problem last time by discretising the parameter space $\Theta = [0,1]$ into some finite discrete choices. The method has essentially replaced a difficult integration with a **brute-force enumeration** summation
-
-$$\mathbb{P}(0.45 \leq \theta \leq 0.55|\mathcal D) = \frac{\int_{.45}^.55 p(\theta)p(\theta |\mathcal D) \mathrm{d}\theta}{p(\mathcal D)}\approx \frac{\sum_{\theta_0'\in \{.5\}} p(\theta=\theta_0')p(\mathcal D|\theta=\theta_0')}{\sum_{\theta_0\in \{0, 0.1, \ldots, 1.0\}} p(\theta=\theta_0)p(\mathcal D|\theta=\theta_0)}.$$
-
-Unfortunately, this brute force discretisation-based method is not scalable. When the parameter space's dimension gets larger, the algorithm becomes too slow to use. To see it, consider discretising a ``D`` dimensional parameter space, ``\Theta \in R^D``, if each parameter is discretised with 2 choices (which is a very crude discretisation), the total discretized space is of order ``2^D``, which grows exponentially. Such an exponentially growing size soon becomes problematic for all modern computers to handle. 
+**Lecture 4. Markov Chain Monte Carlo 2** 
 
 
-What's worse, the difficulty does not end here. Assuming we knew the normalising constant, *i.e.* ``p(\mathcal D)`` were known and the posterior can be evaluated exactly, we still need to evaluate numerator's integration: ``\int_{\theta \in A} p(\theta)p(\mathcal D|\theta) \mathrm{d}\theta``, which is again generally intractable.
+$(Resource("https://www.st-andrews.ac.uk/assets/university/brand/logos/standard-vertical-black.png", :width=>130, :align=>"right"))
 
+Lei Fang (lf28@st-andrews.ac.uk)
 
-To summarise, the difficulty of Bayesian computation are two-folds
-1. the posterior distribution is only evaluable up to some unknown normalising constant;
-2. posterior summary involves integrations, which are intractable.
+*School of Computer Science*
 
+*University of St Andrews, UK*
+
+*March 2023*
 
 """
 
-# ╔═╡ 4e93aa8d-00d8-4677-8e06-0032a0634a5a
-md"""
-
-## How to estimate ? -- Monte Carlo 
-
-"""
-
-# ╔═╡ e0dcfd8c-2415-4c4f-b254-5f9f52cf8ebf
-md"""
-
-Recall that, to summarise a posterior, we need to calculate intractable integrations such as
-
-$$\mathbb{P}(\theta \in A|\mathcal D) = \int_{\theta \in A} p(\theta |\mathcal D) \mathrm{d}\theta = \frac{ \int_{\theta \in A} p(\theta) p(\mathcal D|\theta) \mathrm{d}\theta}{p(\mathcal D)}.$$ 
-
-More generally, we want to calculate expectations of *any functions of random variable* ``\theta`` under the posterior:
-
-"""
-
-# ╔═╡ cda9d867-a6d4-4194-8afd-dbc437637b23
-md"""
-
-Note that when ``t(\cdot)`` is a *counting function*, e.g.
-
-$$t(\theta) = \mathbf 1(\theta \in A)=\begin{cases} 1 & \theta \in A \\ 0 & \theta \notin A,\end{cases}$$ we recover the first question as 
-
-$$\mathbb E[t(\theta)|\mathcal D] = \int \mathbf{1}(\theta\in A) p(\theta|\mathcal D) \mathrm{d}\theta = \int_{\theta \in A} 1\cdot p(\theta|\mathcal D) \mathrm{d}\theta = \mathbb P(\theta\in A|\mathcal D).$$ That's why the expectation problem is more "general".
-
-
-Therefore, the problem we want to tackle is:
-
-> **Problem 1**: How to estimate expectations of functions of ``\theta``, such as equation (1), under the posterior?
-"""
-
-# ╔═╡ 29c29fc1-d6c6-4a5e-879b-e24e675a335c
-md"""
-
-**Monte Carlo** methods are widely known for their capability to approximate intractable integrations. Suppose we can *sample* from the posterior distribution,
-
-$$\theta^{(1)}, \theta^{(2)}, \ldots, \theta^{(R)} \sim p(\theta|\mathcal D),$$
-
-if the sample size, ``R``, is large enough, due to the law of large numbers, we can approximate integration by frequency counting:
-
-$${\mathbb{P}}(\theta \in A|\mathcal D) \approx \frac{\#\{\theta^{(r)} \in A\}}{R},$$ where ``\#\{\cdot\}`` counts how many samples falls in set ``A``.
-
-And general expectations of the form
-
-$$\mathbb E[t(\theta)|\mathcal D] = \int t(\theta) p(\theta|\mathcal D) \mathrm{d}\theta = \frac{\int t(\theta) p(\theta) p(\mathcal D|\theta) \mathrm{d}\theta}{p(\mathcal D)}$$ 
-
-can also be approximated by its Monte Carlo estimation
-
-$${\mathbb{E}}[t(\theta)|\mathcal D] \approx \hat t =\frac{1}{R} \sum_{r} t(\theta^{(r)}),$$
-
-which is the sample average evaluated at the drawn samples. 
-
-
-"""
-
-# ╔═╡ ddf162c5-8425-439f-a7a5-b6735f6849d1
+# ╔═╡ f6a2dc1b-9efb-458d-aa2c-f7f6dbf0fe31
 md"""
 
 
-### Visual intuition
+# More on MCMC
 
-The following diagram illustrates the idea of Monte Carlo approximations. The true posterior distribution ``p(\theta|\mathcal D)`` is plotted on the left; and the histogram of ``R=2000`` random samples of the posterior is plotted on the right. Monte Carlo method essentially uses the *histogram* on the right to replace the true posterior. For example, to calculate the mean or expectation of ``\theta``, i.e. ``t(\theta) = \theta``, the Monte Carlo estimator becomes 
+* Improving sample quality
 
-$$\mathbb E[\theta|\mathcal D] \approx \frac{1}{R} \sum_r \theta^{(r)},$$ the sample average of the samples (which is very close to the ground truth on the left).
-"""
-
-# ╔═╡ 27e25739-b2fd-4cee-8df9-089cfbce4321
-begin
-	approx_samples = 2000
-	dist = MixtureModel([Normal(2, sqrt(2)), Normal(9, sqrt(19))], [0.3, 0.7])
-	
-	Random.seed!(100)
-	x = rand(dist, approx_samples)
-	ids = (x .< 15) .& (x .> 0)
-	prob_mc=sum(ids)/approx_samples
-end;
-
-# ╔═╡ 306bb2c5-6c7e-40f7-b3af-738e6fb7613e
-let
-    plt = Plots.plot(
-        dist;
-        xlabel=raw"$\theta$",
-        ylabel=raw"$p(\theta|\mathcal{D})$",
-        title="true posterior",
-        fill=true,
-        alpha=0.3,
-        xlims=(-10, 25),
-        label="",
-        components=false,
-    )
-    Plots.vline!(plt, [mean(dist)]; label="true mean", linewidth=3)
-
-    
-	plt2 = Plots.plot(
-        dist;
-        xlabel=raw"$\theta$",
-        fill=false,
-        alpha=1,
-		linewidth =3,
-        xlims=(-10, 25),
-        label="",
-        components=false,
-    )
-		
-		
-	histogram!(plt2, x, bins=110, xlims=(-10, 25), norm=true, label="", color=1, xlabel=raw"$\theta$", title="Monte Carlo Approx.")
-    Plots.vline!(plt2, [mean(x)]; label="MC mean", linewidth=3, color=2)
-
-    Plots.plot(plt, plt2)
-end
-
-# ╔═╡ 80b7c755-fe82-43d9-a2f1-e37edaaab25a
-md"""
-
-Similarly, calculating probability, such as ``\mathbb P(0\leq \theta \leq 15)``, reduces to frequency counting: 
-
-$$
-\hat{\mathbb{P}}(0\leq \theta \leq \theta) = \frac{\#\{0\leq \theta^{(r)}\leq 15\}}{2000} =0.905,$$  counting the proportion of samples that falls in the area of interest. The idea is illustrated in the following diagram.
-"""
-
-# ╔═╡ 62743b4f-acc5-4370-8586-627e45a5c9ed
-let
-	plt2 = Plots.plot(
-        dist;
-        xlabel=raw"$\theta$",
-        fill=false,
-        alpha=1,
-		linewidth =3,
-        xlims=(-10, 25),
-        label="",
-        components=false,
-		size=(300,450)
-    )
-		
-		
-	histogram!(plt2, x, bins = -10:0.3:25 , xlims=(-10, 25), norm=false, label="", color=1, xlabel=raw"$\theta$", title="Monte Carlo est.")
-
-	Plots.plot!(plt2, 0:0.5:15,
-        dist;
-        xlabel=raw"$\theta$",
-        fill=true,
-		color = :orange,
-    	alpha=0.5,
-		linewidth =3,
-        xlims=(-10, 25),
-        label=L"0 \leq θ \leq 15",
-        components=false,
-    )
-
-	histogram!(plt2, x[ids], bins = -10:0.3:25, xlims=(-10, 25), norm=false, label="", color=:orange,  xlabel=raw"$\theta$")
-
-end
-
-# ╔═╡ 3df816ac-f2d0-46a7-afe0-d128a1f185b1
-md"""
-
-### Monte Carlo method is scalable
-The most important property of Monte Carlo method is its **scalability**, which makes it a practical solution to **Problem 1** even when ``\theta \in R^D`` is of high dimension.
-
-!!! note "Monte Carlo method is scalable"
-	The accuracy of the Monte Carlo estimate does not depend on the dimensionality of the space sampled, ``D``.  Roughly speaking, regardless of the dimensionality of ``\theta``,  the accuracy (squared error from the mean) remains the same. 
-
-"""
-
-# ╔═╡ 8892b42f-20c8-4dd3-be84-635d7b5f07fe
-md"""
-## How to sample ? -- MCMC
+* MCMC diagnosis
 
 
 
-"""
-
-# ╔═╡ 5e4551b3-1cd9-40f1-a2b7-ece9fbc7c082
-md"""
-
-In the previous section, we have established that Monte Carlo estimation is a scalable method *if we can obtain samples from a posterior distribution*. That is a big "*if*" to assume. Without a practical sampling method, no Monte Carlo estimators can be calculated.
-
-We should also note that for a general Bayesian inference problem the posterior can only be evaluated up to some unknown constant:
-
-$$p(\theta|\mathcal D) \propto p(\theta) p(\mathcal D|\theta),$$
-
-where the scalar ``1/p(\mathcal D)`` involves a nasty integration which we do not know how to compute. 
-
-The question we face now is a sample generation problem:
-
-> **Problem 2**: how to generate samples ``\{\theta^{(r)}\}_{r=1}^R`` from a un-normalised distribution:
-> $$p(\theta|\mathcal D) \propto p(\theta)p(\mathcal D|\theta)?$$
-
-"""
-
-# ╔═╡ a54dc923-ea9e-4016-8980-56f21c3d3ca6
-md"""
-
-*Note.* *If we apply log on the posterior distribution, the log density becomes a sum of log prior and log-likelihood:
-$$\ln p(\theta|\mathcal D) = \ln p(\theta) + \ln p(\mathcal D|\theta),$$ which is faster and numerically stable for computers to compute. Additions are in general faster than multiplications/divisions for floating number operations.*
-"""
-
-# ╔═╡ 16e59a89-daa8-467b-82b7-e4058c99edb8
-md"""
-
-### Basic idea
-
-A class of methods called **Markov Chain Monte Carlo** (MCMC) is a popular and successful candidate to generate samples from a non-standard distribution. Markov Chain Monte Carlo (MCMC) algorithm is formed by two concepts: 
-  * **Markov Chain**: $p(\theta^{(r)}|\theta^{(1)}, \theta^{(2)}, \ldots, \theta^{(r-1)}) = p(\theta^{(r)}|\theta^{(r-1)})$
-    * the current state only depends on the previous state given the whole history
-    * samples are generated by some carefully crafted Markov Chains
-      * current sample depends on the previous sample
-  * **Monte Carlo**: estimation by the Markov chain samples as illustrated in the previous section
-
-
-The idea is to produce posterior samples ``\{\theta^{(r)}\}_{r=1}^R`` **in sequence**, each one depending only on ``\theta^{(r-1)}`` and not on its more distant history of predecessors, *i.e.* a **Markov Chain** (which accounts for the first **MC** of the acronym **MCMC**). When the transition probability of the chain satisfies certain conditions, Markov Chain theory then says that, under quite general conditions, the empirical distribution of the simulated samples will approach the desired target distribution as we simulate the chain long enough, i.e. when ``R`` is large.
-
-Since the sequence converges to the target distribution when ``R`` is large, we usually only retain the last chunk of the sequence as "good samples" or equivalently **discard** the initial samples as **burn-in** since they are usually not representative of the distribution to be approximated. For example, if the Markov Chain has been simulated by 4,000 steps, we only keep the last 2000 to form an empirical distribution of the target.
-"""
-
-# ╔═╡ bc071d70-6eae-4416-9fa6-af275bd74f0b
-md"""
-### Metropolis Hastings
-
-"""
-
-# ╔═╡ 60e9fc94-a3e6-4d0a-805c-6759ee94dcae
-md"""
-
-*Metropolis-Hastings* (MH) algorithm is one of the MCMC methods (and arguably the most important one). MH constructs a Markov Chain in two simple steps: 
-* it *proposes* a candidate ``\theta_{\text{proposed}}`` based on the current state ``\theta_{\text{current}}`` according to a proposal distribution: ``q(\theta_{\text{proposed}}|\theta_{\text{current}})``
-* it then either moves to ``\theta'`` (or *accept* the proposal) or stays put (or *reject*) based on the proposal's "quality" which involves a ratio: 
-  
-  $\frac{p(\theta_{\text{proposed}}|\mathcal D)}{p(\theta_{\text{current}}|\mathcal D)}^\ast$
-  * intuitively, if the proposal state is good, or the ratio is well above 1, we move to ``\theta_{\text{proposed}}``, otherwise stay put 
-  * ``\ast`` *note the acceptance probability ratio also involves another ratio of the proposal distributions (check the algorithm below for details)*
-
-A key observation to note here is MH's operations do no involve the normalising constant:
-
-$$\frac{p(\theta_{\text{proposed}}|\mathcal D)}{p(\theta_{\text{current}}|\mathcal D)} = \frac{\frac{p(\theta_{\text{proposed}})p(\mathcal D|\theta_{\text{proposed}})}{\cancel{p(\mathcal D)}}}{\frac{p(\theta_{\text{current}})p(\mathcal D|\theta_{\text{current}})}{\cancel{p(\mathcal D)}}} = \frac{p(\theta_{\text{proposed}})p(\mathcal D|\theta_{\text{proposed}})}{p(\theta_{\text{current}})p(\mathcal D|\theta_{\text{current}})} \triangleq \frac{p^\ast(\theta_{\text{proposed}})}{p^\ast(\theta_{\text{current}})}.$$
-
-Therefore, we only need to evaluate the un-normalised posterior distribution ``p^\ast``.
+* More MCMC samplers
+  * Gibbs sampling
+  * Hamiltonian sampler
 
 
 
-The algorithm details are summarised below.
-"""
-
-# ╔═╡ 8ddc5751-be76-40dd-a029-cf5f87cdb09d
-md"""
-
-!!! infor "Metropolis-Hastings algorithm"
-	0. Initialise ``\theta^{(0)}`` arbitrary
-	1. For ``r = 1,2,\ldots``:
-	   * sample a candidate value from ``q``: 
-	   $$\theta' \sim q(\theta|\theta^{(r)})$$
-	   * evaluate ``a``, where
-	   $$a = \text{min}\left \{\frac{p^\ast(\theta')q(\theta^{(t)}|\theta')}{p^\ast(\theta^{(t)}) q(\theta'|\theta^{(t)})}, 1\right \}$$
-	   * set
-	   $$\theta^{(t+1)} = \begin{cases} \theta' & \text{with probability }  a\\ \theta^{(t)} & \text{with probability } 1-a\end{cases}$$
-"""
-
-# ╔═╡ 918f4482-716d-42ff-a8d1-46168e9b920a
-md"""*Remark*: *when the proposal distribution is symmetric, i.e.*
-
-$$q(\theta^{(t)}|\theta')= q(\theta'|\theta^{(t)}),$$ *the acceptance probablity reduces to*
-
-$$a = \text{min}\left \{\frac{p^\ast(\theta')}{p^\ast(\theta^{(t)}) }, 1\right \}$$ *and the algorithm is called **Metropolis** algorthm.* *A common symmetric proposal distribution is random-walk Gaussian, i.e.* ``q(\theta^{(t)}|\theta')= \mathcal N(\theta', \Sigma),`` *where ``\Sigma`` is some fixed variance matrix.*
-
-"""
-
-# ╔═╡ 00081011-582b-4cbe-aba8-c94c47d96c87
-md"""
-
-!!! danger "Question: sample a biased 🎲 by Metropolis Hasting"
-	We want to obtain samples from a completely *biased* die that lands with threes (⚂) all the time. If one uses the Metropolis-Hastings algorithm [^1] to generate samples from the biased die and a fair die is used as the proposal of the MH algorithm. 
-	* Is the proposal symmetric?
-	* What would the MCMC chains look like? 
-	* Will the chain ever converge to the target distribution? And do we need to discard any as burn-in?    
-"""
-
-# ╔═╡ a072f6a9-472d-40f2-bd96-4a09292dade8
-md"""
-!!! hint "Answer"
-	Depending on the initial state, the chain can either be ``3,3,3,\ldots`` or 
-	``x,x,\ldots,x,3,3,3,\ldots`` where ``x \in \{1,2,4,5,6\}``.
-
-	The proposal is symmetric. Since a fair die is used as the proposal, the proposal probability distribution is 1/6 for all 6 facets. 
-
-	As a result, the acceptance probability ``a`` only depends on the ratio of the target distribution. There are two possible scenarios:
-	
-	1. the chain starts at 3, then all following proposals other than 3 will be rejected (as ``a=\tfrac{0}{1}=0\%``). Therefore, only samples of 3 will be produced.
-
-	2. the chain is initialised with a state other than 3, e.g. ``x=1``, then all proposals other than 3 will be rejected [^2], so the initial samples will be all ones (``1,1,1,\ldots``); until a three is proposed, then it will be accepted with ``a=\frac{1}{0}= 100\%`` chance; and only three will be produced onwards (the same argument of case 1).
-
-	Regardless of the starting state, the chain will eventually converge and produce the correct samples, i.e. ``3,3,3,3,\ldots``. For chains starting with a state other than 3, the initial chunk (all ones in the previous case) should be discarded as **burn-in**: the chain has not yet converged. 
-
-	Luckily, the discard initial chunk will be short. On average, we should expect the burn-in lasts for 6 iterations only, as the length is a geometric random variable with ``p=1/6``.
 """
 
 # ╔═╡ 716920e3-2c02-4da9-aa6b-8a51ba638dfa
 md"""
 
-#### Demonstration
+## An benchmark example
 """
 
 # ╔═╡ 24efefa9-c4e3-487f-a228-571fec271886
@@ -385,10 +82,9 @@ To demonstrate the idea, consider sampling from a bivariate Gaussian distributio
 
 $$\begin{bmatrix} \theta_1 \\ \theta_2 \end{bmatrix} \sim \mathcal N\left (\begin{bmatrix} 0 \\ 0 \end{bmatrix} , \begin{bmatrix} 1 & \rho  \\ \rho & 1 \end{bmatrix}\right ).$$
 
-The Gaussian distribution has a mean of zero and variance of 1; ``\rho`` measures the correlation between the two dimensions. Here we use ``\rho = 0.9``. The probability density can be written as 
+* ``\rho`` measures the correlation between the two dimensions. 
+* here we use ``\rho = 0.9``. 
 
-$$p^\ast(\boldsymbol \theta) \propto \text{exp}\left (-\frac{1}{2} \boldsymbol  \theta^\top \mathbf  \Sigma^{-1} \boldsymbol  \theta\right ),$$ where
-``\mathbf \Sigma = \begin{bmatrix} 1 & 0.9  \\ 0.9 & 1 \end{bmatrix}.`` The target distribution's contour plot is shown below. 
 """
 
 # ╔═╡ f0f07e50-45ee-4907-8ca8-50d5aaeeafb4
@@ -403,6 +99,8 @@ end
 # ╔═╡ 44c167b9-375d-4051-a4c1-825e5ec9570c
 md"""
 
+
+## Demo -- MH sampler
 To apply an MH algorithm, we adopt a simple uncorrelated bivariate Gaussian as the proposal distribution:
 
 $$q(\theta'|\theta^{(t)}) = \mathcal N\left (\theta^{(t)},  \sigma^2_q \times \begin{bmatrix} 1 & 0  \\ 0 &  1\end{bmatrix}\right )$$
@@ -416,58 +114,14 @@ $$q(\theta'|\theta^{(t)}) = \mathcal N\left (\theta^{(t)},  \sigma^2_q \times \b
 
 $$a = \text{min}\left \{\frac{p^\ast(\theta')}{p^\ast(\theta^{(t)})}, 1\right \}$$
 
-The Metropolis-Hastings algorithm with the mentioned proposal distribution can be implemented in Julia as follows:
 
-```julia
-# Metropolis Hastings with isotropic Gaussian proposal
-- `ℓπ`: the target log probability density
-- `mc`: number of Monte Carlo samples to draw 
-- `dim`: the dimension of the target space
-- `Σ`: proposal's covariance matrix
-- `x0`: initial starting state
-function metropolis_hastings(ℓπ, mc=500; dim=2, Σ = 10. * Matrix(I, dim, dim), x0=zeros(dim))
-	samples = zeros(dim, mc)
-	samples[:, 1] = x0
-	L = cholesky(Σ).L
-	ℓx0 = ℓπ(x0) 
-	accepted = 0
-	for i in 2:mc
-		# radomly draw from the proposal distribution 
-		# faster than xstar = rand(MvNormal(x0, Σ))
-		xstar = x0 + L * randn(dim)
-		ℓxstar = ℓπ(xstar)
-		# calculate the acceptance ratio `a`
-		# note ℓπ is in log scale, need to apply exp
-		a = exp(ℓxstar - ℓx0) 
-		# if accepted
-		if rand() < a
-			x0 = xstar
-			ℓx0 = ℓxstar
-			accepted += 1
-		end
-		# store the sample 
-		@inbounds samples[:, i] = x0
-	end
-	accpt_rate = accepted / (mc-1)
-	return samples, accpt_rate
-end
-
-```
-
-To use the algorithm draw samples from the target Gaussian distribution, we simply feed in the required inputs, e.g.
-
-```julia
-	# set the target posterior distribution to sample
-	target_ℓπ = (x) -> logpdf(MvNormal(μ, Σ), x)
-	# set proposal distribution's variance
-	σ²q = 1.0
-	mh_samples, rate=metropolis_hastings(target_p, 2000; Σ = σ²q * Matrix(I, 2, 2), x0=[-2.5, 2.5])
-```
 """
 
 # ╔═╡ 5de392a4-63d7-4313-9cbd-8eaeb4b08eea
 md"""
 
+
+## Demo -- MH sampler
 An animation is listed below to demonstrate the MH algorithm with a proposal distribution ``\sigma^2_q = 1.0``, where
 * the ``{\color{red}\text{red dots}}`` dots are the rejected proposals
 * the ``{\color{green}\text{green dots}}`` dots are the MCMC samples (either accepted new proposals or stay-put old samples)
@@ -475,6 +129,8 @@ An animation is listed below to demonstrate the MH algorithm with a proposal dis
 
 # ╔═╡ 5b3f3b8a-1cfa-4b32-9a20-1e1232549e78
 md"""
+
+## Demo -- MH sampler (cont.)
 
 It can be observed that 
 * the acceptance rate is about 0.32
@@ -489,100 +145,70 @@ It can be observed that
 # ╔═╡ 922a89e6-a1a0-4f07-b815-552a9b2a4fbd
 md"""
 
-### Reduce dependence of the chain
+## Reduce dependence of the chain
 """
 
 # ╔═╡ eba93b03-23d4-4ccd-88d2-dcea51bb20b9
 md"""
 
-Ideally, the traditional Monte Carlo method requires samples to be *independent*. MCMC samples, however, are simulated as Markov chains: i.e. the next sample depends on the current state, therefore MCMC samples are all dependent. 
+Ideally, Monte Carlo method requires samples to be *independent* 
 
 
-It is worth noting that Monte Carlo estimation is still valid even when the samples are dependent as long as the chain reaches equilibrium. However, an estimation's standard error, in general, deteriorates when the samples in use are more dependent. 
+* MCMC samples, however, are dependent. 
 
-There are two commonly used practices to reduce the temporal correlations of an MCMC chain: *thinning* and *parallelism*. And they can be used together to further improve the sample quality.
-"""
 
-# ╔═╡ d3a88626-0d60-45ad-9725-9ed23853fc85
-md"""
+There are two commonly used practices to reduce the temporal correlations 
 
-#### Thinning
-"""
+* **thinning** (e.g. retain every 10-th of the sample)
 
-# ╔═╡ 76a0e827-927c-4a48-a4c9-98c401357211
-md"""
-As the dependence decreases as the lag increases, one therefore can retain MCMC samples at some fixed lag. For example, after convergence, save every 10th sample. 
-"""
+* **parallelism** (run multiple MCMC chains in parallel)
 
-# ╔═╡ f56bb3ef-657d-4eff-8778-11d550e6d803
-md"""
-#### Parallel chains
 
-"""
+*It is worth noting that Monte Carlo estimation is still valid even when the samples are dependent as long as the chain reaches equilibrium. However, an estimation's standard error, in general, deteriorates when the samples in use are more dependent.* 
 
-# ╔═╡ ae766de8-2d2a-4dd3-8127-4ca69a6082f1
-md"""
-
-Each MCMC chain simulates independently, to fully make use of modern computers' concurrent processing capabilities, we can run several chains in parallel. 
-"""
-
-# ╔═╡ 2628cd3b-d2dc-40b9-a0c2-1e6b79fb736b
-md"""
-
-*Why should we run parallel chains rather than a single long chain?* Note that ideally, we want the samples to be *independent*. Samples from one single chain is temporally dependent. Running multiple chains exploring the posterior landscape independently, when mixing together, produces more independent samples.  
-"""
-
-# ╔═╡ 5a7a300a-e2e0-4c99-9f71-077b43602fdd
-md"""
-The following animation shows the evolution of four parallel Metropolis-Hastings chains. To make the visualisation cleaner, rejected proposals are not shown in the animation. The four chains start at four initial locations (i.e. the four corners). Note that all four chains quickly move to the high-density regions regardless of their starting locations, which is a key property of MCMC.
 
 """
 
 # ╔═╡ 99153a03-8954-48c6-8396-1c2b669e4ea6
 md"""
 
-### Limitations of Metropolis-Hastings
+## Limitations of Metropolis-Hastings
 """
 
 # ╔═╡ 0802dc90-8312-4509-82f0-6eca735e852b
 md"""
-MH algorithm's performance depends on the proposal's quality. And setting a suitable proposal distribution for an MH algorithm is not easy, especially when the target distribution is high-dimensional. As a rule of thumb, we should aim at an acceptance rate between 0.2 to 0.6. Too high or too low implies the chain is struggling. 
+MH algorithm's performance depends on the proposal's quality. 
+
+* choosing a suitable proposal distribution for an MH algorithm is not easy
+
+* we can check the acceptance rate to roughly check the quality of the chain
 
 **Acceptance rate too high** 
-
-Usually happens when ``\sigma^2_q`` is too small, proposals are all close to each other in one high-density area ``\Rightarrow`` most of the proposals are accepted, but, as a result ``\Rightarrow`` other high-density areas are not explored sufficiently enough.
-
-
-The following animation illustrates the idea: the proposal's variance is set as ``\sigma_q^2 = 0.005``; despite a high acceptance rate of 0.924, the chain only makes tiny moves and therefore does not explore the target distribution well enough.
-
+* proposal variance too small
+* ``\sigma_q^2 = 0.005``
 """
 
 # ╔═╡ a00b9476-af30-4609-8b1e-4693246fdaef
 md"""
 
 **Acceptance rate too low** 
-
-Usually happens when ``\sigma^2_q`` is too large, the proposals jump further but likely to propose less desired locations ``\Rightarrow`` a lot of rejections ``\Rightarrow`` very temporal correlated samples.
-
-The chain shown below employs a more audacious proposal distribution with ``\sigma_q^2 = 10.0``. As a result, most of the proposals are rejected which leads to an inefficient sampler (most of the samples are the same).
-"""
-
-# ╔═╡ dd15f969-733e-491c-a1b7-e0fbf4532e64
-md"""
-
-To avoid the difficulty of setting good proposal distributions, more advanced variants of MH algorithms, such as the **Hamiltonian sampler** (HMC), **No-U-Turn sampler** (NUTS), have been proposed. Instead of randomly exploring the target distribution, HMC and its variants employ the gradient information of the target distribution to help explore the landscape.
+* proposal's variance very large
+* ``\sigma_q^2 = 10.0``
 """
 
 # ╔═╡ 85cad369-df16-4f06-96ae-de5f9c5bb6cd
 md"""
-## Digress: Julia's `MCMCChains.jl`
+# Digress: Julia's `MCMCChains.jl`
 
 """
 
 # ╔═╡ 0cda2d90-a2fa-41ab-a655-c7e4550e4eb1
 md"""
 
-Julia has a wide range of packages to analyse MCMC chains. In particular, `MCMCChains.jl` package provides us tools to visualise and summarise MCMC chains. 
+`MCMCChains.jl` package provides us a tool to 
+
+* visualise and 
+* summarise MCMC chains. 
 
 We can construct `Chains` object using `MCMCChains.jl` by passing a matrix of raw chain values along with optional parameter names:
 """
@@ -614,7 +240,7 @@ chain_mh = Chains(mh_samples_parallel[2001:end, :, :], [:θ₁, :θ₂])
 # ╔═╡ 358719cd-d903-45ab-bba6-7fe91697d1ee
 md"""
 
-### Visualisations
+## Visualisations
 One can visualise `Chains` objects by  
 * `traceplot(chain_mh)`: plots the chain samples at each iteration of the Markov Chain, i.e. time series plot
 * `density(chain_mh)`: plots kernel density estimations fit on the samples
@@ -622,18 +248,10 @@ One can visualise `Chains` objects by
 
 """
 
-# ╔═╡ 2c18acb0-9bc5-4336-a10d-727538dbd3c8
-md"""
-For example, the following plots show the four parallel MH chains for the bi-variate Gaussian example
-
-* the left two plots show the trace plots of four chains
-* the density of the right show fit to the four chains
-
-It can be seen visually that all four chains converge to roughly the same equilibrium distributions.
-"""
-
 # ╔═╡ 55ed9e58-7feb-4dbc-b807-05796a02fc62
 md"""
+
+## Visualisation (cont.)
 Other visualisation methods include
 
 * `meanplot(c::Chains)`: running average of the chain
@@ -647,12 +265,12 @@ md"For example, the following plot uses `corner()` to show a scatter plot of the
 
 # ╔═╡ 17a4d60b-7181-4268-866c-ddbde37dc349
 md"""
-### Summary statistics
+## Summary statistics
 """
 
 # ╔═╡ 45eb8c7b-5f17-43ac-b412-0f3ced44a018
 md"""
-`MCMCChains.jl` also provides easy-to-use interfaces to tabulate important statistics of MCMC chains instances
+`MCMCChains.jl` also provides easy-to-use interfaces to compute important statistics
 * `summarystats`: aggregates statistics such as mean, standard deviations, and essential sample size etc 
 * `describe`: apart from above, it shows 2.5% to 97.5% percentile of the samples
 
@@ -680,19 +298,32 @@ Markov chain theory only provides us with a *theoretical guarantee*:
 
 > if one simulates an MCMC chain *long enough*, *eventually* the sample empirical distribution will *converge* to the target posterior distribution. 
 
-Unfortunately, this is only a *theoretical guarantee*. We do not have the time and resources to run a chain indefinitely long. In practice, we simulate chains at fixed lengths and inpect the chains to check **convergence**.
+* this is only a *theoretical guarantee*
+
+* in practice, we simulate chains at fixed lengths and inpect the chains to check convergence
 
 
 
 
 
-### MCMC metrics
+## MCMC diagnosis metrics
 
-Luckily, there are multiple easy-to-compute metrics to diagnose a chain. Most of the techniques apply stationary time series models to access the performance of a chain. The most commonly used metrics are **$\hat R$ statistic**, and **effective sample size** (`ess`).
+The most commonly used metrics to check the performance of a cain are 
 
-**R̂ statistic (`rhat`)**  
+* **$\hat R$ statistic**, and 
+* **effective sample size** (`ess`).
 
-R̂ is a metric that measures the stability of a chain. Upon convergence, any chunk of a chain, e.g. the first and last halves of the chain, or parallel chains, should be *similar to each other*. ``\hat R`` statistic, which is defined as the ratio of within-chain to between-chain variability, should be close to one if all chains have converged. 
+## R̂ statistic (`rhat`)
+
+R̂ is a metric that measures 
+
+* the stability of a chain. 
+
+* upon convergence, any segment of a chain, e.g. the first and last halves of the chain, or parallel chains, should be *similar to each other*. 
+
+
+* ``\hat R`` statistic, which is defined as the ratio of within-chain to between-chain variability, 
+  * closer to one, the better (converging)
 
 
 > As a rule of thumb, a valid converging chain's ``\hat R`` statistic should be less than 1.01. 
@@ -701,25 +332,65 @@ R̂ is a metric that measures the stability of a chain. Upon convergence, any ch
 
 # ╔═╡ 57c26917-8300-45aa-82e7-4fd5d5925eba
 md"""
-**Effective sample size (`ess`)**
+## Effective sample size (`ess`)
 
-The Traditional Monte Carlo method requires samples to be independent. However, MCMC samples are all dependent, as the chain is simulated in a Markovian fashion: the next sample depends on the previous state. It is worth noting that Monte Carlo estimation is still valid even when the samples are dependent as long as the chain has mixed well. However, the standard error of the estimation, in general, deteriorates when the samples are more dependent. 
 
-**`ess`** roughly estimates how many equivalent *independent* samples are in a dependent chain. Since samples in an MCMC chain are correlated, they contain less information than truly independent samples. `ess` therefore discounts the sample size by some factor that depends on the temporal correlation between the iterations.
+
+**`ess`** roughly estimates how many equivalent *independent* samples are in a dependent chain. 
+
+* since samples in an MCMC chain are correlated, they contain less information than truly independent samples. 
+
+* `ess` therefore discounts the sample size by some factor 
 
 We can also measure the *efficiency* of an MCMC algorithm by calculating 
 
 $$\text{efficiency} = \frac{\text{ess}}{\text{iterations}},$$
 
-which measures the information content in a chain. One needs to run a highly efficient algorithm with fewer iterations to achieve the same result.
+* which measures the information content in a chain. 
+* one needs to run a highly efficient algorithm with fewer iterations to achieve the same result
 
 > Larger effective sample size (ess) implies the MCMC algorithm is more efficient
+"""
+
+# ╔═╡ 2998ed6a-b505-4cfb-b5da-bdb3f887a646
+md"""
+
+## Visual inspection
+"""
+
+# ╔═╡ 95e71f9b-ed81-4dc1-adf9-bd4fe1fc8bbe
+md"""
+
+Simple trace plots reveal a lot of information about a chain
+
+* one can diagnose a chain by visual inspection. 
+
+**What do bad chains look like?** The following two trace-plots show the chain traces of the two less desired MH algorithms for the bivariate Gaussian example: one with ``\sigma^2_q=0.005`` and ``\sigma^2_q=20``.
+
+"""
+
+# ╔═╡ 82dc987c-4649-4e65-83e7-e337be0e99e8
+md"""
+On the other hand, when ``\sigma^2_q`` is too large, the chain becomes very *sticky*. 
+
+"""
+
+# ╔═╡ ac904acb-4438-45d9-8795-8ab724240da0
+md"""
+
+**What good chains should look like ?**
+The figure below shows trace plots of four different chains with `ess=` 4.6, 49.7, 90.9, and 155. The top two are *bad* chains. 
 """
 
 # ╔═╡ 97f81b83-50ff-47c0-8c2d-df95816b2ac3
 md"""
 
-**Examples** To demonstrate the ideas, we compare `ess` and `R̂` of the three MH chains with different proposal variances: ``\sigma^2_q=`` 1.0, .005 and 20. Remember, ``\sigma^2_q=1.0`` performs the best; .005 and 20 are less optimal.
+## Examples of diagnosis
+
+**Examples** To demonstrate the ideas, we compare `ess` and `R̂` of the three MH chains with different proposal variances: 
+``\sigma^2_q=`` 1.0, .005 and 20. 
+
+* remember, ``\sigma^2_q=1.0`` performs the best; .005 and 20 are less optimal.
 """
 
 # ╔═╡ d2ae1f4f-e324-42f6-8eaa-c8e32ec3fc39
@@ -733,60 +404,27 @@ md"**Summary statistics with MH chain of ``\sigma^2_q=.005``**"
 # ╔═╡ 3a92e430-8fba-4d69-aa25-13e08a485720
 md"**Summary statistics with MH chain of ``\sigma^2_q=20.0``**"
 
-# ╔═╡ e38c1d3d-fb36-4793-94fc-665dc0eacd99
-md"""
-It can be observed that 
-* `ess`: `ess` are around 360, 20, and 134 respectively with the three algorithms, which implies efficiencies of 0.18, 0.01, and 0.067. The second algorithm with small proposal variance, although achieving a high acceptance rate, is the least efficient.
-
-* `rhat`: both the second and third algorithm's `rhat` > 1.01, which indicates they do not mix well.
-"""
-
-# ╔═╡ 2998ed6a-b505-4cfb-b5da-bdb3f887a646
-md"""
-
-### Visual inspection
-"""
-
-# ╔═╡ 95e71f9b-ed81-4dc1-adf9-bd4fe1fc8bbe
-md"""
-
-Simple trace plots reveal a lot of information about a chain. One can diagnose a chain by visual inspection. 
-
-**What do bad chains look like?** The following two trace-plots show the chain traces of the two less desired MH algorithms for the bivariate Gaussian example: one with ``\sigma^2_q=0.005`` and ``\sigma^2_q=20``.
-
-Recall that when ``\sigma^2_q`` is too small, a chain proposes small changes at each iteration. As a result, the chain does not explore HPD region sufficiently well. If one splits the chain into two halves, the two chunks (with green and red backgrounds) exhibit drastic different values. 
-"""
-
-# ╔═╡ 82dc987c-4649-4e65-83e7-e337be0e99e8
-md"""
-On the other hand, when ``\sigma^2_q`` is too large, the chain jumps back and force with large steps, resulting most proposals being rejected and old samples being retained. The chain becomes very *sticky*. The chain does not contain a lot of information comparing with independent samples.
-
-"""
-
-# ╔═╡ ac904acb-4438-45d9-8795-8ab724240da0
-md"""
-
-**What good chains should look like ?**
-The figure below shows trace plots of four different chains with `ess=` 4.6, 49.7, 90.9, and 155. The top two are *bad* chains. And the bottom two chains are of relatively better quality. A good chain should show stable statistical properties across the iterations with a reasonable level of variance.
-"""
-
 # ╔═╡ 68c98e53-7ac3-4832-a7dd-97459a89d7cb
 md"""
 # Other MCMC samplers
-"""
-
-# ╔═╡ 5f1f12b2-5b63-416e-a459-9b5d0e37b0e8
-md"""
-
-Metropolis-Hastings is considered the mother of most modern MCMC algorithms. There are a lot of other variants of MCMC algorithms that can be considered as specific cases of MH algorithm. We will quickly introduce two other popular variants: Gibbs sampling and Hamiltonian sampler. We will focus on the intuition behind the samplers.
-
 """
 
 # ╔═╡ b29597f1-3fd7-4b44-9097-7c1dc1b7629b
 md"""
 ## Gibbs sampling
 
-Gibbs sampling reduces a multivariate sampling problem to a series of uni-variate samplings. Assume the target distribution is bivariate with density ``p(\theta_1, \theta_2)``, and the chain is currently at state ``(\theta_1^{(r)}, \theta_2^{(r)})``, Gibbs sampling alternatively samples from their full conditionals in two steps:
+Gibbs sampling reduces a multivariate sampling problem to a series of uni-variate samplings
+
+
+Assume the target distribution is bivariate with density 
+
+$$p(\theta_1, \theta_2),$$ 
+
+
+* and the chain is currently at state ``(\theta_1^{(r)}, \theta_2^{(r)})``, 
+
+
+Gibbs sampling alternatively samples from their full conditionals in two steps:
 
 * sample ``\theta_1^{(r+1)} \sim p(\theta_1|\theta_2^{(r)})``
 * sample ``\theta_2^{(r+1)} \sim p(\theta_2|\theta_1^{(r+1)})``
@@ -797,15 +435,16 @@ The new sample ``(\theta_1^{(r+1)}, \theta_2^{(r+1)})`` is retained as a new sam
 # ╔═╡ 6c83a79a-8581-45cb-8d31-31185dc42a0f
 md"""
 
-### Visual intuition
+## Demonstration
 
-The following diagram demonstrates how Gibbs sampling explores the bivariate Gaussian distribution. Note the zig-zag behaviour: at each step, Gibbs sampling only changes one dimension of the sample.
+
 """
 
 # ╔═╡ 9a281767-3d88-4742-8efc-e4fe764c705a
 md"""
+## Gibbs sampling 
 
-**Multivariate Gibbs sampling** The general Gibbs sampling algorithm for a multi-variate problem is listed below. The idea is the same, at each step, a series of small steps based on the full conditionals are made and chained together.
+**Multivariate Gibbs sampling** The general Gibbs sampling algorithm for a multi-variate problem is listed below.
 
 """
 
@@ -824,19 +463,26 @@ md"""
 	   $$\theta_D^{(r)} \sim p(\theta_D|\theta_1^{(r)}, \ldots, \theta_{D-1}^{(r)})$$
 """
 
-# ╔═╡ 16be37d7-f6d5-469b-b0fd-20816b42d4e5
-md"""
-
-**Gibbs sampling is a Metropolis-Hastings**
-
-One drawback of MH sampler is one needs to specify a proposal distribution. Gibbs sampling alleviates this burden from the user **by using the full conditionals of the target distribution as proposal distribution**. Gibbs sampling, therefore, is a specific case of MH algorithm. One can also show that when full conditionals are used, the acceptance probability is always 100%. Therefore, there is no rejection step in a Gibbs sampling.
-
-
-"""
-
 # ╔═╡ d6d332c5-769c-4fe1-8f84-fd2bbf19250a
 md"""
-We have already shown that a high acceptance rate does not necessarily imply high efficiency. The same applies to Gibbs sampling. The zig-zag exploration scheme of Gibbs sampling can be slow for highly correlated sample space. For example, in our bi-variate Gaussian example, Gibbs sampling has achieved around `ess = 129` (out of 2000 samples) and an efficiency around $(129/2000).
+
+
+## Diagnosis of Gibbs sampling
+
+We have already shown that a **high acceptance rate** does **not** necessarily imply high efficiency
+
+
+The same applies to Gibbs sampling
+
+
+
+The zig-zag exploration scheme of Gibbs sampling can be slow for highly correlated sample space. 
+
+
+For example, in our bi-variate Gaussian example
+
+* Gibbs sampling has achieved around `ess = 129` (out of 2000 samples) 
+* and an efficiency around $(129/2000).
 """
 
 # ╔═╡ 39edf0df-a9c5-4e76-af01-f730b4a619b9
@@ -850,26 +496,48 @@ md"""
 
 # ╔═╡ c387be0b-3683-48d6-9041-d8f987428499
 md"""
-We have discussed the limitation of the Metropolis-Hastings algorithm: the proposal distribution is hard to tune. Ideally, we want a proposal distribution with the following properties:
-* propose the next state as far, therefore, *independent*, from the current state as possible
+
+
+We have discussed the limitation of the Metropolis-Hastings algorithm: 
+
+
+* the proposal distribution is hard to tune. 
+
+
+
+Ideally, we want a proposal distribution with the following properties:
+* propose the next state further, therefore, *independent*, from the current state 
 * at the same time, the proposed state should be of *good* quality, 
   * ideally as good (of high probability density) as the current one, leading to an acceptance rate ``a`` close to one
 
 
-Simple proposals, such as Gaussians, cannot achieve both of the desired properties. The problem lies in their random-walk exploration nature. The proposals blindly propose the next steps and ignore the local geographical information of the target distribution. *Gradients*, which always point to the steepest ascent direction, are the *geographic* information that can guide the proposal to reach a further yet high probability region. 
+## MH sampler does random walk
+
+
+The problem lies in their random-walk exploration nature
+
+* the proposals blindly propose the next steps and 
+
+
+* ignore the local geographical information 
+
+
+* **Gradients**, which always point to the steepest ascent direction
+  * are useful *geographic* information that can guide the proposal 
 """
 
 # ╔═╡ df08ac1d-bcd7-4cb7-bcd1-68f5de699aa0
 md"""
-### Visual intuition
-
+## Demonstration of the idea
 """
 
 # ╔═╡ b15f101a-b593-4992-ae80-f32dc894c773
 md"""
-To understand the idea, let's consider a more complicated target distribution which is formed by super-imposing three bivariate Gaussians together. The three Gaussians are with means ``[-4,0], [4,0],`` and ``[0,0]``, and the variances ``\begin{bmatrix} 2 & 1.5 \\ 1.5& 2\end{bmatrix}``, ``\begin{bmatrix} 2 & -1.5 \\ -1.5 & 2\end{bmatrix}`` and ``\begin{bmatrix} 2 & 0 \\ 0 & 2\end{bmatrix}`` respectively. 
+To understand the idea, let's consider a more complicated target distribution 
 
-The contour and surface of the target distribution are plotted below for reference. 
+* mixture of three Gaussians are with means ``[-4,0], [4,0],`` and ``[0,0]``, and the variances ``\begin{bmatrix} 2 & 1.5 \\ 1.5& 2\end{bmatrix}``, ``\begin{bmatrix} 2 & -1.5 \\ -1.5 & 2\end{bmatrix}`` and ``\begin{bmatrix} 2 & 0 \\ 0 & 2\end{bmatrix}``  
+
+* the contour and surface of the target distribution are plotted below for reference. 
 """
 
 # ╔═╡ 2fc46172-cd45-48b2-bff2-9dd5a91e21d1
@@ -896,7 +564,7 @@ end
 # ╔═╡ d20cf19f-70fc-47dd-a031-22079bbd10b9
 md"""
 
-A vector field view of the gradient of the target density is shown below. Note that at each location, a gradient (a blue vector) always points to the steepest ascent direction. The gradient therefore provides key geographical information about the landscape.  Hamiltonian sampler proposes the next state by making use of the gradient information. 
+## Gradient field 
 
 """
 
@@ -911,8 +579,13 @@ end
 
 # ╔═╡ 89a6cb78-b3e2-4780-9961-679a73967f5e
 md"""
-#### A useful physics metaphor
-A very useful metaphor to understand the Hamiltonian sampler is to **imagine a hockey pluck sliding over a surface of the negative target distribution without friction**. The surface is formed by the negative target density (i.e. flip the surface plot, and intuitively a mountain becomes a valley).
+## A useful physics metaphor
+A very useful metaphor to understand the Hamiltonian sampler is to 
+
+
+* **imagine a hockey pluck sliding over a surface of the negative target distribution without friction**
+
+* the surface is formed by the negative target density 
 
 """
 
@@ -921,18 +594,31 @@ surface(-9:0.1:9, -6:0.1:6, (x,y) -> -pdf(d, [x,y]), legend=false, title="Negati
 
 # ╔═╡ ba2545d4-cc39-4069-b6a4-a60f15911cec
 md"""
-At each iteration, a random initial force (usually drawn from a Gaussian) is applied to the pluck, the pluck then slides in the landscape to reach the next state. 
 
-A numerical algorithm called *Leapfrog* integration is usually used to simulate the movement of the pluck. In particular, the trajectory is simulated by a sequence of ``T`` steps with length ``\epsilon``. The two tuning parameters are:
+
+At each iteration, 
+
+
+* a random initial force (usually drawn from a Gaussian) is applied to the pluck
+* the pluck then slides in the landscape to reach the next state
+
+A numerical algorithm called *Leapfrog* integration is used to simulate the movement of the pluck 
+
+
+In particular, the trajectory is simulated by ``T`` steps with length ``\epsilon``
+
 * ``\epsilon``: each *Leapfrog*'s step length
-* `T`: total number of steps taken to form the whole trajectory
+* ``T``: total number of steps taken to form the whole trajectory
+
+
 Therefore, the total length of the pluck's movement is proportional to ``\epsilon \times T``.
 
+## Demonstration
 
+10 independent HMC proposals are simulated from an initial location at ``[0, 2.5]`` by the *Leapfrog* algorithm:
 
-The animation below demonstrates the idea, where 10 independent HMC proposals are simulated from an initial starting location at ``[0, 2.5]`` by the *Leapfrog* algorithm:
-* 10 different random forces of different directions and strengths were applied to the pluck
-* the plank follows the law of physics to explore the landscape (note how the plucks move around the curvature of the valley)
+* 10 different random forces were applied to the pluck
+* the plank follows the law of physics to explore the landscape (note how the plucks move around the target's distribution)
 
 """
 
@@ -950,33 +636,27 @@ md"""We have only illustrated the intuition behind HMC method. Keen readers shou
 # ╔═╡ 39e5d60e-dedf-4107-936f-b80158c62e4d
 md"""
 
-### A comparison between the algorithms
+## A comparison between the algorithms
 
 """
 
 # ╔═╡ 6e41b059-7460-4b6d-ba90-dba6acb30c18
 md"""
-In this section, we are going to compare the original Metropolis-Hastings (MH) with the Hamiltonian Monte Carlo sampler (HMC). The mixture density model is reused here. 
 
-#### Animation check
-Firstly, we visually inspect the algorithms' sampling process. Animations of MH and HMC algorithms are presented below to help us to gain some feeling about the algorithms. The MH algorithm has used a proposal variance ``\sigma_q^2 = 0.1``; and the HMC is simulated with the following tuning parameters
+
+**MH algorithm**:``\sigma_q^2 = 0.1``; and 
+
+
+the **HMC** is simulated with the following tuning parameters
 * ``\epsilon=0.1``: each Hamiltonian's step size of the proposal; the larger ``\epsilon`` is, the proposed trajectory is further
 * `Trange = [10, 50]`: the number of steps to take for each proposal, a random number between 10 and 50; 
 """
 
 # ╔═╡ de52ebac-9d24-4ad8-9686-90a11008ae26
 md"""
-It can be observed that HMC performs significantly better than the original MH sampler
-* note that MH has only managed to explore the left two modes in the first 200 iterations.
-* HMC has a much higher acceptance rate
-* yet it explores the landscape better (and it does not suffer the usual drawback of the high acceptance rate of the MH sampler); 
-#### Chain inspection
 
-We can use `Julia`'s `MCMCChains.jl` to carry out standard chain diagnosis. 
+## Chain inspections
 
-**`traceplot` visualisation**
-
-We first inspect the chains visually by using `traceplot`. The MH's trace plots show high temporal correlations between the samples (which implies the chain has not yet converged) while HMC's traces seem to mix well. 
 """
 
 # ╔═╡ 27f14c5e-e229-44fa-a252-a8efc9d9dc4a
@@ -987,10 +667,35 @@ md"**HMC sampler's trace plot**: both dimensions have mixed well"
 
 # ╔═╡ 5a44aecd-449b-4269-a435-c6a6bae3cffd
 md"""
+## Diagnosis
 
 **`ess` and efficiency**
 
-Efficiency metrics can also be computed and compared between the two algorithms. For 2000 iterations (after the first 2000 discarded as burn-in), HMC produces around 1183 independent samples while there are only less than 17 effective samples contained in the original MH sample. HMC is therefore 60 fold more efficient than the ordinary MH algorithm.
+
+"""
+
+# ╔═╡ f2814362-2023-4a02-8408-41bfe62c3262
+md"""
+
+## Limitations of HMC
+
+
+
+HMC still needs tuning parameters ``T`` and ``\epsilon``
+
+* No-U-Turn (NUT) sampler is an extension that automatically turns the hyperparameters
+* the go-to sampler nowadays
+
+
+However, HMC and NUTs both require **gradients**
+
+* the target distribution needs to be differentiable 
+
+* which may not be the case for discrete random variables
+
+* solution: compose MH and NUTs with Gibbs scheme
+
+
 """
 
 # ╔═╡ 2f2c94fd-a2f2-45f8-a284-78d73721f623
@@ -998,12 +703,6 @@ md"""
 
 # Conclusion
 
-In this section, we have introduced MCMC, a class practical computational method for Bayesian inference. MCMC aims at generating Monte Carlo samples from a target distribution, where the unknown normalising constant is not required. All inference questions can then be calculated by Monte Carlo estimation, which is scalable even if the parameter space is of high dimensions. 
-
-
-However, sampling from a general high-dimensional distribution *efficiently* is not trivial. Traditional MCMC algorithms, such as Metropolis-Hastings and Gibbs sampling, suffer from random walk behaviour. More advanced algorithms, such as Hamiltonian sampler which employs gradient information of the target distribution, usually perform better.
-
-Implementing MCMC algorithms by oneself clearly is not idea. Luckily, as an end user, one rarely needs to implement a MCMC algorithm. In the next chapter, we will see how probabilistic programming software such as `Turing.jl` simplifies the process. One only usually needs to specify a Bayesian model and leave the MCMC sampling task to the software. Nevertheless, the user still needs to be able to do practical convergence diagnoistics to check the quality of the sample, which arguably is the most important takeaway knowledge for an applied Bayesian inference user. 
 
 Some important concepts/terminologies about MCMC are summarised below:
 * **MCMC**: aims at generating samples from a non-normalised distribution; the **Markov chain** samples can then be used for **Monte Carlo** estimation
@@ -1241,6 +940,11 @@ summarystats(chain_mh)
 # ╔═╡ 2d7ac989-25c9-4023-ba75-5cad9b43f44a
 describe(chain_mh)
 
+# ╔═╡ d2942c05-7a61-4e78-84c0-8acb05ad79bc
+begin
+	plot(chain_mh)
+end
+
 # ╔═╡ 3157973e-f1a1-4ac3-88c7-9c073dfc849c
 summarystats(chain_mh)
 
@@ -1264,12 +968,6 @@ begin
 	chain_too_big = Chains(mh_samples_too_big[2001:end, :, :], [:θ₁, :θ₂])
 	chain_ideal = Chains(mh_samples_ideal[2001:end, :, :], [:θ₁, :θ₂])
 end;
-
-# ╔═╡ 7d4706f8-6938-4241-8bbb-f1779119422c
-summarystats(chain_too_small)
-
-# ╔═╡ 83926597-ac50-4f7b-9e6d-84bad3ac129f
-summarystats(chain_too_big)
 
 # ╔═╡ 09244ee2-a153-4fc5-bd64-ee752c132743
 begin
@@ -1296,6 +994,18 @@ let
 	p4 = plot(chain_ideal[1:end, 1, 1], title="ess=$(ess[4])", label="")
 	Plots.plot(p1, p2, p3, p4)
 end
+
+# ╔═╡ 26e14cf7-4dd2-41ec-ac6e-a319d0e58f5b
+plot(chain_too_small)
+
+# ╔═╡ 7d4706f8-6938-4241-8bbb-f1779119422c
+summarystats(chain_too_small)
+
+# ╔═╡ 07b89981-22f5-4b61-af4f-d5fda6ef9a83
+plot(chain_too_big)
+
+# ╔═╡ 83926597-ac50-4f7b-9e6d-84bad3ac129f
+summarystats(chain_too_big)
 
 # ╔═╡ 280069b8-f9fe-4cd6-866d-a20b9eab036e
 begin
@@ -1429,6 +1139,12 @@ end
 begin
 	gibbs_chain = Chains(samples_gibbs[:, 2001:end]', [:θ₁, :θ₂])
 	summarystats(gibbs_chain)
+end
+
+# ╔═╡ 0060e889-aca7-4c8b-b46e-1dff98f26f66
+let
+	plotly()
+	traceplot(gibbs_chain)
 end
 
 # ╔═╡ 60afbdbf-6e83-44e2-99ed-2d64e339b0d9
@@ -1728,9 +1444,6 @@ function texeq(code,env="equation")
 	"""
 end
 
-# ╔═╡ c1de6474-f057-448c-8214-b5f57358e3c4
-texeq("\\mathbb E[t(\\theta)|\\mathcal D] = \\int t(\\theta) p(\\theta|\\mathcal D) \\mathrm{d}\\theta = \\frac{\\int t(\\theta) p(\\theta) p(\\mathcal D|\\theta) \\mathrm{d}\\theta}{p(\\mathcal D)} \\label{exp}")
-
 # ╔═╡ 94d47c8a-0f84-4c67-853b-f7e4a71cc90f
 """
 `eqref(label::String)`
@@ -1837,41 +1550,6 @@ begin
 	end
 end
 
-# ╔═╡ 9fca6e17-c8ee-4739-9d2e-0aaf85032a6b
-Foldable("Further details about the scalability*", md"For simplicity, we assume ``t`` is a scalar-valued function. Note all expectations here are w.r.t the posterior distribution from which the samples are drawn. Firstly, it can be shown that the Monte Carlo estimator is unbiased: 
-
-$$\mathbb E[\hat t] = \mathbb E\left [\frac{1}{R}\sum_r t(\theta^{(r)})\right ] =\frac{1}{R}\sum_r \mathbb E[t(\theta^{(r)})] = \mathbb E[t(\theta)].$$ It means, on average, the estimator converges to the true integration value. 
-
-
-To measure the estimator's accuracy, we only need to find the estimator's variance as it measures the average squared error between the estimator and true value:
-
-$$\mathbb V[\hat t] = \mathbb E[(\hat t -t)^2].$$ 
-
-If we assume samples are independent draws from the distribution, the variance is then 
-
-$$\mathbb V[\hat t] =\mathbb V\left [\frac{1}{R}\sum_r t(\theta^{(r)})\right ]= \frac{1}{R^2} \sum_r \mathbb{V}[t(\theta^{(r)})]=\frac{R\cdot \mathbb{V}[t(\theta^{(r)})]}{R^2}=\frac{\sigma^2}{R},$$ where
-
-$$\sigma^2 = \mathbb V[t] = \int p(\theta|\mathcal D) (t(\theta)-\mathbb E[t])^2\mathrm{d}\theta$$ is some positive constant that only depends on the function ``t``. Therefore, as the number of samples ``R`` increases, the variance of ``\hat t``  will decrease linearly (the standard deviation, ``\sqrt{\mathbb V[\hat t]}``,  unfortunately, shrinks at a rate of ``\sqrt{R}``). Note the accuracy (variance) only depends on ``\sigma^2``, the variance of the particular statistic ``t`` rather than ``D``, the dimensionality.")
-
-# ╔═╡ aafd802c-e529-4116-8d58-13f2ba1c4e49
-Foldable("Further details on Gibbs sampling is a MH algorithm.", md"For simplicity, we only consider bivariate case. Assume the chain is currently at state ``\boldsymbol \theta^{(r)}=(\theta_1^{(r)}, \theta_2^{(r)})``, the proposal distribution proposes to move to a new state ``\boldsymbol \theta' = (\theta_1', \theta_2')`` with a proposal density
-
-$$q(\boldsymbol \theta'|\boldsymbol \theta^{(r)}) = p(\theta_1'|\theta_2') \cdot \mathbf 1({\theta_2'= \theta_2^{(r)})},$$
-
-where ``\mathbf 1(\cdot)`` returns 1 when the testing condition is true and 0 otherwise. The transition kernel basically states ``\theta_2^{(r)}`` is not changed.
-
-
-The acceptance probability then is 
-
-$$a \triangleq \frac{p(\boldsymbol \theta') q(\boldsymbol \theta^{(r)}|\boldsymbol \theta')}{p(\boldsymbol \theta^{(r)})q(\boldsymbol \theta'|\boldsymbol \theta^{(r)})} = \frac{p(\theta_1', \theta_2') \times p(\theta_1^{(r)}|\theta_2')\cdot \mathbf 1({\theta_2'= \theta_2^{(r)})}}{p(\theta_1^{(r)}, \theta_2^{(r)})\times p(\theta_1'|\theta_2')\cdot \mathbf 1({\theta_2'= \theta_2^{(r)})}}.$$
-
-When ``\theta_2' = \theta_2^{(r)}``,
-
-$$a = \frac{p(\theta_1', \theta_2^{(r)}) \times p(\theta_1^{(r)}|\theta_2^{(r)})}{p(\theta_1^{(r)}, \theta_2^{(r)})\times p(\theta_1'|\theta_2^{(r)})}=  \frac{p(\theta_1', \theta_2^{(r)}) \times \frac{p(\theta_1^{(r)}, \theta_2^{(r)})}{p(\theta_2^{(r)})}}{p(\theta_1^{(r)}, \theta_2^{(r)})\times \frac{p(\theta_1',\theta_2^{(r)})}{p(\theta_2^{(r)})}} = \frac{p(\theta_2^{(r)})}{p(\theta_2^{(r)})} =1.0,$$
-
-when ``\theta_2'\neq \theta_2^{(r)}``, we have ``a=\tfrac{0}{0}=1``, a trivial case. Therefore, there is no need to test the proposal. The proposed state should also be accepted.
-")
-
 # ╔═╡ c9fa60c5-f216-4eb9-b052-b3472e551bdf
 Foldable("Julia code for the target distribution and visualisation.", md"By using Julia's `Distributions.jl` and `ForwardDiff.jl`, we can formulate the density and its corresponding gradient function as following:
 
@@ -1907,6 +1585,7 @@ LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 MCMCChains = "c7f686f2-ff18-58e9-bc7b-31028e88f75d"
+PlutoTeachingTools = "661c6b06-c737-4d37-b85c-46df65de6f69"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
@@ -1918,6 +1597,7 @@ ForwardDiff = "~0.10.30"
 HypertextLiteral = "~0.9.4"
 LaTeXStrings = "~1.3.0"
 MCMCChains = "~5.3.1"
+PlutoTeachingTools = "~0.2.8"
 PlutoUI = "~0.7.39"
 StatsPlots = "~0.15.0"
 """
@@ -1928,7 +1608,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.5"
 manifest_format = "2.0"
-project_hash = "276b15c64407c890cf52786c63ecb31bab29d199"
+project_hash = "73be2d98213d11bff0a0a89d1c0047d273ab564a"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
@@ -2044,6 +1724,12 @@ deps = ["Distances", "LinearAlgebra", "NearestNeighbors", "Printf", "SparseArray
 git-tree-sha1 = "75479b7df4167267d75294d14b58244695beb2ac"
 uuid = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
 version = "0.14.2"
+
+[[deps.CodeTracking]]
+deps = ["InteractiveUtils", "UUIDs"]
+git-tree-sha1 = "0683f086e2ef8e2fdacd3f246b35c59e7088b283"
+uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
+version = "1.3.0"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -2455,6 +2141,12 @@ git-tree-sha1 = "b53380851c6e6664204efb2e62cd24fa5c47e4ba"
 uuid = "aacddb02-875f-59d6-b918-886e6ef4fbf8"
 version = "2.1.2+0"
 
+[[deps.JuliaInterpreter]]
+deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
+git-tree-sha1 = "6a125e6a4cb391e0b9adbd1afa9e771c2179f8ef"
+uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
+version = "0.9.23"
+
 [[deps.KernelDensity]]
 deps = ["Distributions", "DocStringExtensions", "FFTW", "Interpolations", "StatsBase"]
 git-tree-sha1 = "0a7ca818440ce8c70ebb5d42ac4ebf3205675f04"
@@ -2588,6 +2280,12 @@ deps = ["Dates", "Logging"]
 git-tree-sha1 = "5d4d2d9904227b8bd66386c1138cf4d5ffa826bf"
 uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
 version = "0.4.9"
+
+[[deps.LoweredCodeUtils]]
+deps = ["JuliaInterpreter"]
+git-tree-sha1 = "60168780555f3e663c536500aa790b6368adc02a"
+uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
+version = "2.3.0"
 
 [[deps.MCMCChains]]
 deps = ["AbstractMCMC", "AxisArrays", "Compat", "Dates", "Distributions", "Formatting", "IteratorInterfaceExtensions", "KernelDensity", "LinearAlgebra", "MCMCDiagnosticTools", "MLJModelInterface", "NaturalSort", "OrderedCollections", "PrettyTables", "Random", "RecipesBase", "Serialization", "Statistics", "StatsBase", "StatsFuns", "TableTraits", "Tables"]
@@ -2787,6 +2485,24 @@ git-tree-sha1 = "0a0da27969e8b6b2ee67c112dcf7001a659049a0"
 uuid = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 version = "1.31.4"
 
+[[deps.PlutoHooks]]
+deps = ["InteractiveUtils", "Markdown", "UUIDs"]
+git-tree-sha1 = "072cdf20c9b0507fdd977d7d246d90030609674b"
+uuid = "0ff47ea0-7a50-410d-8455-4348d5de0774"
+version = "0.0.5"
+
+[[deps.PlutoLinks]]
+deps = ["FileWatching", "InteractiveUtils", "Markdown", "PlutoHooks", "Revise", "UUIDs"]
+git-tree-sha1 = "8f5fa7056e6dcfb23ac5211de38e6c03f6367794"
+uuid = "0ff47ea0-7a50-410d-8455-4348d5de0420"
+version = "0.1.6"
+
+[[deps.PlutoTeachingTools]]
+deps = ["Downloads", "HypertextLiteral", "LaTeXStrings", "Latexify", "Markdown", "PlutoLinks", "PlutoUI", "Random"]
+git-tree-sha1 = "b970826468465da71f839cdacc403e99842c18ea"
+uuid = "661c6b06-c737-4d37-b85c-46df65de6f69"
+version = "0.2.8"
+
 [[deps.PlutoUI]]
 deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "Markdown", "Random", "Reexport", "UUIDs"]
 git-tree-sha1 = "8d1f54886b9037091edf146b517989fc4a09efec"
@@ -2885,6 +2601,12 @@ deps = ["UUIDs"]
 git-tree-sha1 = "838a3a4188e2ded87a4f9f184b4b0d78a1e91cb7"
 uuid = "ae029012-a4dd-5104-9daa-d747884805df"
 version = "1.3.0"
+
+[[deps.Revise]]
+deps = ["CodeTracking", "Distributed", "FileWatching", "JuliaInterpreter", "LibGit2", "LoweredCodeUtils", "OrderedCollections", "Pkg", "REPL", "Requires", "UUIDs", "Unicode"]
+git-tree-sha1 = "feafdc70b2e6684314e188d95fe66d116de834a7"
+uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
+version = "3.5.2"
 
 [[deps.Rmath]]
 deps = ["Random", "Rmath_jll"]
@@ -3353,63 +3075,34 @@ version = "0.9.1+5"
 # ╔═╡ Cell order:
 # ╟─ce716e92-0c3c-11ed-364f-2f8266fa10f2
 # ╟─8daf0123-b22e-4cda-8eec-7cad3484c8e0
-# ╟─70f5222b-aadf-4dc0-bc03-b1d10e7db8b6
-# ╟─46af5470-afc8-47a8-a6c4-07de22105e91
-# ╟─f9584f19-9020-481d-93b2-8d52e8c4bdfc
-# ╟─4e93aa8d-00d8-4677-8e06-0032a0634a5a
-# ╟─e0dcfd8c-2415-4c4f-b254-5f9f52cf8ebf
-# ╟─c1de6474-f057-448c-8214-b5f57358e3c4
-# ╟─cda9d867-a6d4-4194-8afd-dbc437637b23
-# ╟─29c29fc1-d6c6-4a5e-879b-e24e675a335c
-# ╟─ddf162c5-8425-439f-a7a5-b6735f6849d1
-# ╟─27e25739-b2fd-4cee-8df9-089cfbce4321
-# ╟─306bb2c5-6c7e-40f7-b3af-738e6fb7613e
-# ╟─80b7c755-fe82-43d9-a2f1-e37edaaab25a
-# ╟─62743b4f-acc5-4370-8586-627e45a5c9ed
-# ╟─3df816ac-f2d0-46a7-afe0-d128a1f185b1
-# ╟─9fca6e17-c8ee-4739-9d2e-0aaf85032a6b
-# ╟─8892b42f-20c8-4dd3-be84-635d7b5f07fe
-# ╟─5e4551b3-1cd9-40f1-a2b7-ece9fbc7c082
-# ╟─a54dc923-ea9e-4016-8980-56f21c3d3ca6
-# ╟─16e59a89-daa8-467b-82b7-e4058c99edb8
-# ╟─bc071d70-6eae-4416-9fa6-af275bd74f0b
-# ╟─60e9fc94-a3e6-4d0a-805c-6759ee94dcae
-# ╟─8ddc5751-be76-40dd-a029-cf5f87cdb09d
-# ╟─918f4482-716d-42ff-a8d1-46168e9b920a
-# ╟─00081011-582b-4cbe-aba8-c94c47d96c87
-# ╟─a072f6a9-472d-40f2-bd96-4a09292dade8
+# ╟─50243c1a-0a90-411d-ab13-1b943e222f7a
+# ╟─e0037b21-618c-41e3-95c1-58ea9363e1d4
+# ╟─6f038f82-ba93-4657-8354-33daf5955b99
+# ╟─f6a2dc1b-9efb-458d-aa2c-f7f6dbf0fe31
 # ╟─716920e3-2c02-4da9-aa6b-8a51ba638dfa
 # ╟─24efefa9-c4e3-487f-a228-571fec271886
 # ╟─f0f07e50-45ee-4907-8ca8-50d5aaeeafb4
 # ╟─44c167b9-375d-4051-a4c1-825e5ec9570c
 # ╟─5de392a4-63d7-4313-9cbd-8eaeb4b08eea
-# ╠═cf968e52-7518-40b0-af57-1f552c41dc07
+# ╟─cf968e52-7518-40b0-af57-1f552c41dc07
 # ╟─5b3f3b8a-1cfa-4b32-9a20-1e1232549e78
 # ╟─d8fad6e3-9adf-4ae9-9260-885f21d07fa9
 # ╟─c3169cf8-6b7c-418f-8052-4fd242a07592
 # ╟─922a89e6-a1a0-4f07-b815-552a9b2a4fbd
 # ╟─eba93b03-23d4-4ccd-88d2-dcea51bb20b9
-# ╟─d3a88626-0d60-45ad-9725-9ed23853fc85
-# ╟─76a0e827-927c-4a48-a4c9-98c401357211
-# ╟─f56bb3ef-657d-4eff-8778-11d550e6d803
-# ╟─ae766de8-2d2a-4dd3-8127-4ca69a6082f1
-# ╟─2628cd3b-d2dc-40b9-a0c2-1e6b79fb736b
-# ╟─5a7a300a-e2e0-4c99-9f71-077b43602fdd
-# ╠═a253c403-111f-4940-b866-c1b5233f18d0
+# ╟─a253c403-111f-4940-b866-c1b5233f18d0
 # ╟─99decdfe-6bd8-40af-a42d-f1639c98b323
 # ╟─99153a03-8954-48c6-8396-1c2b669e4ea6
 # ╟─0802dc90-8312-4509-82f0-6eca735e852b
 # ╟─5a6c25f0-e7d2-469d-bc19-54617e417b6e
 # ╟─a00b9476-af30-4609-8b1e-4693246fdaef
 # ╟─5d704270-3a0f-4241-b622-ab8135d6b545
-# ╟─dd15f969-733e-491c-a1b7-e0fbf4532e64
 # ╟─85cad369-df16-4f06-96ae-de5f9c5bb6cd
 # ╟─0cda2d90-a2fa-41ab-a655-c7e4550e4eb1
 # ╟─bdf1a4ca-a9ef-449d-82a3-07dd9db1f1ba
 # ╟─a022c310-cc66-4377-b168-8dcef141afa6
 # ╟─3d7c71ce-6532-4cd8-a4a3-5ef2ded70caa
 # ╟─358719cd-d903-45ab-bba6-7fe91697d1ee
-# ╟─2c18acb0-9bc5-4336-a10d-727538dbd3c8
 # ╟─52b29fcc-c534-4bba-866a-e7622c5a5e11
 # ╟─55ed9e58-7feb-4dbc-b807-05796a02fc62
 # ╟─2c06c3f1-11e6-4191-b505-080342a9b787
@@ -3421,15 +3114,6 @@ version = "0.9.1+5"
 # ╟─e0e4f50c-52c0-4261-abae-3cf0399e04e0
 # ╟─81ce6e4c-ef48-4a07-9133-4414867c2b29
 # ╟─57c26917-8300-45aa-82e7-4fd5d5925eba
-# ╟─97f81b83-50ff-47c0-8c2d-df95816b2ac3
-# ╟─d2ae1f4f-e324-42f6-8eaa-c8e32ec3fc39
-# ╠═3157973e-f1a1-4ac3-88c7-9c073dfc849c
-# ╟─730f7e65-d7c9-4506-94fe-f99e244a1c74
-# ╟─5487dd11-7c8e-428f-a727-300780dd02a7
-# ╠═7d4706f8-6938-4241-8bbb-f1779119422c
-# ╟─3a92e430-8fba-4d69-aa25-13e08a485720
-# ╠═83926597-ac50-4f7b-9e6d-84bad3ac129f
-# ╟─e38c1d3d-fb36-4793-94fc-665dc0eacd99
 # ╟─2998ed6a-b505-4cfb-b5da-bdb3f887a646
 # ╟─95e71f9b-ed81-4dc1-adf9-bd4fe1fc8bbe
 # ╟─09244ee2-a153-4fc5-bd64-ee752c132743
@@ -3437,19 +3121,28 @@ version = "0.9.1+5"
 # ╟─ae1ae203-95f0-4d49-ba9f-14c334af087b
 # ╟─ac904acb-4438-45d9-8795-8ab724240da0
 # ╟─96cecfcf-75ac-4327-90e1-ec1ac5b3f39c
+# ╟─97f81b83-50ff-47c0-8c2d-df95816b2ac3
+# ╟─d2ae1f4f-e324-42f6-8eaa-c8e32ec3fc39
+# ╟─d2942c05-7a61-4e78-84c0-8acb05ad79bc
+# ╟─3157973e-f1a1-4ac3-88c7-9c073dfc849c
+# ╟─730f7e65-d7c9-4506-94fe-f99e244a1c74
+# ╟─5487dd11-7c8e-428f-a727-300780dd02a7
+# ╟─26e14cf7-4dd2-41ec-ac6e-a319d0e58f5b
+# ╟─7d4706f8-6938-4241-8bbb-f1779119422c
+# ╟─3a92e430-8fba-4d69-aa25-13e08a485720
+# ╟─07b89981-22f5-4b61-af4f-d5fda6ef9a83
+# ╟─83926597-ac50-4f7b-9e6d-84bad3ac129f
 # ╟─68c98e53-7ac3-4832-a7dd-97459a89d7cb
-# ╟─5f1f12b2-5b63-416e-a459-9b5d0e37b0e8
 # ╟─b29597f1-3fd7-4b44-9097-7c1dc1b7629b
 # ╟─6c83a79a-8581-45cb-8d31-31185dc42a0f
 # ╟─1016fe42-c0f8-4823-9ef4-09fd310eaf34
-# ╠═77b70944-9771-4eee-b0fc-d842bed3b504
+# ╟─77b70944-9771-4eee-b0fc-d842bed3b504
 # ╟─9a281767-3d88-4742-8efc-e4fe764c705a
 # ╟─022b7068-de1b-4506-abf1-2289976f1597
-# ╟─16be37d7-f6d5-469b-b0fd-20816b42d4e5
-# ╟─aafd802c-e529-4116-8d58-13f2ba1c4e49
 # ╟─d6d332c5-769c-4fe1-8f84-fd2bbf19250a
 # ╟─39edf0df-a9c5-4e76-af01-f730b4a619b9
-# ╠═77fe324c-bb47-4aed-9d10-27add827239d
+# ╟─0060e889-aca7-4c8b-b46e-1dff98f26f66
+# ╟─77fe324c-bb47-4aed-9d10-27add827239d
 # ╟─dd8095b0-8e42-4f6d-a545-8ac1db07ff79
 # ╟─c387be0b-3683-48d6-9041-d8f987428499
 # ╟─df08ac1d-bcd7-4cb7-bcd1-68f5de699aa0
@@ -3481,21 +3174,22 @@ version = "0.9.1+5"
 # ╟─160f5345-a517-4b52-972c-bafdf4972835
 # ╟─5a44aecd-449b-4269-a435-c6a6bae3cffd
 # ╟─ad463d15-aa9b-4c43-8732-d23a7a920f5f
+# ╟─f2814362-2023-4a02-8408-41bfe62c3262
 # ╟─2f2c94fd-a2f2-45f8-a284-78d73721f623
 # ╟─d56be408-3517-45a4-88e8-56e194ce33f0
 # ╟─6a9863cb-3067-4250-ad89-6a1c8dc1fddc
 # ╟─ca2662a9-2754-45c1-9ce8-5b8599eef240
 # ╟─9375f800-7c4b-4cae-b263-f17198b04011
-# ╟─280069b8-f9fe-4cd6-866d-a20b9eab036e
+# ╠═280069b8-f9fe-4cd6-866d-a20b9eab036e
 # ╟─0138dedf-f874-4bbd-bf87-7f6bbe8ca816
-# ╟─af617b31-396f-465e-b27e-2fa14b3b2423
+# ╠═af617b31-396f-465e-b27e-2fa14b3b2423
 # ╟─18ebc039-1656-4f74-8e9f-f03a8d39d7c4
-# ╟─88696ab1-2866-46f1-978e-bd032566cef7
+# ╠═88696ab1-2866-46f1-978e-bd032566cef7
 # ╟─fd0d20a0-5732-4afd-b2d7-b013eb624834
-# ╟─74deaa30-4c5c-4e40-99bf-912bd8611374
+# ╠═74deaa30-4c5c-4e40-99bf-912bd8611374
 # ╟─60afbdbf-6e83-44e2-99ed-2d64e339b0d9
-# ╟─55cd420e-461c-4a1b-a82c-a2e04be87d74
-# ╟─42cfa97c-6298-47f1-a17a-8a5ff642e570
+# ╠═55cd420e-461c-4a1b-a82c-a2e04be87d74
+# ╠═42cfa97c-6298-47f1-a17a-8a5ff642e570
 # ╟─84c51030-d87a-4269-89b3-3b43aac03c61
 # ╟─8f1eadcb-71f2-4265-9ee1-7a8f5f252bc7
 # ╟─9cf68cd6-1175-4660-8918-58bb50b4ecf3
@@ -3504,6 +3198,6 @@ version = "0.9.1+5"
 # ╟─8cf9b88b-e17c-445a-9ebe-449d45c9c3cc
 # ╟─27c4c76b-65d8-40cb-89f3-fc42c4a6848e
 # ╟─8fd498e7-0690-4947-867a-9e6495a8bcd9
-# ╟─f0997ca0-5cfd-4bbe-b094-5fe5a7ea8b65
+# ╠═f0997ca0-5cfd-4bbe-b094-5fe5a7ea8b65
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

@@ -4,777 +4,891 @@
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ f3770e42-edff-4c9f-9a13-47edaf8a8cae
-begin
-	using PlutoUI
-	using LaTeXStrings,Latexify
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
 end
 
-# ╔═╡ bcf4086f-1469-49d4-a3f5-730a30771da4
-using Distributions
-
-# ╔═╡ d8764bd8-7d7d-4910-80ee-2187ad31f336
-using LinearAlgebra
-
-# ╔═╡ 58a419b4-4017-474f-a3e9-cc58d2aaa29a
-using Plots
-
-# ╔═╡ 0ee0e688-9bc7-489b-a4ae-a4f09477fd33
-let
+# ╔═╡ c9cfb450-3e8b-11ed-39c2-cd1b7df7ca01
+begin
+	using PlutoTeachingTools
+	# using PlutoUI
+	using Plots
+	using Distributions, LinearAlgebra
 	using StatsPlots
-	dist = Gamma(2, 0.5)
-	pdf_plt = plot(dist, label= L"\texttt{Gamma}(2, 0.5)", legend=:right)
-	plot!(dist, func =cdf, label= L"\texttt{CDF}")
-	cdf_plt = scatter(dist, leg=false)
-	bar!(dist, func=cdf, alpha=0.3)
-	plot(pdf_plt, cdf_plt, layouts=(2,1))
+	using LogExpFunctions
+	using SpecialFunctions
+	# using Statistics
+	using StatsBase
+	using LaTeXStrings
+	using Latexify
+	using Random
+	# using Dagitty
+	using PlutoUI
 end
 
-# ╔═╡ fe7f2df3-8c27-4e80-a633-386e8643e6e1
-TableOfContents()
-
-# ╔═╡ baf83ba6-2079-11ed-1505-cb44aea4377e
-md"""# A quick introduction to Julia $(Resource("https://julialang.org/assets/infra/logo.svg", :height=>40, :align=>:right))
-"""
-
-# ╔═╡ c85214aa-83b1-41f0-b856-f85435db6e1d
+# ╔═╡ 77535564-648a-4e17-83a0-c562cc5318ec
 md"""
 
-[Julia](https://docs.julialang.org/en/v1/) is a general-purpose, open-source, dynamic, and high-performance language. The language is easy to use like other script languages such as R and Python but works as fast as C/Fortran. The language also offers high-level, easy-to-use and expressive syntax that is particularly convenient for scientific or numerical computing. One often finds code written in Julia look like the maths equations they have derived and written on paper. 
+# Bayesian modelling
 
 
-In this course, we are going to use Julia. Although Bayesian modelling concepts transcends the underlying implementation language, the reader should gain better understanding of the subjects if she/he can understand the basic Julia syntax and do some basic programming. This note covers some basic features of Julia that are used later in the course. To fully understand the note, some prior programming experience is however assumed.
+**Lecture 2. A first look at Bayesian inference** 
+
+
+$(Resource("https://www.st-andrews.ac.uk/assets/university/brand/logos/standard-vertical-black.png", :width=>130, :align=>"right"))
+
+Lei Fang (lf28@st-andrews.ac.uk)
+
+*School of Computer Science*
+
+*University of St Andrews, UK*
+
+*March 2023*
+
 """
 
-# ╔═╡ e6c8aca8-1907-49b0-ba11-62fda98418fc
+# ╔═╡ 2057c799-18b5-4a0f-b2c7-66537a3fbe79
 md"""
 
-## Install `Julia`
+## In this lecture
+
+* More Bayesian inference 
+  * more examples of the workflow
 
 
-Install Julia (1.8 over greater)
-* Download and install Julia by following the instructions at [https://julialang.org/downloads/](https://julialang.org/downloads/).
-* Choose the latest stable version (the current one is v1.8.5) 
+  * Estimate the bias of a coin (Bernoulli likelihood)
+    * a classic statistical inference problem
+    * compare with the **frequentist** method
 
 
-"""
-
-# ╔═╡ a5654402-f51d-468e-99fb-09a5c69a6421
-md"""## Interact with `Julia`
-"""
-
-# ╔═╡ b145ea5b-9fc0-4a57-b41b-ad8c825eaccc
-md"""There are many different ways to interact with Julia. For example: the interactive command line interface REPL (read-eval-print loop) .
-"""
-
-# ╔═╡ de6fc3a6-78dc-489a-8ac3-3642e0760d6a
-md"""  * The `Julia` REPL is a built-in means to interact with `Julia`. The command line interface may look something like the following where `1+2` is evaluated:
-"""
-
-# ╔═╡ a3a93c83-94c8-44e7-a62f-46cae602ac77
-md"""```
-$ julia
-               _
-   _       _ _(_)_     |  Documentation: https://docs.julialang.org
-  (_)     | (_) (_)    |
-   _ _   _| |_  __ _   |  Type "?" for help, "]?" for Pkg help.
-  | | | | | | |/ _` |  |
-  | | |_| | | | (_| |  |  Version 1.8.0 (2022-08-17)
- _/ |\__'_|_|_|\__'_|  |  Official https://julialang.org/ release
-|__/                   |
-
-julia> 1 + 2
-3
-```"""
-
-# ╔═╡ 1635054e-3e02-4f3b-8726-bef468c11a82
-md""" 
-**Pluto** Notebook (such as this notebook)
-  * The [Pluto](https://github.com/fonsp/Pluto.jl) package provides a *reactive* notebook interface that runs in a browser. 
-  * The notebook can be used to write both markup texts (including latex equations) and Julia code.
-  * All notes are written with Pluto notebook in this course. And you can download and run them locally on your desktop.
-"""
-
-# ╔═╡ 2b52dcf7-f8aa-49ea-a8e5-df4d819fc970
-md"""
-Other interaction options include 
-
-* Integrated development environments (IDE)s, which are particularly useful for large-scale developments. [VS Code](https://code.visualstudio.com/docs/languages/julia) is recommended.
-* and [Jupyter-notebook](https://github.com/JuliaLang/IJulia.jl).
-
-"""
-
-# ╔═╡ 3adfcebb-e620-4c41-b9a7-3584fbfd61c1
-md"""### Package manager `Pkg`
-
-Unlike Python which relies on external package managers, Julia has its native package manager `Pkg`. It is very straightforward to use an add-on package in Julia. Follow the steps below to install an add-on package. 
-
-Step 1: Open the Julia Command-Line 
-  * either by double-clicking the Julia executable or 
-  * running Julia from the command line
-And you should see a command line interface like this
-
-```
-$ julia
-               _
-   _       _ _(_)_     |  Documentation: https://docs.julialang.org
-  (_)     | (_) (_)    |
-   _ _   _| |_  __ _   |  Type "?" for help, "]?" for Pkg help.
-  | | | | | | |/ _` |  |
-  | | |_| | | | (_| |  |  Version 1.8.0 (2022-08-17)
- _/ |\__'_|_|_|\__'_|  |  Official https://julialang.org/ release
-|__/                   |
-
-julia> 
-```
-
+* Two Amazon seller problem as an example
   
-Step 2: Use `Pkg` to add packages. For example, to install `Turing.jl` and `Pluto.jl` (or any registered package)
-```juliarepl
-julia> Using Pkg
-julia> Pkg.add("Turing")
-```
+  
 
-or equivalently
 
-```juliarepl
-julia> ]
-(@v1.8) pkg> add Turing
-```
 
-Step 3: import the package and start using it 
-```juliarepl
-using Turing
-```
-  * The `using` command loads the specified package and makes all its *exported* values available for direct use.
+
+
+
+
 """
 
-# ╔═╡ 0f9ce7d3-ccf3-40f6-9573-ec40dc643749
+# ╔═╡ 43cedf4c-65c4-4b2b-afb3-21f5827f2af6
+md"""
+## Coin flipping example
+
+
+A classic statistical inference problem
+
+> A coin 🪙 is tossed 10 times. 
+> * the tossing results are recorded:  $\mathcal D=\{1, 1, 1, 0, 1, 0, 1, 1, 1, 0\}$; 7 out of 10 are heads
+> * is the coin **fair**?
+
+
+"""
+
+# ╔═╡ 351694f5-1b83-426f-a190-c87c69152ef0
 md"""
 
-### More on Pluto notebook
-It is recommended that you use Pluto notebook to interact with Julia. To install and use Pluto, please follow the steps below.
+## Forward modelling
 
-* Step 1: Install `Pluto.jl`; 
-```juliarepl
-julia> Using Pkg
-julia> Pkg.add("Pluto")
+The random variables are 
+
+**The positive rate**: ``\theta \in [0,1]``: 
+
+* the unknown positive rate of the seller; also known as the bias for Bernoulli r.v.
+
+
+**The observed tosses**: ``\mathcal{D} =\{Y_1, \ldots, Y_n\}``
+
+
+How the random variables shall be linked?
+* need to think generatively
+* the following seems  right
+```math
+\theta \Rightarrow \mathcal{D}
+```
+* common cause pattern
+"""
+
+# ╔═╡ 66926dbf-964d-4048-b8ad-459f36236c14
+md"""
+
+## The graphical model
+
+
+Equivalently, we can represent it as a graphical model
+
+
+In other words, the joint distribution is factored as (conditional independence assumption)
+
+```math
+P(\theta, Y_1, Y_2, \ldots, Y_{10}) = \underbrace{P(\theta)}_{\text{prior}} \underbrace{P(Y_1, Y_2, \ldots, Y_{10}|\theta)}_{\text{likelihood}} = P(\theta)\prod_i P(Y_i|\theta)
 ```
 
 
-* Step 2: Use Pluto 
-```juliarepl
-julia> using Pluto
-julia> Pluto.run()
+"""
+
+# ╔═╡ 1b4c860a-7245-4793-8acf-a1f01700b499
+html"""<center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/oneselleredges.png" width = "900"/></center>
+"""
+
+# ╔═╡ 3319498b-db49-4516-b699-b99da093c9cb
+md"""
+
+
+The most common pattern for statistical inference problems
+* **i.i.d** case: (independently and identically distributed) 
+"""
+
+# ╔═╡ 0f8b4a5b-94b8-4f2b-975d-3579eb9c62b1
+md"In plate notation"
+
+# ╔═╡ 1f524d92-e589-48f9-b3cc-bcef0bae4bca
+html"""<center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/onesellerplate.png" width = "200"/></center>
+"""
+
+# ╔═╡ ce1d28e1-3c77-461e-822a-6e5783bf2744
+md"""
+
+## Prior and Likelihood Specification
+
+
+**The prior**: ``\theta\in [0,1]``
+
+* discretize it to ``[0, 0.1, 0.2, \ldots, 1.0]`` 11 grid values
+* and a uniform prior
+
+```math
+P(\theta) = \begin{cases} \frac{1}{11} & \theta \in \{0, 0.1, \ldots, 1.0\} \\
+0 & \text{otherwise}\end{cases}
 ```
 
-* Step 3: To get started, you can either run this notebook (recommended) or start your own new notebook
 
-Some worth-noting features of Pluto are:
-* To use add-on packages, one only needs to add `using package_name` directly without installing them first with `pkg`. Pluto does all the package maintenance behind the scene.  For example, to use package `Distributions.jl` (no matter it has been installed or not), one simply add `using Distributions` in a cell:
-"""
+**The likelihood**: Bernoulli distribution
 
-# ╔═╡ 6be2784a-cf0c-4d75-9858-b063880c4e98
-md"""
-* On a given line, anything after a # is a *comment*
-* Code blocks with more than one line of code should be included within a `begin` and `end` block.
-* Pluto notebook is **reactive**, which means when one "cell" is modified and executed, the new values cascade to all other dependent cells which in turn are updated. The working mechanism is like a spreadsheet. Therefore, all variables in one cell are accessible in the rest of the notebook (a.k.a global variable). 
-* To force variables to have a local cell scope (so they cannot be accessed elsewhere), one can use `let ... end` block instead of `begin ... end`.
+```math
+P(Y_i|\theta) = \begin{cases} 1-\theta & Y_i = 0 \\ \theta & Y_i = 1\end{cases}
+```
 
 """
 
-# ╔═╡ 3520ad46-7ac5-47bf-9389-62a46f6a26f8
+# ╔═╡ dafe8d1f-6c99-46a4-a2d1-2e34e12ba4a7
 md"""
 
-## `Julia` language
+
+To be more specific, ``\mathcal{D} =\{1,0,0,1,1,1,1,1,1,0\}``
+
+
+```math
+P(\mathcal{D}|\theta) = \theta (1-\theta)(1-\theta) \theta \ldots \theta = \theta^{7}(1-\theta)^{3}
+```
+
+More generally,
+
+```math
+P(\mathcal{D}|\theta) = \theta^{N^+}(1-\theta)^{N-N^+}
+```
+* ``N^+ = \sum_{i=1}^N Y_i``: the total number of heads 
+* ``N``: total tosses
+
 """
 
-# ╔═╡ 65ae3b8f-a33a-49ba-b135-ab20674ec67a
+# ╔═╡ 1bc6b970-f1fa-48c9-b17e-cef4d01aa47a
 md"""
 
-### Numerical variable types
+## MLE
 
-`Julia` offers a wide range of numerical variable types that are commonly used in maths and statistics. These include:
-* Boolean: `true, false`
-* Integers: `1,2`
-* Rational numbers: `1//2`
-* Floating number: `2.0`
-* and even Complex numbers: `2 + 0im`
-
-`Julia`'s parsers can automatically infer the appropriate type for the value. The following examples demonstrate how the number 2 can be represented as different forms: *i.e.* as an integer, a rational number, a floating number, and a complex number.
+The likelihood ``P(\mathcal{D}|\theta)`` is plotted
 """
 
-# ╔═╡ c3fe7693-8425-4f6b-8529-c9b242073334
+# ╔═╡ 15571edc-32d7-4ac5-9c53-d49f595f84b1
+md"""
+
+> What is the maximum likelihood estimator for ``\theta``?
+
+"""
+
+# ╔═╡ 1d835b12-f1d7-4ce4-a62e-2cfa7a7b3a21
+md"""
+
+The MLE can be shown to be  
+
+```math
+	\theta_{ML} = \frac{N^+}{N}
+```
+
+* what if the observed data is ``\mathcal{D}= \{0, 0\}``
+"""
+
+# ╔═╡ f06264f4-f020-48f6-9ff3-cac308518eac
+md"""
+
+## Posterior computation
+"""
+
+# ╔═╡ 9308405d-36d0-41a1-8c73-e93b8d699320
 begin
-	2 # as an integer
-	2//1 # as a rational number
-	2.0 # as a floating number; or 2e0
-	2 + 0im # as a complex number where the imaginary part is zero
+	𝒟 = [1, 0, 0, 1, 1, 1, 1, 1, 1, 0]
+	# 𝒟 = [0, 0]
+end
+
+# ╔═╡ 0da00057-6bf1-407d-a15f-af24ee549182
+@bind step Slider(0.01:0.005:0.1, default = 0.1)
+
+# ╔═╡ be0fe9aa-32e6-4c18-8bad-2213e05bca1c
+md"We can of course change the step size to discretise ``\theta``
+
+Step to discretise ``\theta``: $(step)"
+
+# ╔═╡ f593d1c9-7382-4d5c-9c99-5709123af43d
+θs = 0:step:1
+
+# ╔═╡ 8f9d1066-91d5-43af-9834-b3dc2dbc6400
+begin
+	prior_plt_seller=Plots.plot(θs, 1/length(θs) * ones(length(θs)), ylim= [0,1], seriestype=[:path, :sticks], color= 1, fill=true, alpha=0.3, markershape=:circle, xlabel=L"θ", ylabel=L"P(θ)", label="", title="Prior")
 end;
 
-# ╔═╡ 045474d2-18f1-45b1-8c5d-9a82980e96bd
-md"""
-All above values are equal if compared with `==`, which checks their values numerically.
-"""
-
-# ╔═╡ 287d41f1-9ade-4a73-b8ea-1e11aaf62fbe
-2 == 2//1 == 2.0 == 2 + 0im
-
-# ╔═╡ d51ba0c0-9ca1-47aa-8364-080abc8175c3
-md"""To check variable's physical internal representations in computer memory, one should use "`===`" instead. In other words, "`===`" checks whether two variables refer to the same object in the computer memory."""
-
-# ╔═╡ ae200380-7c83-4fa6-9661-9cf1999732e3
-2 === 2//1, 2 === 2.0, 2 === 2 + 0im, 2//1 === 2.0, 2//1=== 2+0im
-
-# ╔═╡ b3919bcb-c2e7-442b-a06c-93d172878f9c
-md"""
-
-Variables assignments are done with the"`=`" operator
-* Variable names can be Unicode, 
-* Greek letters are widely used; for example, α: type `\alpha` + `tab`
-"""
-
-# ╔═╡ ed8457c7-9547-4953-ae72-121572fe8495
-begin
-	α, β = 1.0, 2
+# ╔═╡ 947a0e0f-b620-4e0e-97bd-74749ed87042
+function ℓ(θ, 𝒟; logprob=false)
+	N = length(𝒟)
+	N⁺ = sum(𝒟)
+	ℓ(θ, N, N⁺; logprob=logprob)
 end
 
-# ╔═╡ 49a993c4-27c9-4c89-b4c4-04c294f044c0
-md"""
-
-### Standard mathematical operations
-
-All standard mathematical operations are implemented, such as `+, -, *, /`. And Parentheses are used for grouping operations as usual.
-
-Some other useful operations include
-
-* `x^y`, exponential ``x^y``
-* `sqrt(x)`, square root of a number, i.e. ``x^{0.5}``
-* `log(x)`, logarithm operation
-* `sin(x), cos(x)`, trigonometric functions
-* `abs`: absolute value
-* `sign`: is ``|x|/x`` except at ``x=0``
-* `floor, ceil`: flooring or ceiling of a floating number
-* `max(a,b), min(a,b)`: returns the greater or smaller betwee `a` and `b`
-* `maximum(xs), minimum(xs)`: the largest or smallest of the input array
-
-Check [the user manual](https://docs.julialang.org/en/v1/manual/mathematical-operations/) for a more detailed list of built-in operations.
-"""
-
-# ╔═╡ a091f1d5-29c0-4a98-b1b8-4177cd6cd2f7
-md"""
-
-!!! information "Getting help within Pluto"
-	If you want to know more about a specific function, simply type `? function_name` in a cell. 
-
-	Try typing `?sign` in a cell and see the live document section.
-"""
-
-# ╔═╡ a6c186ae-9d7a-452e-bfb2-b303c0cfea5a
-md"""
-
-### Vectors
-
-A vector in `Julia` is defined as an indexed array of similarly typed values. A  vector (or array), can be created with square brackets:
-"""
-
-# ╔═╡ cbd40c3a-cf65-4d1c-833a-29a1e39dc893
-[1,2,3,4,5]
-
-# ╔═╡ a08b431d-86b4-4f03-b0aa-eadba6284e95
-md"""
-
-There are other convenient ways to create a vector. 
-
-* `zeros(n), ones(n)`: create an array of `n` zeros or ones;
-
-To create a sequence of numbers with some fixed gap:
-* `a:b` or `a:h:b`: which create a sequence of numbers starting with `a` and ending with `b` inclusive and the gap is `h` ;
-* `range(a,b,length=n)`: offers an alternative way to produce `n` values between `a` and `b`;
-
-Both above methods return a generator rather than the real values. To cast them to an array, one can use `collect()` or a splat `...` operator.
-"""
-
-# ╔═╡ 82b73754-f164-4bc0-82d9-fd0311a59919
-begin
-	1:10, collect(1:10), [(1:10)...]
+# ╔═╡ 1e267303-160d-43b9-866f-2d7afc2c4c3f
+function ℓ(θ, n, n⁺; logprob=false)
+	# logL = n⁺ * log(θ) + (n-n⁺) * log(1-θ)
+	# use xlogy(x, y) to deal with the boundary case 0*log(0) case gracefully, i.e. θ=0, n⁺ = 0
+	logL = xlogy(n⁺, θ) + xlogy(n-n⁺, 1-θ)
+	logprob ? logL : exp(logL)
 end
 
-# ╔═╡ a12d7a2e-5a4e-46db-b802-1af1331456dd
-range(1, 10, length=12), collect(range(1, 10, length=12))
-
-# ╔═╡ 911bf98c-130c-4e20-a353-bc290c865a27
+# ╔═╡ 5cbd933e-db0e-49fb-b9d0-267dc93efdb7
 md"""
 
-One can also declare an array with the specified element type and length when creating it. For example, to create an array of 10 integers of uninitialised values:
+
+## Aside: Maximum likelihood estimator (conti.)
+
+What if we observed ``\mathcal{D}=\{0,0\}`` ? 
+* ``N⁺ =0, N=2``
+
+
+
+$(let
+	gr()
+	𝒟 = [0,0]
+	like_plt_seller = plot(θs, θ -> ℓ(θ, 𝒟), seriestype=:sticks, color=1, markershape=:circle, xlabel=L"θ", ylabel=L"P(\{0,0\}|θ)", label="", title="Likelihood: "*L"P(\{0,0\}|\theta)")
+
+end)
+The MLE is 
+
+$$\hat{\theta}_{\text{ML}} = \frac{0}{2} =0$$
+
+If you treat $$\hat{\theta}_{\text{ML}} = 0$$ as gospel for future prediction: *i.e.*
+
+$$P(Y_{N+1}|\theta = \hat{\theta}_{\text{ML}})=\begin{cases} 0 & Y_{N+1} =1 \\ 1 & Y_{N+1} =0\end{cases}$$
+* you predict you will **never** see a `Head`/1 again: **Overfitting**
+
+
+* the frequentist MLE is pathologically bad when 
+  * there is not enough data
 """
 
-# ╔═╡ 5c15f435-8ea6-446e-a27d-3270b463f681
-Array{Int}(undef, 10)
+# ╔═╡ 70c00cf9-65ac-44d7-b25c-153614d24240
+begin
+	
+	
+	function posterior_robust(𝒟, θs)
+		likes = [ℓ(θ, 𝒟; logprob=true) for θ in θs]
+		logsum = logsumexp(likes)
+		posterior_dis = exp.(likes .- logsum)
+		return posterior_dis
+	end
+	
+end
 
-# ╔═╡ b8d452b1-b75b-4012-872a-3baced9c1cb6
+# ╔═╡ 4bae9df7-36a2-4e8a-bdd8-5fdec68cddba
+md"""
+## Frequentist approach
+
+
+To draw a comparison with the frequentist method, let's see 
+
+* how **frequentist** would approach the problem
+* we will use the *confidence interval* method 
+* note that this is not the best frequentist practice
+  * for comparison purposes
+
+
+"""
+
+# ╔═╡ 2338bade-9fb2-4a75-a39c-3e056f2d00d5
 md"""
 
-To accommodate missing values, `Julia` has a special data type called `Missing`. An element of either missing type or concrete observation can be created with `Union`. For example, `Union{Missing, Float64}` can either be a missing value or a floating number. An array of mixed missing and observed values can therefore be created by:
+## Frequentist approach
+
+The fundamental difference
+
+> **frequentist** does **NOT** treat the unknown parameter ``\theta`` a random variable **but** an unknown fixed constant
+
+  * therefore, frequentist has neither prior ``P(\theta)`` nor posterior  ``P(\theta|\mathcal{D})``
+
+The only random variables are the data ``\mathcal{D}`` 
+  * frequentists only need the likelihood ``P(\mathcal{D}|\theta)``
+  * MLEs are usually random variables (therefore, with sampling distribution)
+
+A **confidence interval** can be calculated as 
+
+$$(\hat{\theta} - z_{\alpha/2} \hat{\texttt{se}}, \hat{\theta} + z_{\alpha/2} \hat{\texttt{se}}), \text{where}$$ 
+
+$$\hat{\texttt{se}}= \sqrt{\frac{\hat{\theta}(1-\hat{\theta})}{N}}.$$
+
+* ``\hat{\theta}`` is the MLE, which is a random variable
+* the interval is formed based on the converging property of the MLE
 """
 
-# ╔═╡ 054d075f-4e1c-42b2-955e-70ac1e36144b
-Array{Union{Missing, Float64}}(undef, 10)
-
-# ╔═╡ 2d934969-c540-4e88-b137-d22e836e7daa
+# ╔═╡ b3bcf03b-f4f8-4ddb-ab59-fa5f780ed563
 md"""
-### Matrices
 
-Matrices are simply multi-dimensional arrays. It is recommended to import the add-on `LinearAlgebra` package when dealing with matrices.
+## Confidence interval
+
+
+For our problem, a 90% frequentist confidence interval is
+
+$$(0.46, 0.94)$$
+
+
+> But how shall we interpret this interval?
+
+* ``\theta`` is not a random variable, it is clearly not an uncertainty statement  about ``\theta``
+* but the interval itself is random
+
+
+!!! danger ""
+	
+	
+	A ``\alpha=10\%`` **confidence interval** interpretation: 
+
+	*Repeat the following two steps, say 10,000 times:*
+
+	1. *toss the coin another 10 times*
+	2. *calculate another confidence interval*: ``(\hat{\theta} - 1.645 \hat{\texttt{se}}, \hat{\theta} + 1.645 \hat{\texttt{se}})`` *as above*
+
+	Over the 10,000 realised random intervals, approximately 90% of them trap the true unknown parameter.
 
 """
 
-# ╔═╡ d78b7c17-1f6d-424c-aeed-e35a9d3db49e
-md"To create matrix
+# ╔═╡ ff01e390-a72d-41b0-9a7c-1d63060491f9
+md"""
+
+The animation illustrates the idea 
+* conditional on the hypothesis that the coin is fair, *i.e.* ``\theta =0.5`` (it works for any ``\theta\in [0,1]``)
+* the above two steps were repeated 100 times, *i.e.* tossing the coin ten times and then forming a confidence interval
+* the red ones are the 10% CIs that **do not** trap the true bias. 
+"""
+
+# ╔═╡ c1edf5ff-f25f-4a71-95fb-53515aae9d97
+md"""
+
+## Frequentist sampling theory method
+
+If you think the Frequentist's confidence interval is confusing
+
+* I agree with you. 
+
+
+But the frequentist method is suitable for controlled experiment settings 
+
+* we are truly interested in the long term frequency pattern under repeated experiments
+
+But Bayesian inference give you a more **direct answer** to the inference question
+
+> "*In light of the observed data, what ``\theta`` is more credible, i.e. what is ``p(\theta|\mathcal D)``?*''
+
+And Bayesian inference is procedurally simple and uniform
+
+* forward modelling + inference computation
+* frequentist methods need different tests for different purposes
+"""
+
+# ╔═╡ 6131ad55-eee7-44ec-b965-ce17ef3f8f84
+begin
+	cint_normal(n, k; θ=k/n, z=1.96) = max(k/n - z * sqrt(θ*(1-θ)/n),0), min(k/n + z * sqrt(θ*(1-θ)/n),1.0)
+	within_int(intv, θ=0.5) = θ<intv[2] && θ>intv[1]
+end;
+
+# ╔═╡ a152a7bd-062d-4fd9-be38-c217fdaca20f
+begin
+	Random.seed!(100)
+	θ_null = 0.5
+	n_exp = 100
+	trials = 10
+	outcomes = rand(Binomial(trials, θ_null), n_exp)
+	intvs = cint_normal.(trials, outcomes; z= 1.645)
+	true_intvs = within_int.(intvs)
+	ϵ⁻ = outcomes/trials .- [intvs[i][1] for i in 1:length(intvs)]
+	ϵ⁺ = [intvs[i][2] for i in 1:length(intvs)] .- outcomes/trials
+end;
+
+# ╔═╡ 5462f241-e284-45b8-8e61-3c0317f6b08b
+let
+	p = hline([0.5], label=L"\mathrm{true}\;θ=0.5", color= 3, linestyle=:dash, linewidth=2,  xlabel="Experiments", ylim =[0,1])
+	anim = @animate for i in 1:n_exp
+		k_ = outcomes[i]
+		# intv = cint_normal(trials, k_; z= 1.645)
+		# intv = intvs[i]
+		in_out = true_intvs[i]
+		col = in_out ? 1 : 2
+		θ̂ = k_/trials
+		Plots.scatter!([i], [θ̂],  label="", yerror= ([ϵ⁻[i]], [ϵ⁺[i]]), markerstrokecolor=col, color=col)
+	end
+
+	gif(anim, fps=3)
+end
+
+# ╔═╡ 6d136ab7-c7ea-43a7-a16d-0af53b123b59
+begin
+	first_20_intvs = true_intvs[1:100]
+	Plots.scatter(findall(first_20_intvs), outcomes[findall(first_20_intvs)]/trials, ylim= [0,1], yerror =(ϵ⁻[findall(first_20_intvs)], ϵ⁺[findall(first_20_intvs)]), label="true", markerstrokecolor=:auto, legend=:outerbottom,legendtitle = "true θ within CI ?")
+	Plots.scatter!(findall(.!first_20_intvs), outcomes[findall(.!first_20_intvs)]/trials, ylim= [0,1], yerror =(ϵ⁻[findall(.!first_20_intvs)],ϵ⁺[findall(.!first_20_intvs)]), label="false", markerstrokecolor=:auto)
+	hline!([0.5], label=L"\mathrm{true}\;θ=0.5", linewidth =2, linestyle=:dash, xlabel="Experiments")
+end
+
+# ╔═╡ a2642e09-3202-4c73-914a-bdd6c0b374c2
+md"""
+
+## Amazon seller problem
+
+
+
+!!! note "Amazon reseller"
+	Two resellers on Amazon with different review counts 
+
+	| Seller | A | B |
+	|:---:|---|---|
+	|#Positive ratings  |8  |799 |
+	|#Total ratings  |10|1000|
+	Which seller provides **better** service?
+
+
+* we will consider one seller first 
+* and then extend it to two seller
+
+## One seller problem
+"""
+
+# ╔═╡ 89f0aa81-1da3-41a0-8d72-72637d8052aa
+md"""
+
+It is the same to estimating a coin's bias actually
+
+> Seller *A* is "tossed" 10 times. 
+> * 8 out of the 10 experiments are positive. 
+> * what is the unknown positive rating ?
+
+
+The difference: the observations are ``N^+`` directly
+* note that ``N⁺`` is defined as the total count of successes of ``N`` tosses:
 
 ```math
-\begin{bmatrix} 1 & 2 \\ 3 & 4\end{bmatrix},
+N⁺\triangleq \sum_i Y_i 
 ```
-one has the following options:
-"
+* the likelihood is binomial distributed
+```math
+P(N⁺ |\theta, N) = \text{Binom}(N⁺; N, \theta) = \binom{N}{N⁺} \theta^{N⁺} (1-\theta)^{N-N⁺}
+```  
+  * ``N=10`` is a hyperparameter, omitted here 
 
-# ╔═╡ d349aa84-4b2a-42c9-98a4-5849ece5e6ae
-[1 2; 3 4], hcat([1,3], [2,4]), vcat([1 2], [3 4]), reshape([1,2,3,4], 2, 2)'
-
-# ╔═╡ 6950f0da-d61a-465b-aaaf-8a802f50452a
-md"""
-Where `vcat` and `hcat` concatenate the inputs horizontally (or vertically), also note
-* `[1,3]` is a column vector
-* while `[1 2]` is a row vector
 """
 
-# ╔═╡ c68f7d30-3061-40db-8af3-369149cd5ff9
-md"""
-
-Here are some commonly used special matrices:
-
-* `Matrix{Float64}(undef, m, n)`, returns an `m × n` uninitialised real valued matrix 
-* `ones(m, n)`, returns an `m × n` matrix with ones
-* `zeros(m, n)`, returns an `m × n` zero matrix 
-* `Matrix(1.0I, n, n)`, returns an `n × n` identity matrix 
-* `Diagonal(V::AbstractVector)`, returns a diagonal matrix with `V` as its diagonal 
+# ╔═╡ 4f6232be-dbd1-4e1a-a28c-5fc60964bb9f
+html"""<center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/bayes/oneseller.png" width = "150"/></center>
 """
 
-# ╔═╡ 84710a37-34c3-4c20-bd5c-b293d23bc7cf
+# ╔═╡ d76d0594-5a53-4641-818e-496ce3a52c6b
+function ℓ_binom(N⁺, θ, N; logprob=false)
+	# log(binomial(N, N⁺) * (1-θ)^(N-N⁺) * θ^N⁺)
+	logL = logabsbinomial(N, N⁺)[1] + xlogy(N-N⁺, 1-θ)  + xlogy(N⁺, θ)
+	logprob ? logL : exp(logL)
+end
+
+# ╔═╡ 19892f66-98e1-405e-abae-ffda46a546b1
 begin
-	Matrix{Float64}(undef, 2, 3), ones(2,3), zeros(2,3)
+	Nᴬ = 10
+	N⁺ = 7
+	like_plt_seller = Plots.plot(θs, θ -> ℓ_binom(N⁺, θ, Nᴬ), seriestype=:sticks, color=1, markershape=:circle, xlabel=L"θ", ylabel=L"p(𝒟|θ)", label="", title="Likelihood: "*L"P(\mathcal{D}|\theta)")
 end
 
-# ╔═╡ 45037f4e-5744-4de7-885d-f0a678b72ec1
+# ╔═╡ 31c064a3-e074-409a-9431-48a573a83884
+let
+	gr()
+	l = @layout [a b; c]
+	likes = ℓ_binom.(N⁺, θs, Nᴬ; logprob=false)
+	posterior_dis = likes/ sum(likes)
+	post_plt = plot(θs, posterior_dis, seriestype=:sticks, markershape=:circle, label="", color=2, title="Posterior", xlabel=L"θ", ylabel=L"p(θ|𝒟)", legend=:outerright, size=(600,500))
+	plot!(post_plt, θs, posterior_dis, color=2, label ="Posterior", fill=true, alpha=0.5)
+	plot!(post_plt, θs, 1/length(θs) * ones(length(θs)), seriestype=:sticks, markershape=:circle, color =1, alpha=0.2, label="")
+	plot!(post_plt, θs, 1/length(θs) * ones(length(θs)), color=1, label ="Prior", fill=true, alpha=0.2)
+	plot(prior_plt_seller, like_plt_seller, post_plt, layout=l)
+end
+
+# ╔═╡ fde1b917-9d81-4a29-b553-caad3c736682
+md"""
+
+## Two resellers
+
+* The two unknowns: ``\theta_A,\theta_B``. 
+* The likelihood are the counts of "heads" (or positive reviews): ``\mathcal{D} = \{N_{A}^+, N_{B}^+\}``.
+
+
+
+
+"""
+
+# ╔═╡ b4709e13-24ad-4c7e-bd9f-e7113b5089f5
+html"""<center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/bayes/twoseller.png" width = "350"/></center>
+"""
+
+# ╔═╡ 278bb5cb-6734-499c-b954-0590f559af1f
+md"""
+
+We have assumed 
+
+* the two sellers' biases are independent 
+* the reviews counts are also independent 
+"""
+
+# ╔═╡ 92e2e50b-bbce-4b4d-aad4-02e4f374b286
 begin
-	Matrix(1.0I, 3, 3), Diagonal(ones(3))
+	dis_size = 101
+	θ₁s, θ₂s = range(0, 1 , dis_size), range(0, 1 , dis_size)
 end
 
-# ╔═╡ b3d46870-ef00-4fec-a5f2-2f3b6b11687c
+# ╔═╡ 316db89e-0b73-4993-a778-5d3ff890e807
 md"""
+## Two reseller: likelihood ``p(\mathcal{D}|\theta_A, \theta_B)``
 
-Standard matrix algebra operations such as addition/subtraction, multiplication and matrix inversion are all supported.
-
-* `A'`: matrix transpose: ``A^{\top}``
-* `A + B`: matrix addition or subtraction (`-`)
-* `A * B`: matrix multiplication
-* `A^(-1)` or `inv(A)`: inverse a matrix ``A^{-1}``
-"""
-
-# ╔═╡ 52a6e45f-b458-463a-95b8-0f8a184ce171
-begin
-	A = rand(5,5)
-	B = rand(5)
-	A + A == 2 * A
-end
-
-# ╔═╡ b078d4c9-7638-43a4-bd77-57a40b1511ef
-A * B, B' * A # matrix multiplication is not commutative
-
-# ╔═╡ 2b305ef2-551e-4327-ad56-2bd3a12f51fc
-A^(-1) == inv(A) # inverting a matrix
-
-# ╔═╡ 84713022-8e34-4e57-aa2f-cf9d6cf61cad
-md"""
-
-Note that most mathematical operations have an optional argument `dims` to specify along which dimension of the input matrix to apply the operation. For example, to sum a matrix `C` along the row (dim =1):
-"""
-
-# ╔═╡ 36824286-375a-48db-af65-b6dcaf6497b8
-C = ones(4,2);
-
-# ╔═╡ 46be754e-ec2f-4e0d-aef3-865492d2dd0c
-md"C="
-
-# ╔═╡ 1af4b04a-a7a1-4808-9cf0-038c95037fa5
-latexify(C)
-
-# ╔═╡ 7d897f13-7358-446f-b87a-60ad945769ea
-md"And the row sum is:"
-
-# ╔═╡ 7cd155b2-f76e-4152-9d79-ac9ea8c32b16
-sum(C, dims=1)
-
-# ╔═╡ d0b5cc5a-f0cf-44e8-9e2a-e28b94d4429f
-md"Note that the returned object is a ``1\times n`` matrix rather than a vector. To cast the matrix to a vector, append `[:]` at the end."
-
-# ╔═╡ 04065f11-4748-4cf0-abf4-01484454da0b
-sum(C, dims=1)[:]
-
-# ╔═╡ aed0ed19-0183-4eb8-83c9-3d2419d299b8
-md"To apply the operation to the columns, simply specify `dims=2`."
-
-# ╔═╡ 02938204-99d2-4209-abcf-cbcfd62f9c04
-md"""
-
-### Vectorised operation
-
-A function can be applied to each element of a vector through a mechanism called **broadcasting**. The latter is implemented in a succinct `.` notation. For example, to calculate `sin` at an array of values in `xs`: `sin.(xs)`. 
-"""
-
-# ╔═╡ 8548c4cb-9e9b-4ca7-bd4e-97e16058606d
-let
-	xs = -2π : 0.1 : 2π
-	sin.(xs)
-end
-
-# ╔═╡ c2ee8d41-eec8-43ad-b4c0-2f859ad03b93
-md"""
-Broadcasting also works for operators such as `*.`, `+.`, `.^`, `.==` etc. For example,
-`xs .^2` and `xs .* xs` both square array `xs` element-wisely. And `.==` applies element-wise comparisons.
-"""
-
-# ╔═╡ c195aa69-89f6-4417-b602-67922a76b87a
-let
-	xs = 1:5
-	# element wise multiplication and element-wise squares
- 	xs .* xs, xs .^2, xs .* xs .== xs .^2
-end
-
-# ╔═╡ 4a51bb66-f4d4-4a7d-8e07-91d3ff5f4f28
-md"Broadcasting is a very handy operator. Without it, one would have to write a for loop to achieve the same result."
-
-
-# ╔═╡ 17b5759c-deab-4bc0-b7b6-fc2c0e64eebb
-md"""
-
-### Looping
-
-Iterating over a collection can be done with the traditional `for` loop.
-"""
-
-# ╔═╡ c52294ca-49fb-43f7-87bb-860c8088506d
-let
-	results = zeros(10)
-	for x in 1:10
-		results[x] = x^2
-	end
-	results
-end
-
-# ╔═╡ fcd72da9-e175-4fd1-a047-7dd3711dcbf4
-md" However, there are list comprehensions to mimic the definition of a set. The above `for` loop can be replaced with:"
-
-# ╔═╡ 6df9180f-59bf-4462-ae9d-a2623379071a
-[x^2 for x in 1:10]
-
-# ╔═╡ a1aa6ab4-f183-4adc-9ad8-70d80deaa15f
-md"""
-
-### User defined functions
-
-User-defined functions can be easily created with 
-
-```julia
-function function_name()
-	...
-	...
-end
-```
-
-or in one-line 
-
-```julia
-function_name(x) = ...
-```
-
-or anonymously
-
-
-```julia
-(x) -> ...
-
-```
-
-For example, to create a third-order polynomial with coefficients `a,b,c,d`
-
-$$f(x; a,b,c, d) = a x^3 + bx^2+cx + d$$
-"""
-
-# ╔═╡ dfa4201c-19da-4ca9-b537-8396c2899d42
-function f1(x; a=1, b=2, c=3, d=4)
-	return a * x^3 + b * x^2 + c * x + d
-end
-
-# ╔═╡ dbc643ae-d68c-416f-b1b9-dc8a0025dfe0
-md"""
-The default values of the coefficients are a = 1, b = 2, c = 3, d = 4. Or equivalently:
-"""
-
-# ╔═╡ e1de498d-d66f-42c8-bb22-e80d623c4554
-f2(x; a=1,b=2,c=3,d=4) = a * x^3 + b * x^2 + c * x + d
-
-# ╔═╡ 6c4ede4f-a566-4dfc-bfdf-f4feadac84aa
-md"""
-To use the created function, we simply feed in the required input value.
-"""
-
-# ╔═╡ 14fc0ff8-2284-412f-99af-6264d24d6198
-f1(0), f2(0) 
-
-# ╔═╡ 4958c15f-5725-4645-a71d-e8a26a94a894
-f1.(1:10) .== f2.(1:10) 
-
-# ╔═╡ a5c62a3c-2a59-4388-adb5-b0d93be2360d
-md"""
-
-!!! danger "Exercise"
-	Write a function to calculate the area of a circle with radius `r`: ``\text{area}(r)= \pi r^2``.
-
-!!! hint "Answer"
-	```julia
-		area(r) = π * r^2
-	```
-
-	Julia provides very mathematical syntax. You program in Julia the same way as you would have written the equations on paper.
-"""
-
-# ╔═╡ 5f31fe56-ff6c-4cae-b835-15e100771a82
-md"""
-
-Sometimes, it is handy to write a one-off **anonymous function**, such as
-
-"""
-
-# ╔═╡ a1b6c516-0d3a-4add-990c-9ea755d6c7b6
-((x) -> x^2)(5)
-
-# ╔═╡ 9fbbb50d-ebb8-4e13-b28c-fbde63926cae
-md"where `((x) -> x^2)` is an anonymous function, and 5 is the input argument."
-
-# ╔═╡ 3f9138da-c21a-458f-8eaa-a10079a2ee35
-md"""
-
-An anonymous function has no name, therefore it cannot be reused later. However, the function can be passed around like a variable. In Julia, functions are first-class objects (treated the same way as a variable). Therefore, an anonymous function can be assigned a name, if needed.
-"""
-
-# ╔═╡ d0d5068b-f58d-4835-81eb-7cdc3273961e
-my_square = (x) -> x^2
-
-# ╔═╡ bcaf0dba-c26c-41f2-b5ad-34fb81b4e34d
-my_square(5) # can be used the same as a normal function
-
-# ╔═╡ a748b9e1-dd0c-4899-bf04-42a831e95434
-md"""
-### Map
-
-
-`map(f, c)` is usually used to apply some function `f` to the elements of an iterable object, such as a list or array `c`. 
-
-For example, to transform 1,2,...,5 to their cubic root:
-"""
-
-# ╔═╡ 22aa7b65-94f7-4cd7-a3f6-49d70c88e8e1
-map((x) -> x^(1/3), 1:5)  
-
-# ╔═╡ 3cfdb5c7-5ca3-4f86-ac9f-b3456b03303b
-md"""
-For example, to transform an array of strings of `"Yes"` and `"No"` to `1`/`0`.
-"""
-
-# ╔═╡ 60c7ec9a-a6e4-43a5-921a-b6ba3ba511d0
-map((x) -> x == "Yes" ? 1 : 0, ["Yes", "Yes", "No", "Yes"])
-
-# ╔═╡ 8e0c8524-3142-498b-bac1-60f591ede438
-md"""
-Find the sum along the column of a matrix:
-"""
-
-# ╔═╡ 42d47b65-5b68-4f81-af5f-17a1df35c1cb
-M = latexify(ones(6, 3))
-
-# ╔═╡ 0ff926f9-a294-4846-b7ab-d02203a73a13
-md"Apply `sum` to each column of the matrix `M`."
-
-# ╔═╡ 482b83c6-fe77-41ea-bc4a-4a9b76bf30ac
-map(sum, eachcol(ones(6,3)))
-
-# ╔═╡ 77ec658a-0fe5-4fc4-81ac-70336e46096b
-md"Similarly, apply `sum` to each row:"
-
-# ╔═╡ 528d9adb-1888-4f31-91eb-450879053bf6
-map(sum, eachrow(ones(6,3)))
-
-# ╔═╡ 49c595cf-4a6f-43fe-9c0e-365effd70f96
-md"""
-
-### Plotting
- 
-`Julia` provides very easy-to-use plotting methods to visualise functions. To plot a function, one should first import `Plots` package.
-"""
-
-# ╔═╡ f38cf720-5346-4590-b466-c42c86fe1555
-md"For example, to visualise the `sin` function between -3π to 3π."
-
-# ╔═╡ b6637bc1-a63c-44cc-bf57-ae2c7252e176
-plot(sin, label="sin(x)", legend=:topright, linewidth=2)
-
-# ╔═╡ 9d25c7c8-252c-4998-9d7c-f93be58ec671
-md"""
-
-To plot a series of `sin` functions with different frequencies: ``\sin(k x)``
-  * note we use `plot!()` to modify the existing plot directly rather than creating a new plot
-
-"""
-
-# ╔═╡ 8416fec3-5460-441a-b415-40d04075ccf3
-let
-	plt = plot(-π: 0.01: π, sin, xlabel=L"x", ylabel=L"\sin(x)", label=L"\sin(x)", lw=1.5, legend=:outerbottom)
-
-	for k in [2, 3]
-		plot!(-π: 0.01: π, (x) -> sin(k*x), label=L"\sin(%$(k)x)", lw=1.5)
-	end
-	plt
-end
-
-# ╔═╡ 0eb81388-75c6-40c6-ad2e-04baf59a7d71
-md"""
-
-!!! danger "Exercise"
-	Plot the user-defined polynomial function with parameters ``a=0, b=1, c=2, d=5``
-
-!!! hint "Answer"
-	```julia
-		plot(0:0.1:10, (x) -> f(x; a=0, b=1, c=2, d=5))
-	```
-"""
-
-# ╔═╡ 56961f01-40b2-4a18-90a2-a0ebeeebd16c
-md"""
-
-**Multi-dimensional plots.** For functions with multiple variables, it is convenient to visualise the function either with a contour plot or the surface 3-D plot.
-"""
-
-# ╔═╡ e65a6edb-12ab-44c4-a1ff-94a457583c49
-let
-	# a quadratic function
-	qf(x, y) = x^2 - y^2
-	xs = -5:.1:5
-	ys = -5:.1:5
-	# theme(:ggplot2)
-	cont_plot = plot(xs, ys, (x,y) -> qf(x, y), st=:contour, ratio =1, legend=false)
-	surf_plot = plot(xs, ys, (x,y) -> qf(x, y), st=:surface, ratio =1, legend=false)
-	# plot side by side
-	plot(cont_plot, surf_plot)
-end
-
-# ╔═╡ c8ab39c8-a3e0-4ef5-8a47-365b5c484042
-md"""
-
-### Animations
-
-We can also put a series of plots (known as frames) together to form an animation. This is particularly useful to visually demonstrate an algorithm's procedures. `Julia` provides two macros: `@animate` and `@gif`, to simplify the animation creation process.
-
-Here we use the derivative as an example to show how to create an animation. The derivative of a continuous function ``f(x)`` at ``x_0`` is defined as the limit of a ratio:
+The two resellers' performance are assumed independent
 
 ```math
-f'(x_0) = \lim_{\Delta{x} \rightarrow 0} \frac{f(x_0 + \Delta{x}) - f(x_0)}{\Delta x}= \lim_{\Delta{x} \rightarrow 0} \frac{\Delta{f}}{\Delta x}
+\begin{align}
+p(\mathcal{D}|\theta_A, \theta_B) &= p(N_A^+|\theta_A, N_A=10) p(N_B^+|\theta_B, N_B=100)\\
+
+&=\binom{N_A}{N_A^+}\theta_A^{N_A^+}(1-\theta_A)^{N_A- N_A^+}\times \binom{N_B}{N_B^+}\theta_B^{N_B^+}(1-\theta_B)^{N_B- N_B^+}
+\end{align}
 ```
 
-* when ``\Delta{x}`` approaches zero, the ratio ``\frac{f(x_0 + \Delta{x}) - f(x_0)}{\Delta x}`` gets closer to the exact derivative, 
-* and the derivative can be interpreted as the slope of the limiting approximate linear function of ``f`` when ``\Delta{x}`` approaches zero.
-
-The idea is demonstrated below in an animation.
+* two independent Binomial likelihoods
 
 """
 
-# ╔═╡ 9f420af3-f080-411d-bc14-e2e45572ac77
-let
-	x₀ = 0.0
-	xs = -π : 0.1: π
-	f, ∇f = sin, cos
-	anim = @animate for Δx in π:-0.1:0.0
-		plot(xs, sin, label=L"f(x)", ylim = [-1.5, 1.5], xlabel=L"x", lw=2, legend=:topleft)
-		df = f(x₀ + Δx)-f(x₀)
-		k = Δx == 0 ? ∇f(x₀) : df/Δx
-		b = f(x₀) - k * x₀ 
-		# the approximating linear function with Δx 
-		plot!(xs, (x) -> k*x+b, label="", lw=2)
-		# the location where the derivative is defined
-		scatter!([x₀], [f(x₀)], ms=3, label=L"x_0, f(x_0)")
-		scatter!([x₀+Δx], [f(x₀+Δx)], ms=3, label=L"x_0+Δx, f(x_0+Δx)")
-		plot!([x₀, x₀+Δx], [f(x₀), f(x₀)], lc=:gray, label="")
-		plot!([x₀+Δx, x₀+Δx], [f(x₀), f(x₀+Δx)], lc=:gray, label="")
-		font_size = Δx < 0.8 ? 7 : 10
-		annotate!(x₀+Δx, 0.5 *(f(x₀) + f(x₀+Δx)), text(L"Δf=%$(round(df, digits=1))", font_size, :top, rotation = 90))
-		annotate!(0.5*(x₀+x₀+Δx), 0, text(L"Δx=%$(round(Δx, digits=1))", font_size,:top))
-		annotate!(0, 1, text(L"\frac{Δf}{Δx}=%$(round(k, digits=2))", 10,:top))
+# ╔═╡ 2c6b9d29-1ab8-4b59-a867-1aecf27dc679
+md"""
+
+## Two reseller: posterior
+
+Apply Bayes' rule to find the posterior
+
+
+$$\begin{align}
+p(\theta_A, \theta_B|\mathcal D) &\propto p(\theta_A, \theta_B)\cdot p(\mathcal D|\theta_A, \theta_B)\\
+&\propto \theta_A^{N_A^+}(1-\theta_A)^{N_A- N_A^+}\times \theta_B^{N_B^+}(1-\theta_B)^{N_B- N_B^+}
+\end{align}$$
+
+Note that
+* ``1/101^2`` is a constant *w.r.t.* ``\theta_A, \theta_B``
+* ``\binom{N_B}{N_B^+}, \binom{N_A}{N_A^+}`` are also constants *w.r.t.* ``\theta_A,\theta_B``
+
+And the normalising constant $p(\mathcal D)$ is
+
+$$p(\mathcal D) = \sum_{\theta_A\in \{0.0, \ldots,1.0\}}\sum_{\theta_B\in \{0.0,\ldots, 1.0\}} \theta_A^{N_A^+}(1-\theta_A)^{N_A- N_A^+}\times \theta_B^{N_B^+}(1-\theta_B)^{N_B- N_B^+}$$ 
+
+* the updated posterior is plotted below
+
+
+"""
+
+# ╔═╡ cb09680f-ae53-45b1-aa61-e73f81a4bcce
+md"""
+
+## Posterior
+"""
+
+# ╔═╡ 022c5b56-e683-4f66-aba9-8b2e89f11e24
+md"""
+* the posterior now centres around (0.8, 0.79); 
+* however, the ``\theta_A``'s marginal distribution is wider than the other, which makes perfect sense. 
+
+"""
+
+# ╔═╡ 56893f7f-e59c-434d-b8cf-2dd553111707
+begin
+	N₁, N₂ = 10, 1000
+	Nₕ₁, Nₕ₂ = 8, 799
+end;
+
+# ╔═╡ 5a09f7ba-20df-4b28-a457-7e790efee888
+begin
+	function ℓ_two_coins(θ₁, θ₂; N₁=10, N₂=100, Nh₁=7, Nh₂=69, logLik=false)
+		logℓ = ℓ_binom(Nh₁, θ₁, N₁;  logprob=true) + ℓ_binom(Nh₂, θ₂, N₂; logprob=true)
+		logLik ? logℓ : exp(logℓ)
 	end
 
-	gif(anim, fps=5)
+	ℓ_twos = [ℓ_two_coins(θᵢ, θⱼ; N₁=N₁, N₂=N₂, Nh₁=Nₕ₁, Nh₂=Nₕ₂, logLik=true) for θᵢ in θ₁s, θⱼ in θ₂s]
+	p𝒟 = exp(logsumexp(ℓ_twos))
+	ps = exp.(ℓ_twos .- logsumexp(ℓ_twos))
+end;
+
+# ╔═╡ 32c06874-204d-4319-9879-8af6039d5cae
+md"""
+
+
+## Two resellers: Prior ``P(\theta_A, \theta_B)``
+
+
+A uniform prior 
+
+$$p(\theta_A, \theta_B) = \begin{cases} 1/101^2, & \theta_A,\theta_B \in \{0, 0.01, \ldots, 1.0\}^2 \\
+0, & \text{otherwise}; \end{cases}$$
+
+The prior distribution is shown below:
+
+$(begin
+gr()
+p1 = Plots.plot(θ₁s, θ₂s,  (x,y) -> 1/(length(θ₁s)^2), st=:surface, xlabel=L"\theta_A", ylabel=L"\theta_B", ratio=1, xlim=[0,1], ylim=[0,1], zlim =[-0.0005, maximum(ps)], colorbar=false, c=:plasma, alpha =0.5, zlabel="density", title="Prior")
+end)
+"""
+
+# ╔═╡ 5649bcda-2ab5-4bb7-b0dc-c132c5fb0a0d
+
+begin
+	plotly()
+	p2 = Plots.plot(θ₁s, θ₂s,  ps', st=:surface, xlabel= "θA", ylabel="θB", ratio=1, xlim=[0,1], ylim=[0,1], zlim =[-0.0005, maximum(ps)], colorbar=false, c=:jet, zlabel="", alpha=0.9, title="Posterior")
 end
 
-# ╔═╡ da4fb082-1f42-41ac-a0eb-55a087b4b4a5
+
+# ╔═╡ 9c49b056-7329-49af-838b-3e8b28826157
 md"""
-### Distributions
+The heatmap of the posterior density is also plotted for reference.
 
+$(begin
 
-Julia's [`Distributions.jl`](https://juliastats.org/Distributions.jl/stable/) implements a wide range of popular distributions, such as
-* `Normal(μ, σ)`, note that it is parameterised with standard deviation rather than variance
-* `Gamma(α, θ)`, [Gamma distribution](https://en.wikipedia.org/wiki/Gamma_distribution) parameterised with shape and scale 
-* `Beta(α, β)`, [Beta distribution](https://en.wikipedia.org/wiki/Beta_distribution)
-* `Uniform(a, b)`, [Uniform distribution](https://en.wikipedia.org/wiki/Continuous_uniform_distribution) between `a` and `b` where `b>a`;
+Plots.plot(θ₁s, θ₂s,  ps', st=:heatmap, xlabel=L"\theta_A", ylabel=L"\theta_B", ratio=1, xlim=[0,1], ylim=[0,1], zlim =[-0.003, maximum(ps)], colorbar=false, c=:plasma, zlabel="density", alpha=0.7, title="Posterior's density heapmap")
 
-Also popular discrete random variables:
-
-* `Poisson(λ)`: where `λ` is the rate or mean of the Poisson distribution
-* `Binomial(n, p)`: where `n` is the total number of experiments and `p` is individual experiment's bias
-* `Bernoulli(p)`: where `p` is the bias
-
-To see how to use a distribution, simply type `?distribution_name` in a cell. Or equivalently, use `@doc distribution_name`. For example, Gaussian distribution's document is listed below:
+end)
 """
 
-# ╔═╡ d0646d89-64a4-4eb3-8739-2cac268abcf3
-@doc Normal
-
-# ╔═╡ a5212ff7-0416-440d-8ad6-9b6e0ac35a8d
+# ╔═╡ 0cd24282-74a4-4261-aa33-019d3afac248
 md"""
-`Julia` provides standard interfaces to view and manipulate a distribution. To random sample from a distribution, one can use `rand(dist, n)`, where `n` is the number of draws required.
+
+## Lastly: answer the question
+
+The question boils down to a posterior probability:
+
+```math
+P(\theta_A > \theta_B|\mathcal{D}).
+```
+* *In light of the data, how likely coin ``A`` has a higher bias than coin ``B``?*, 
+* geometrically, calculate the probability below the shaded area
+
 
 """
 
-# ╔═╡ de16ea53-0391-41b5-950f-0c60654d0cd7
+# ╔═╡ 1cf90ba3-2f9a-4d58-bdd3-7b57e43fe307
+begin
+	gr()
+	post_p_amazon =Plots.plot(θ₁s, θ₂s,  ps', st=:contour, xlabel=L"\theta_A", ylabel=L"\theta_B", ratio=1, xlim=[0,1], ylim=[0,1], colorbar=false, c=:thermal, framestyle=:origin)
+	plot!((x) -> x, lw=1, lc=:gray, label="")
+	equalline = Shape([(0., 0.0), (1,1), (1, 0)])
+	plot!(equalline, fillcolor = plot_color(:gray, 0.2), label=L"\theta_A>\theta_B", legend=:bottomright)
+end
+
+# ╔═╡ 5a58f305-4af0-40ae-830a-a318576bf85d
+post_AmoreB = let
+	post_AmoreB = 0
+	for (i, θᵢ) in enumerate(θ₁s)
+		for (j, θⱼ) in enumerate(θ₂s)
+			if θᵢ > 1.0 * θⱼ
+				post_AmoreB += ps[i,j]
+			end
+		end
+	end
+	post_AmoreB
+end;
+
+# ╔═╡ fdfa9423-e09e-42b6-bce3-ebbc681f3c93
+md"For our problem,"
+
+# ╔═╡ bca20d87-e453-4106-a5cf-bd99d25021ab
+L"p(\theta_A > \theta_B|\mathcal{D}) \approx %$(round(post_AmoreB, digits=2))"
+
+# ╔═╡ da59ebaa-e366-4753-8329-27119be19d9a
+md"""
+* it is only about 42% chance that seller A is truely better than seller B
+* 58% chance seller B is better!
+"""
+
+# ╔═╡ 3caf8d96-7cdd-45f4-a54e-08b7a1bc2251
+md"""
+
+## Question
+
+> What's the chance that seller A's positive rate is twice better than seller B?
+
+"""
+
+# ╔═╡ 12f92e46-9581-4c04-be11-3f3f9b316f26
+md"""
+
+!!! hint "Answer"
+
+	You can even calculate 
+
+	```math
+	p(\theta_A > 2\cdot \theta_B|\mathcal{D}) = \sum_{\theta_A >2 \theta_B:\;\theta_A,\theta_B\in \{0.0, \ldots 1.0\}^2} p(\theta_A, \theta_B|\mathcal{D})
+	```
+	
+	* just a different shaded area!
+
+
+"""
+
+# ╔═╡ a30ed481-a09a-4d9c-a960-2ca3b4898e30
+@bind k Slider(0.1:0.05:3; default =1, show_value=true)
+
+# ╔═╡ f7456b7a-3d05-468a-a7ee-50a83affba72
+md"""
+
+## Frequentist method ?
+
+
+One may choose a test say χ²-test with testing hypothesis
+
+> ``\mathcal{H}_0:`` A and B have the same positive review rate
+>
+>  and 
+>
+> ``\mathcal{H}_1:``  A and B have different positive review rate
+
+* one then proceeds to compute the required statistic (with no obvious reasons why)
+
+* and the result might be reported like
+
+> the two sellers offer **significantly different** levels of service (``p=0.05``)
+
+
+How to interpret the statement?
+
+
+It **does not** tell you
+
+!!! danger ""
+	there is a 95% chance that the sellers differ in positive ratings
+
+
+but rather 
+
+
+!!! correct ""
+	if we did this experiment many times, and the two resellers had equal ratings, then 5% of the time you would find a value of χ2 more extreme than the one that calculated above.
+
+
+And the response or interpretation does not really directly answer the original question we are interested in, *i.e.*
+
+!!! warning ""
+	Is A better B?
+
+"""
+
+# ╔═╡ d6550d70-a1c1-48fd-b99d-c041b40efad2
+post_AmoreKB = let
+	post_AmoreKB = 0
+	for (i, θᵢ) in enumerate(θ₁s)
+		for (j, θⱼ) in enumerate(θ₂s)
+			if θᵢ > k*θⱼ
+				post_AmoreKB += ps[i,j]
+			end
+		end
+	end
+	post_AmoreKB
+end;
+
+# ╔═╡ d7a4bd52-8cf1-4495-bc14-2fe19fc9a037
 let
-	dist = Normal(0, 1)
-	gaussian_draws = rand(dist, 1000)
-	plot(gaussian_draws, st=:hist, nbins=30, normed=true, label=L"x\sim \mathcal{N}(0,1)")
-	plot!(dist, lw=2, fill=(0, 0.5), c=1, label=L"\mathcal{N}(0,1)")
+	gr()
+	post_p_amazon =Plots.plot(θ₁s, θ₂s,  ps', st=:contour, xlabel=L"\theta_A", ylabel=L"\theta_B", ratio=1, xlim=[0,1], ylim=[0,1], colorbar=false, c=:thermal, framestyle=:origin)
+	plot!((x) -> x, lw=1, lc=:gray, label="")
+	equalline = Shape([(0., 0.0), (1,1), (1, 0)])
+	plot!(equalline, fillcolor = plot_color(:gray, 0.2), label=L"\theta_A>\theta_B", legend=:bottomright)
+	kline = Shape([(0., 0.0), (1,1/k), (1, 0)])
+	plot!(post_p_amazon, kline, fillcolor = plot_color(:gray, 0.5), label=L"\theta_A>%$(k)\cdot \theta_B", legend=:bottomright, title =L"P(\theta_A > %$(k) \theta_B|\mathcal{D})\approx %$(round(post_AmoreKB, digits=2))")
 end
 
-# ╔═╡ fcdfed67-380d-4b11-8881-2575df2008b0
+# ╔═╡ 98672fd3-f85c-40e2-8f71-3a46b8632bf6
+# only works for uni-modal
+function find_hpdi(ps, α = 0.95)
+	cum_p, idx = findmax(ps)
+	l = idx - 1
+	u = idx + 1
+	while cum_p <= α
+		if l >= 1 
+			if u > length(ps) || ps[l] > ps[u]
+				cum_p += ps[l]
+				l = max(l - 1, 0) 
+				continue
+			end
+		end
+		
+		if u <= length(ps) 
+			if l == 0 || ps[l] < ps[u]
+				cum_p += ps[u]
+				u = min(u + 1, length(ps))
+			end
+		end
+	end
+	return l+1, u-1, cum_p
+end;
+
+# ╔═╡ e4af93c4-19f9-4d94-8ed2-729852ca9432
+begin
+	θs_refined = 0:0.01:1.0
+	likes = ℓ_binom.(N⁺, θs_refined, Nᴬ; logprob=false)
+	posterior_dis_refined = likes/ sum(likes)
+	post_plt3 = Plots.plot(θs_refined, posterior_dis_refined, seriestype=:sticks, markershape=:circle, markersize=2, label="", title=L"\mathrm{Posterior}\, \, p(\theta|\mathcal{D}) \mathrm{\; of\; seller\; A}", xlabel=L"θ", ylabel=L"p(θ|𝒟)")
+	l2, u2, _ = find_hpdi(posterior_dis_refined, 0.9)
+	Plots.plot!(post_plt3, θs_refined[l2:u2], posterior_dis_refined[l2:u2], seriestype=:sticks, markershape=:circle, markersize=2, label="", legend=:topleft)
+	Plots.plot!(post_plt3, θs_refined[l2:u2], posterior_dis_refined[l2:u2], seriestype=:path, fill=true, alpha=0.3, color=2, label="90% credible interval", legend=:topleft)
+	Plots.annotate!((0.7, maximum(posterior_dis_refined)/2, ("90 % HDI", 15, :red, :center, "courier")))
+
+end
+
+# ╔═╡ 80cb7bab-4eb0-4ec1-a067-9d661f2c4da3
 md"""
+## Report the posterior
 
-[`StatsPlots.jl`](https://github.com/JuliaPlots/StatsPlots.jl) provides handy methods to visualise a distribution. 
-* `plot(dist,func)`: plot the probability density function (or probability mass function) of a distribution
-* `scatter(dist, func)`: scatter plot of the density function
-* `bars(dist, func)`: bar plot of distribution
+The posterior distribution ``P(\theta|\mathcal{D})`` provides what we need to know
 
-where `func` can be 
-* `pdf`: probability density function (default choice)
-* `logpdf`: log probability density function, 
-* `cdf`: cumulative density function
+* the mode of the posterior is around 0.7
 
-Check the code below for an example. Note you can replace `Gamma` with any distribution of your choice.
+
+
+To summarise the uncertainty, we can report **highest probability density interval (HPDI)** 
+
+* Bayesian **credible interval** (c.f. confidence interval)
+
+* an interval that the encloses probability *e.g.* 90% of the posterior
+
+$$p(l \leq \theta \leq u|\mathcal D) = 90 \%.$$
+
+* however, the wide tail suggests it is not very certain; we only have observed 10 tosses after all
+  * the 90% region for ``\theta`` is ($(θs_refined[l2]), $(θs_refined[u2]))
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -784,17 +898,26 @@ Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 Latexify = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+LogExpFunctions = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+PlutoTeachingTools = "661c6b06-c737-4d37-b85c-46df65de6f69"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
 
 [compat]
-Distributions = "~0.25.67"
+Distributions = "~0.25.75"
 LaTeXStrings = "~1.3.0"
-Latexify = "~0.15.16"
-Plots = "~1.31.7"
-PlutoUI = "~0.7.39"
-StatsPlots = "~0.15.1"
+Latexify = "~0.15.17"
+LogExpFunctions = "~0.3.18"
+Plots = "~1.34.3"
+PlutoTeachingTools = "~0.2.3"
+PlutoUI = "~0.7.43"
+SpecialFunctions = "~2.1.7"
+StatsBase = "~0.33.21"
+StatsPlots = "~0.15.3"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -803,7 +926,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.5"
 manifest_format = "2.0"
-project_hash = "eecf0cae6fc8c0adb32e2f7d29a05c28aed97e5c"
+project_hash = "f5399ea34f31ff83d99042ef4679c64fbbe579a8"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
@@ -851,6 +974,11 @@ version = "1.0.1"
 [[deps.Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
+[[deps.BitFlags]]
+git-tree-sha1 = "84259bb6172806304b9101094a7cc4bc6f56dbc6"
+uuid = "d1d4a3ce-64b1-5f1a-9ba4-7e7e69966f35"
+version = "0.1.5"
+
 [[deps.Bzip2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "19a35467a82e236ff51bc17a3a44b69ef35185a2"
@@ -871,9 +999,9 @@ version = "0.5.1"
 
 [[deps.ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra", "SparseArrays"]
-git-tree-sha1 = "80ca332f6dcb2508adba68f22f551adb2d00a624"
+git-tree-sha1 = "e7ff6cadf743c098e08fca25c91103ee4303c9bb"
 uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-version = "1.15.3"
+version = "1.15.6"
 
 [[deps.ChangesOfVariables]]
 deps = ["ChainRulesCore", "LinearAlgebra", "Test"]
@@ -882,10 +1010,16 @@ uuid = "9e997f8a-9a97-42d5-a9f1-ce6bfc15e2c0"
 version = "0.1.4"
 
 [[deps.Clustering]]
-deps = ["Distances", "LinearAlgebra", "NearestNeighbors", "Printf", "SparseArrays", "Statistics", "StatsBase"]
-git-tree-sha1 = "75479b7df4167267d75294d14b58244695beb2ac"
+deps = ["Distances", "LinearAlgebra", "NearestNeighbors", "Printf", "Random", "SparseArrays", "Statistics", "StatsBase"]
+git-tree-sha1 = "64df3da1d2a26f4de23871cd1b6482bb68092bd5"
 uuid = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
-version = "0.14.2"
+version = "0.14.3"
+
+[[deps.CodeTracking]]
+deps = ["InteractiveUtils", "UUIDs"]
+git-tree-sha1 = "1833bda4a027f4b2a1c984baddcf755d77266818"
+uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
+version = "1.1.0"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -919,9 +1053,9 @@ version = "0.12.8"
 
 [[deps.Compat]]
 deps = ["Dates", "LinearAlgebra", "UUIDs"]
-git-tree-sha1 = "924cdca592bc16f14d2f7006754a621735280b74"
+git-tree-sha1 = "5856d3031cdb1f3b2b6340dfdc66b6d9a149a374"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "4.1.0"
+version = "4.2.0"
 
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -934,9 +1068,9 @@ uuid = "d38c429a-6771-53c6-b99e-75d170b6e991"
 version = "0.6.2"
 
 [[deps.DataAPI]]
-git-tree-sha1 = "fb5f5316dd3fd4c5e7c30a24d50643b73e37cd40"
+git-tree-sha1 = "1106fa7e1256b402a86a8e7b15c00c85036fef49"
 uuid = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
-version = "1.10.0"
+version = "1.11.0"
 
 [[deps.DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
@@ -981,9 +1115,9 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[deps.Distributions]]
 deps = ["ChainRulesCore", "DensityInterface", "FillArrays", "LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SparseArrays", "SpecialFunctions", "Statistics", "StatsBase", "StatsFuns", "Test"]
-git-tree-sha1 = "6180800cebb409d7eeef8b2a9a562107b9705be5"
+git-tree-sha1 = "0d7d213133d948c56e8c2d9f4eab0293491d8e4a"
 uuid = "31c24e10-a181-5473-b8eb-7969acd0382f"
-version = "0.25.67"
+version = "0.25.75"
 
 [[deps.DocStringExtensions]]
 deps = ["LibGit2"]
@@ -1002,22 +1136,11 @@ git-tree-sha1 = "5837a837389fccf076445fce071c8ddaea35a566"
 uuid = "fa6b7ba4-c1ee-5f82-b5fc-ecf0adba8f74"
 version = "0.6.8"
 
-[[deps.EarCut_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "3f3a2501fa7236e9b911e0f7a588c657e822bb6d"
-uuid = "5ae413db-bbd1-5e63-b57d-d24a61df00f5"
-version = "2.2.3+0"
-
 [[deps.Expat_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "bad72f730e9e91c08d9427d5e8db95478a3c323d"
 uuid = "2e619515-83b5-522b-bb60-26c02a35a201"
 version = "2.4.8+0"
-
-[[deps.Extents]]
-git-tree-sha1 = "5e1e4c53fa39afe63a7d356e30452249365fba99"
-uuid = "411431e0-e8b7-467b-b5e0-f676ba4f2910"
-version = "0.1.1"
 
 [[deps.FFMPEG]]
 deps = ["FFMPEG_jll"]
@@ -1048,9 +1171,9 @@ uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 
 [[deps.FillArrays]]
 deps = ["LinearAlgebra", "Random", "SparseArrays", "Statistics"]
-git-tree-sha1 = "246621d23d1f43e3b9c368bf3b72b2331a27c286"
+git-tree-sha1 = "87519eb762f85534445f5cda35be12e32759ee14"
 uuid = "1a297f60-69ca-5386-bcde-b61e274b549b"
-version = "0.13.2"
+version = "0.13.4"
 
 [[deps.FixedPointNumbers]]
 deps = ["Statistics"]
@@ -1089,28 +1212,16 @@ uuid = "0656b61e-2033-5cc2-a64a-77c0f6c09b89"
 version = "3.3.8+0"
 
 [[deps.GR]]
-deps = ["Base64", "DelimitedFiles", "GR_jll", "HTTP", "JSON", "Libdl", "LinearAlgebra", "Pkg", "Printf", "Random", "RelocatableFolders", "Serialization", "Sockets", "Test", "UUIDs"]
-git-tree-sha1 = "cf0a9940f250dc3cb6cc6c6821b4bf8a4286cf9c"
+deps = ["Base64", "DelimitedFiles", "GR_jll", "HTTP", "JSON", "Libdl", "LinearAlgebra", "Pkg", "Preferences", "Printf", "Random", "Serialization", "Sockets", "Test", "UUIDs"]
+git-tree-sha1 = "2c5ab2c1e683d991300b125b9b365cb0a0035d88"
 uuid = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"
-version = "0.66.2"
+version = "0.69.1"
 
 [[deps.GR_jll]]
 deps = ["Artifacts", "Bzip2_jll", "Cairo_jll", "FFMPEG_jll", "Fontconfig_jll", "GLFW_jll", "JLLWrappers", "JpegTurbo_jll", "Libdl", "Libtiff_jll", "Pixman_jll", "Pkg", "Qt5Base_jll", "Zlib_jll", "libpng_jll"]
-git-tree-sha1 = "2d908286d120c584abbe7621756c341707096ba4"
+git-tree-sha1 = "bc9f7725571ddb4ab2c4bc74fa397c1c5ad08943"
 uuid = "d2c73de3-f751-5644-a686-071e5b155ba9"
-version = "0.66.2+0"
-
-[[deps.GeoInterface]]
-deps = ["Extents"]
-git-tree-sha1 = "fb28b5dc239d0174d7297310ef7b84a11804dfab"
-uuid = "cf35fbd7-0cd7-5166-be24-54bfbe79505f"
-version = "1.0.1"
-
-[[deps.GeometryBasics]]
-deps = ["EarCut_jll", "GeoInterface", "IterTools", "LinearAlgebra", "StaticArrays", "StructArrays", "Tables"]
-git-tree-sha1 = "a7a97895780dab1085a97769316aa348830dc991"
-uuid = "5c1252a2-5f33-56bf-86c9-59e7332b4326"
-version = "0.4.3"
+version = "0.69.1+0"
 
 [[deps.Gettext_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Libiconv_jll", "Pkg", "XML2_jll"]
@@ -1136,10 +1247,10 @@ uuid = "42e2da0e-8278-4e71-bc24-59509adca0fe"
 version = "1.0.2"
 
 [[deps.HTTP]]
-deps = ["Base64", "CodecZlib", "Dates", "IniFile", "Logging", "LoggingExtras", "MbedTLS", "NetworkOptions", "Random", "SimpleBufferStream", "Sockets", "URIs", "UUIDs"]
-git-tree-sha1 = "f0956f8d42a92816d2bf062f8a6a6a0ad7f9b937"
+deps = ["Base64", "CodecZlib", "Dates", "IniFile", "Logging", "LoggingExtras", "MbedTLS", "NetworkOptions", "OpenSSL", "Random", "SimpleBufferStream", "Sockets", "URIs", "UUIDs"]
+git-tree-sha1 = "4abede886fcba15cd5fd041fef776b230d004cee"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "1.2.1"
+version = "1.4.0"
 
 [[deps.HarfBuzz_jll]]
 deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "Graphite2_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Pkg"]
@@ -1188,9 +1299,9 @@ uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
 [[deps.Interpolations]]
 deps = ["Adapt", "AxisAlgorithms", "ChainRulesCore", "LinearAlgebra", "OffsetArrays", "Random", "Ratios", "Requires", "SharedArrays", "SparseArrays", "StaticArrays", "WoodburyMatrices"]
-git-tree-sha1 = "64f138f9453a018c8f3562e7bae54edc059af249"
+git-tree-sha1 = "f67b55b6447d36733596aea445a9f119e83498b6"
 uuid = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
-version = "0.14.4"
+version = "0.14.5"
 
 [[deps.InverseFunctions]]
 deps = ["Test"]
@@ -1203,15 +1314,16 @@ git-tree-sha1 = "7fd44fd4ff43fc60815f8e764c0f352b83c49151"
 uuid = "92d709cd-6900-40b7-9082-c6be49f344b6"
 version = "0.1.1"
 
-[[deps.IterTools]]
-git-tree-sha1 = "fa6287a4469f5e048d763df38279ee729fbd44e5"
-uuid = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
-version = "1.4.0"
-
 [[deps.IteratorInterfaceExtensions]]
 git-tree-sha1 = "a3f24677c21f5bbe9d2a714f95dcd58337fb2856"
 uuid = "82899510-4779-5014-852e-03e436cf321d"
 version = "1.0.0"
+
+[[deps.JLFzf]]
+deps = ["Pipe", "REPL", "Random", "fzf_jll"]
+git-tree-sha1 = "f377670cda23b6b7c1c0b3893e37451c5c1a2185"
+uuid = "1019f520-868f-41f5-a6de-eb00f4b6a39c"
+version = "0.1.5"
 
 [[deps.JLLWrappers]]
 deps = ["Preferences"]
@@ -1230,6 +1342,12 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "b53380851c6e6664204efb2e62cd24fa5c47e4ba"
 uuid = "aacddb02-875f-59d6-b918-886e6ef4fbf8"
 version = "2.1.2+0"
+
+[[deps.JuliaInterpreter]]
+deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
+git-tree-sha1 = "0f960b1404abb0b244c1ece579a0ec78d056a5d1"
+uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
+version = "0.9.15"
 
 [[deps.KernelDensity]]
 deps = ["Distributions", "DocStringExtensions", "FFTW", "Interpolations", "StatsBase"]
@@ -1261,10 +1379,10 @@ uuid = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 version = "1.3.0"
 
 [[deps.Latexify]]
-deps = ["Formatting", "InteractiveUtils", "LaTeXStrings", "MacroTools", "Markdown", "Printf", "Requires"]
-git-tree-sha1 = "1a43be956d433b5d0321197150c2f94e16c0aaa0"
+deps = ["Formatting", "InteractiveUtils", "LaTeXStrings", "MacroTools", "Markdown", "OrderedCollections", "Printf", "Requires"]
+git-tree-sha1 = "ab9aa169d2160129beb241cb2750ca499b4e90e9"
 uuid = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
-version = "0.15.16"
+version = "0.15.17"
 
 [[deps.LazyArtifacts]]
 deps = ["Artifacts", "Pkg"]
@@ -1346,9 +1464,9 @@ uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [[deps.LogExpFunctions]]
 deps = ["ChainRulesCore", "ChangesOfVariables", "DocStringExtensions", "InverseFunctions", "IrrationalConstants", "LinearAlgebra"]
-git-tree-sha1 = "361c2b088575b07946508f135ac556751240091c"
+git-tree-sha1 = "94d9c52ca447e23eac0c0f074effbcd38830deb5"
 uuid = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
-version = "0.3.17"
+version = "0.3.18"
 
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
@@ -1359,11 +1477,17 @@ git-tree-sha1 = "5d4d2d9904227b8bd66386c1138cf4d5ffa826bf"
 uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
 version = "0.4.9"
 
+[[deps.LoweredCodeUtils]]
+deps = ["JuliaInterpreter"]
+git-tree-sha1 = "dedbebe234e06e1ddad435f5c6f4b85cd8ce55f7"
+uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
+version = "2.2.2"
+
 [[deps.MKL_jll]]
 deps = ["Artifacts", "IntelOpenMP_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "Pkg"]
-git-tree-sha1 = "e595b205efd49508358f7dc670a940c790204629"
+git-tree-sha1 = "41d162ae9c868218b1f3fe78cba878aa348c2d26"
 uuid = "856f044c-d86e-5d09-b602-aeab76dc8ba7"
-version = "2022.0.0+0"
+version = "2022.1.0+0"
 
 [[deps.MacroTools]]
 deps = ["Markdown", "Random"]
@@ -1377,9 +1501,9 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
 [[deps.MbedTLS]]
 deps = ["Dates", "MbedTLS_jll", "MozillaCACerts_jll", "Random", "Sockets"]
-git-tree-sha1 = "d9ab10da9de748859a7780338e1d6566993d1f25"
+git-tree-sha1 = "6872f9594ff273da6d13c7c1a1545d5a8c7d0c1c"
 uuid = "739be429-bea8-5141-9913-cc70e7f3736d"
-version = "1.1.3"
+version = "1.1.6"
 
 [[deps.MbedTLS_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -1405,10 +1529,10 @@ uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
 version = "2022.2.1"
 
 [[deps.MultivariateStats]]
-deps = ["Arpack", "LinearAlgebra", "SparseArrays", "Statistics", "StatsBase"]
-git-tree-sha1 = "6d019f5a0465522bbfdd68ecfad7f86b535d6935"
+deps = ["Arpack", "LinearAlgebra", "SparseArrays", "Statistics", "StatsAPI", "StatsBase"]
+git-tree-sha1 = "efe9c8ecab7a6311d4b91568bd6c88897822fabe"
 uuid = "6f286f6a-111f-5878-ab1e-185364afe411"
-version = "0.9.0"
+version = "0.10.0"
 
 [[deps.NaNMath]]
 deps = ["OpenLibm_jll"]
@@ -1453,6 +1577,12 @@ deps = ["Artifacts", "Libdl"]
 uuid = "05823500-19ac-5b8b-9628-191a04bc5112"
 version = "0.8.1+0"
 
+[[deps.OpenSSL]]
+deps = ["BitFlags", "Dates", "MozillaCACerts_jll", "OpenSSL_jll", "Sockets"]
+git-tree-sha1 = "f561403726db82fe98c0963a382b1b839e9287b1"
+uuid = "4d8831e6-92b7-49fb-bdf8-b643e874388c"
+version = "1.1.2"
+
 [[deps.OpenSSL_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "e60321e3f2616584ff98f0a4f18d98ae6f89bbb3"
@@ -1495,9 +1625,14 @@ version = "0.11.16"
 
 [[deps.Parsers]]
 deps = ["Dates"]
-git-tree-sha1 = "0044b23da09b5608b4ecacb4e5e6c6332f833a7e"
+git-tree-sha1 = "3d5bf43e3e8b412656404ed9466f1dcbf7c50269"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
-version = "2.3.2"
+version = "2.4.0"
+
+[[deps.Pipe]]
+git-tree-sha1 = "6842804e7867b115ca9de748a0cf6b364523c16d"
+uuid = "b98c9c47-44ae-5843-9183-064241ee97a0"
+version = "1.3.0"
 
 [[deps.Pixman_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -1517,22 +1652,40 @@ uuid = "ccf2f8ad-2431-5c83-bf29-c5338b663b6a"
 version = "3.0.0"
 
 [[deps.PlotUtils]]
-deps = ["ColorSchemes", "Colors", "Dates", "Printf", "Random", "Reexport", "Statistics"]
-git-tree-sha1 = "9888e59493658e476d3073f1ce24348bdc086660"
+deps = ["ColorSchemes", "Colors", "Dates", "Printf", "Random", "Reexport", "SnoopPrecompile", "Statistics"]
+git-tree-sha1 = "21303256d239f6b484977314674aef4bb1fe4420"
 uuid = "995b91a9-d308-5afd-9ec6-746e21dbc043"
-version = "1.3.0"
+version = "1.3.1"
 
 [[deps.Plots]]
-deps = ["Base64", "Contour", "Dates", "Downloads", "FFMPEG", "FixedPointNumbers", "GR", "GeometryBasics", "JSON", "LaTeXStrings", "Latexify", "LinearAlgebra", "Measures", "NaNMath", "Pkg", "PlotThemes", "PlotUtils", "Printf", "REPL", "Random", "RecipesBase", "RecipesPipeline", "Reexport", "Requires", "Scratch", "Showoff", "SparseArrays", "Statistics", "StatsBase", "UUIDs", "UnicodeFun", "Unzip"]
-git-tree-sha1 = "a19652399f43938413340b2068e11e55caa46b65"
+deps = ["Base64", "Contour", "Dates", "Downloads", "FFMPEG", "FixedPointNumbers", "GR", "JLFzf", "JSON", "LaTeXStrings", "Latexify", "LinearAlgebra", "Measures", "NaNMath", "Pkg", "PlotThemes", "PlotUtils", "Printf", "REPL", "Random", "RecipesBase", "RecipesPipeline", "Reexport", "RelocatableFolders", "Requires", "Scratch", "Showoff", "SnoopPrecompile", "SparseArrays", "Statistics", "StatsBase", "UUIDs", "UnicodeFun", "Unzip"]
+git-tree-sha1 = "fae3b66e343703f8f89b854a4da40bce0f84da22"
 uuid = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
-version = "1.31.7"
+version = "1.34.3"
+
+[[deps.PlutoHooks]]
+deps = ["InteractiveUtils", "Markdown", "UUIDs"]
+git-tree-sha1 = "072cdf20c9b0507fdd977d7d246d90030609674b"
+uuid = "0ff47ea0-7a50-410d-8455-4348d5de0774"
+version = "0.0.5"
+
+[[deps.PlutoLinks]]
+deps = ["FileWatching", "InteractiveUtils", "Markdown", "PlutoHooks", "Revise", "UUIDs"]
+git-tree-sha1 = "0e8bcc235ec8367a8e9648d48325ff00e4b0a545"
+uuid = "0ff47ea0-7a50-410d-8455-4348d5de0420"
+version = "0.1.5"
+
+[[deps.PlutoTeachingTools]]
+deps = ["Downloads", "HypertextLiteral", "LaTeXStrings", "Latexify", "Markdown", "PlutoLinks", "PlutoUI", "Random"]
+git-tree-sha1 = "d8be3432505c2febcea02f44e5f4396fae017503"
+uuid = "661c6b06-c737-4d37-b85c-46df65de6f69"
+version = "0.2.3"
 
 [[deps.PlutoUI]]
 deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "Markdown", "Random", "Reexport", "UUIDs"]
-git-tree-sha1 = "8d1f54886b9037091edf146b517989fc4a09efec"
+git-tree-sha1 = "2777a5c2c91b3145f5aa75b61bb4c2eb38797136"
 uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
-version = "0.7.39"
+version = "0.7.43"
 
 [[deps.Preferences]]
 deps = ["TOML"]
@@ -1552,9 +1705,9 @@ version = "5.15.3+2"
 
 [[deps.QuadGK]]
 deps = ["DataStructures", "LinearAlgebra"]
-git-tree-sha1 = "78aadffb3efd2155af139781b8a8df1ef279ea39"
+git-tree-sha1 = "3c009334f45dfd546a16a57960a821a1a023d241"
 uuid = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
-version = "2.4.2"
+version = "2.5.0"
 
 [[deps.REPL]]
 deps = ["InteractiveUtils", "Markdown", "Sockets", "Unicode"]
@@ -1571,9 +1724,10 @@ uuid = "c84ed2f1-dad5-54f0-aa8e-dbefe2724439"
 version = "0.4.3"
 
 [[deps.RecipesBase]]
-git-tree-sha1 = "6bf3f380ff52ce0832ddd3a2a7b9538ed1bcca7d"
+deps = ["SnoopPrecompile"]
+git-tree-sha1 = "612a4d76ad98e9722c8ba387614539155a59e30c"
 uuid = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
-version = "1.2.1"
+version = "1.3.0"
 
 [[deps.RecipesPipeline]]
 deps = ["Dates", "NaNMath", "PlotUtils", "RecipesBase"]
@@ -1588,15 +1742,21 @@ version = "1.2.2"
 
 [[deps.RelocatableFolders]]
 deps = ["SHA", "Scratch"]
-git-tree-sha1 = "22c5201127d7b243b9ee1de3b43c408879dff60f"
+git-tree-sha1 = "90bc7a7c96410424509e4263e277e43250c05691"
 uuid = "05181044-ff0b-4ac5-8273-598c1e38db00"
-version = "0.3.0"
+version = "1.0.0"
 
 [[deps.Requires]]
 deps = ["UUIDs"]
 git-tree-sha1 = "838a3a4188e2ded87a4f9f184b4b0d78a1e91cb7"
 uuid = "ae029012-a4dd-5104-9daa-d747884805df"
 version = "1.3.0"
+
+[[deps.Revise]]
+deps = ["CodeTracking", "Distributed", "FileWatching", "JuliaInterpreter", "LibGit2", "LoweredCodeUtils", "OrderedCollections", "Pkg", "REPL", "Requires", "UUIDs", "Unicode"]
+git-tree-sha1 = "dad726963ecea2d8a81e26286f625aee09a91b7c"
+uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
+version = "3.4.0"
 
 [[deps.Rmath]]
 deps = ["Random", "Rmath_jll"]
@@ -1622,9 +1782,9 @@ version = "1.1.1"
 
 [[deps.SentinelArrays]]
 deps = ["Dates", "Random"]
-git-tree-sha1 = "db8481cf5d6278a121184809e9eb1628943c7704"
+git-tree-sha1 = "c0f56940fc967f3d5efed58ba829747af5f8b586"
 uuid = "91c51154-3ec4-41a3-a24f-3f23e20d615c"
-version = "1.3.13"
+version = "1.3.15"
 
 [[deps.Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
@@ -1643,6 +1803,11 @@ version = "1.0.3"
 git-tree-sha1 = "874e8867b33a00e784c8a7e4b60afe9e037b74e1"
 uuid = "777ac1f9-54b0-4bf8-805c-2214025038e7"
 version = "1.1.0"
+
+[[deps.SnoopPrecompile]]
+git-tree-sha1 = "f604441450a3c0569830946e5b33b78c928e1a85"
+uuid = "66db9d55-30c0-4569-8b51-7e840670fc0c"
+version = "1.0.1"
 
 [[deps.Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
@@ -1665,14 +1830,14 @@ version = "2.1.7"
 
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "Random", "StaticArraysCore", "Statistics"]
-git-tree-sha1 = "85bc4b051546db130aeb1e8a696f1da6d4497200"
+git-tree-sha1 = "2189eb2c1f25cb3f43e5807f26aa864052e50c17"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "1.5.5"
+version = "1.5.8"
 
 [[deps.StaticArraysCore]]
-git-tree-sha1 = "5b413a57dd3cea38497d745ce088ac8592fbb5be"
+git-tree-sha1 = "6b7ba252635a5eff6a0b0664a41ee140a1c9e72a"
 uuid = "1e83bf80-4336-4d27-bf5d-d5a4f845583c"
-version = "1.1.0"
+version = "1.4.0"
 
 [[deps.Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
@@ -1697,16 +1862,10 @@ uuid = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
 version = "1.0.1"
 
 [[deps.StatsPlots]]
-deps = ["AbstractFFTs", "Clustering", "DataStructures", "DataValues", "Distributions", "Interpolations", "KernelDensity", "LinearAlgebra", "MultivariateStats", "Observables", "Plots", "RecipesBase", "RecipesPipeline", "Reexport", "StatsBase", "TableOperations", "Tables", "Widgets"]
-git-tree-sha1 = "2b35ba790f1f823872dcf378a6d3c3b520092eac"
+deps = ["AbstractFFTs", "Clustering", "DataStructures", "DataValues", "Distributions", "Interpolations", "KernelDensity", "LinearAlgebra", "MultivariateStats", "NaNMath", "Observables", "Plots", "RecipesBase", "RecipesPipeline", "Reexport", "StatsBase", "TableOperations", "Tables", "Widgets"]
+git-tree-sha1 = "3e59e005c5caeb1a57a90b17f582cbfc2c8da8f7"
 uuid = "f3b207a7-027a-5e70-b257-86293d7955fd"
-version = "0.15.1"
-
-[[deps.StructArrays]]
-deps = ["Adapt", "DataAPI", "StaticArraysCore", "Tables"]
-git-tree-sha1 = "8c6ac65ec9ab781af05b08ff305ddc727c25f680"
-uuid = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
-version = "0.6.12"
+version = "0.15.3"
 
 [[deps.SuiteSparse]]
 deps = ["Libdl", "LinearAlgebra", "Serialization", "SparseArrays"]
@@ -1731,9 +1890,9 @@ version = "1.0.1"
 
 [[deps.Tables]]
 deps = ["DataAPI", "DataValueInterfaces", "IteratorInterfaceExtensions", "LinearAlgebra", "OrderedCollections", "TableTraits", "Test"]
-git-tree-sha1 = "5ce79ce186cc678bbb5c5681ca3379d1ddae11a1"
+git-tree-sha1 = "2d7164f7b8a066bcfa6224e67736ce0eb54aef5b"
 uuid = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
-version = "1.7.0"
+version = "1.9.0"
 
 [[deps.Tar]]
 deps = ["ArgTools", "SHA"]
@@ -1752,9 +1911,9 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[deps.TranscodingStreams]]
 deps = ["Random", "Test"]
-git-tree-sha1 = "4ad90ab2bbfdddcae329cba59dab4a8cdfac3832"
+git-tree-sha1 = "8a75929dcd3c38611db2f8d08546decb514fcadf"
 uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
-version = "0.9.7"
+version = "0.9.9"
 
 [[deps.Tricks]]
 git-tree-sha1 = "6bac775f2d42a611cdfcd1fb217ee719630c4175"
@@ -1780,9 +1939,9 @@ uuid = "1cfade01-22cf-5700-b092-accc4b62d6e1"
 version = "0.4.1"
 
 [[deps.Unzip]]
-git-tree-sha1 = "34db80951901073501137bdbc3d5a8e7bbd06670"
+git-tree-sha1 = "ca0969166a028236229f63514992fc073799bb78"
 uuid = "41fe7b60-77ed-43a1-b4f0-825fd5a5650d"
-version = "0.1.2"
+version = "0.2.0"
 
 [[deps.Wayland_jll]]
 deps = ["Artifacts", "Expat_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Pkg", "XML2_jll"]
@@ -1957,6 +2116,12 @@ git-tree-sha1 = "e45044cd873ded54b6a5bac0eb5c971392cf1927"
 uuid = "3161d3a3-bdf6-5164-811a-617609db77b4"
 version = "1.5.2+0"
 
+[[deps.fzf_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "868e669ccb12ba16eaf50cb2957ee2ff61261c56"
+uuid = "214eeab7-80f7-51ab-84ad-2988db7cef09"
+version = "0.29.0+0"
+
 [[deps.libaom_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "3a2ea60308f0996d26f1e5354e10c24e9ef905d4"
@@ -2022,111 +2187,73 @@ version = "1.4.1+0"
 """
 
 # ╔═╡ Cell order:
-# ╟─f3770e42-edff-4c9f-9a13-47edaf8a8cae
-# ╟─fe7f2df3-8c27-4e80-a633-386e8643e6e1
-# ╟─baf83ba6-2079-11ed-1505-cb44aea4377e
-# ╟─c85214aa-83b1-41f0-b856-f85435db6e1d
-# ╟─e6c8aca8-1907-49b0-ba11-62fda98418fc
-# ╟─a5654402-f51d-468e-99fb-09a5c69a6421
-# ╟─b145ea5b-9fc0-4a57-b41b-ad8c825eaccc
-# ╟─de6fc3a6-78dc-489a-8ac3-3642e0760d6a
-# ╟─a3a93c83-94c8-44e7-a62f-46cae602ac77
-# ╟─1635054e-3e02-4f3b-8726-bef468c11a82
-# ╟─2b52dcf7-f8aa-49ea-a8e5-df4d819fc970
-# ╟─3adfcebb-e620-4c41-b9a7-3584fbfd61c1
-# ╟─0f9ce7d3-ccf3-40f6-9573-ec40dc643749
-# ╠═bcf4086f-1469-49d4-a3f5-730a30771da4
-# ╟─6be2784a-cf0c-4d75-9858-b063880c4e98
-# ╟─3520ad46-7ac5-47bf-9389-62a46f6a26f8
-# ╟─65ae3b8f-a33a-49ba-b135-ab20674ec67a
-# ╠═c3fe7693-8425-4f6b-8529-c9b242073334
-# ╟─045474d2-18f1-45b1-8c5d-9a82980e96bd
-# ╠═287d41f1-9ade-4a73-b8ea-1e11aaf62fbe
-# ╟─d51ba0c0-9ca1-47aa-8364-080abc8175c3
-# ╠═ae200380-7c83-4fa6-9661-9cf1999732e3
-# ╟─b3919bcb-c2e7-442b-a06c-93d172878f9c
-# ╠═ed8457c7-9547-4953-ae72-121572fe8495
-# ╟─49a993c4-27c9-4c89-b4c4-04c294f044c0
-# ╟─a091f1d5-29c0-4a98-b1b8-4177cd6cd2f7
-# ╟─a6c186ae-9d7a-452e-bfb2-b303c0cfea5a
-# ╠═cbd40c3a-cf65-4d1c-833a-29a1e39dc893
-# ╟─a08b431d-86b4-4f03-b0aa-eadba6284e95
-# ╠═82b73754-f164-4bc0-82d9-fd0311a59919
-# ╠═a12d7a2e-5a4e-46db-b802-1af1331456dd
-# ╟─911bf98c-130c-4e20-a353-bc290c865a27
-# ╠═5c15f435-8ea6-446e-a27d-3270b463f681
-# ╟─b8d452b1-b75b-4012-872a-3baced9c1cb6
-# ╠═054d075f-4e1c-42b2-955e-70ac1e36144b
-# ╟─2d934969-c540-4e88-b137-d22e836e7daa
-# ╠═d8764bd8-7d7d-4910-80ee-2187ad31f336
-# ╟─d78b7c17-1f6d-424c-aeed-e35a9d3db49e
-# ╠═d349aa84-4b2a-42c9-98a4-5849ece5e6ae
-# ╟─6950f0da-d61a-465b-aaaf-8a802f50452a
-# ╟─c68f7d30-3061-40db-8af3-369149cd5ff9
-# ╠═84710a37-34c3-4c20-bd5c-b293d23bc7cf
-# ╠═45037f4e-5744-4de7-885d-f0a678b72ec1
-# ╟─b3d46870-ef00-4fec-a5f2-2f3b6b11687c
-# ╠═52a6e45f-b458-463a-95b8-0f8a184ce171
-# ╠═b078d4c9-7638-43a4-bd77-57a40b1511ef
-# ╠═2b305ef2-551e-4327-ad56-2bd3a12f51fc
-# ╟─84713022-8e34-4e57-aa2f-cf9d6cf61cad
-# ╟─36824286-375a-48db-af65-b6dcaf6497b8
-# ╟─46be754e-ec2f-4e0d-aef3-865492d2dd0c
-# ╟─1af4b04a-a7a1-4808-9cf0-038c95037fa5
-# ╟─7d897f13-7358-446f-b87a-60ad945769ea
-# ╠═7cd155b2-f76e-4152-9d79-ac9ea8c32b16
-# ╟─d0b5cc5a-f0cf-44e8-9e2a-e28b94d4429f
-# ╠═04065f11-4748-4cf0-abf4-01484454da0b
-# ╟─aed0ed19-0183-4eb8-83c9-3d2419d299b8
-# ╟─02938204-99d2-4209-abcf-cbcfd62f9c04
-# ╠═8548c4cb-9e9b-4ca7-bd4e-97e16058606d
-# ╟─c2ee8d41-eec8-43ad-b4c0-2f859ad03b93
-# ╠═c195aa69-89f6-4417-b602-67922a76b87a
-# ╟─4a51bb66-f4d4-4a7d-8e07-91d3ff5f4f28
-# ╟─17b5759c-deab-4bc0-b7b6-fc2c0e64eebb
-# ╠═c52294ca-49fb-43f7-87bb-860c8088506d
-# ╟─fcd72da9-e175-4fd1-a047-7dd3711dcbf4
-# ╠═6df9180f-59bf-4462-ae9d-a2623379071a
-# ╟─a1aa6ab4-f183-4adc-9ad8-70d80deaa15f
-# ╠═dfa4201c-19da-4ca9-b537-8396c2899d42
-# ╟─dbc643ae-d68c-416f-b1b9-dc8a0025dfe0
-# ╠═e1de498d-d66f-42c8-bb22-e80d623c4554
-# ╟─6c4ede4f-a566-4dfc-bfdf-f4feadac84aa
-# ╠═14fc0ff8-2284-412f-99af-6264d24d6198
-# ╠═4958c15f-5725-4645-a71d-e8a26a94a894
-# ╟─a5c62a3c-2a59-4388-adb5-b0d93be2360d
-# ╟─5f31fe56-ff6c-4cae-b835-15e100771a82
-# ╠═a1b6c516-0d3a-4add-990c-9ea755d6c7b6
-# ╟─9fbbb50d-ebb8-4e13-b28c-fbde63926cae
-# ╟─3f9138da-c21a-458f-8eaa-a10079a2ee35
-# ╠═d0d5068b-f58d-4835-81eb-7cdc3273961e
-# ╠═bcaf0dba-c26c-41f2-b5ad-34fb81b4e34d
-# ╟─a748b9e1-dd0c-4899-bf04-42a831e95434
-# ╠═22aa7b65-94f7-4cd7-a3f6-49d70c88e8e1
-# ╟─3cfdb5c7-5ca3-4f86-ac9f-b3456b03303b
-# ╠═60c7ec9a-a6e4-43a5-921a-b6ba3ba511d0
-# ╟─8e0c8524-3142-498b-bac1-60f591ede438
-# ╟─42d47b65-5b68-4f81-af5f-17a1df35c1cb
-# ╟─0ff926f9-a294-4846-b7ab-d02203a73a13
-# ╠═482b83c6-fe77-41ea-bc4a-4a9b76bf30ac
-# ╟─77ec658a-0fe5-4fc4-81ac-70336e46096b
-# ╠═528d9adb-1888-4f31-91eb-450879053bf6
-# ╟─49c595cf-4a6f-43fe-9c0e-365effd70f96
-# ╠═58a419b4-4017-474f-a3e9-cc58d2aaa29a
-# ╟─f38cf720-5346-4590-b466-c42c86fe1555
-# ╠═b6637bc1-a63c-44cc-bf57-ae2c7252e176
-# ╟─9d25c7c8-252c-4998-9d7c-f93be58ec671
-# ╠═8416fec3-5460-441a-b415-40d04075ccf3
-# ╟─0eb81388-75c6-40c6-ad2e-04baf59a7d71
-# ╟─56961f01-40b2-4a18-90a2-a0ebeeebd16c
-# ╠═e65a6edb-12ab-44c4-a1ff-94a457583c49
-# ╟─c8ab39c8-a3e0-4ef5-8a47-365b5c484042
-# ╠═9f420af3-f080-411d-bc14-e2e45572ac77
-# ╟─da4fb082-1f42-41ac-a0eb-55a087b4b4a5
-# ╠═d0646d89-64a4-4eb3-8739-2cac268abcf3
-# ╟─a5212ff7-0416-440d-8ad6-9b6e0ac35a8d
-# ╠═de16ea53-0391-41b5-950f-0c60654d0cd7
-# ╟─fcdfed67-380d-4b11-8881-2575df2008b0
-# ╠═0ee0e688-9bc7-489b-a4ae-a4f09477fd33
+# ╟─c9cfb450-3e8b-11ed-39c2-cd1b7df7ca01
+# ╟─77535564-648a-4e17-83a0-c562cc5318ec
+# ╟─2057c799-18b5-4a0f-b2c7-66537a3fbe79
+# ╟─43cedf4c-65c4-4b2b-afb3-21f5827f2af6
+# ╟─351694f5-1b83-426f-a190-c87c69152ef0
+# ╟─66926dbf-964d-4048-b8ad-459f36236c14
+# ╟─1b4c860a-7245-4793-8acf-a1f01700b499
+# ╟─3319498b-db49-4516-b699-b99da093c9cb
+# ╟─0f8b4a5b-94b8-4f2b-975d-3579eb9c62b1
+# ╟─1f524d92-e589-48f9-b3cc-bcef0bae4bca
+# ╟─ce1d28e1-3c77-461e-822a-6e5783bf2744
+# ╟─dafe8d1f-6c99-46a4-a2d1-2e34e12ba4a7
+# ╟─1bc6b970-f1fa-48c9-b17e-cef4d01aa47a
+# ╟─15571edc-32d7-4ac5-9c53-d49f595f84b1
+# ╟─19892f66-98e1-405e-abae-ffda46a546b1
+# ╟─1d835b12-f1d7-4ce4-a62e-2cfa7a7b3a21
+# ╟─5cbd933e-db0e-49fb-b9d0-267dc93efdb7
+# ╟─f06264f4-f020-48f6-9ff3-cac308518eac
+# ╠═9308405d-36d0-41a1-8c73-e93b8d699320
+# ╟─be0fe9aa-32e6-4c18-8bad-2213e05bca1c
+# ╟─0da00057-6bf1-407d-a15f-af24ee549182
+# ╟─f593d1c9-7382-4d5c-9c99-5709123af43d
+# ╟─31c064a3-e074-409a-9431-48a573a83884
+# ╟─80cb7bab-4eb0-4ec1-a067-9d661f2c4da3
+# ╟─e4af93c4-19f9-4d94-8ed2-729852ca9432
+# ╟─8f9d1066-91d5-43af-9834-b3dc2dbc6400
+# ╟─70c00cf9-65ac-44d7-b25c-153614d24240
+# ╟─947a0e0f-b620-4e0e-97bd-74749ed87042
+# ╟─1e267303-160d-43b9-866f-2d7afc2c4c3f
+# ╟─4bae9df7-36a2-4e8a-bdd8-5fdec68cddba
+# ╟─2338bade-9fb2-4a75-a39c-3e056f2d00d5
+# ╟─b3bcf03b-f4f8-4ddb-ab59-fa5f780ed563
+# ╟─5462f241-e284-45b8-8e61-3c0317f6b08b
+# ╟─ff01e390-a72d-41b0-9a7c-1d63060491f9
+# ╟─6d136ab7-c7ea-43a7-a16d-0af53b123b59
+# ╟─c1edf5ff-f25f-4a71-95fb-53515aae9d97
+# ╟─a152a7bd-062d-4fd9-be38-c217fdaca20f
+# ╟─6131ad55-eee7-44ec-b965-ce17ef3f8f84
+# ╟─a2642e09-3202-4c73-914a-bdd6c0b374c2
+# ╟─89f0aa81-1da3-41a0-8d72-72637d8052aa
+# ╟─4f6232be-dbd1-4e1a-a28c-5fc60964bb9f
+# ╟─d76d0594-5a53-4641-818e-496ce3a52c6b
+# ╟─5a09f7ba-20df-4b28-a457-7e790efee888
+# ╟─fde1b917-9d81-4a29-b553-caad3c736682
+# ╟─b4709e13-24ad-4c7e-bd9f-e7113b5089f5
+# ╟─278bb5cb-6734-499c-b954-0590f559af1f
+# ╟─32c06874-204d-4319-9879-8af6039d5cae
+# ╟─92e2e50b-bbce-4b4d-aad4-02e4f374b286
+# ╟─316db89e-0b73-4993-a778-5d3ff890e807
+# ╟─2c6b9d29-1ab8-4b59-a867-1aecf27dc679
+# ╟─cb09680f-ae53-45b1-aa61-e73f81a4bcce
+# ╟─022c5b56-e683-4f66-aba9-8b2e89f11e24
+# ╟─5649bcda-2ab5-4bb7-b0dc-c132c5fb0a0d
+# ╟─9c49b056-7329-49af-838b-3e8b28826157
+# ╠═56893f7f-e59c-434d-b8cf-2dd553111707
+# ╟─0cd24282-74a4-4261-aa33-019d3afac248
+# ╟─1cf90ba3-2f9a-4d58-bdd3-7b57e43fe307
+# ╟─5a58f305-4af0-40ae-830a-a318576bf85d
+# ╟─fdfa9423-e09e-42b6-bce3-ebbc681f3c93
+# ╟─bca20d87-e453-4106-a5cf-bd99d25021ab
+# ╟─da59ebaa-e366-4753-8329-27119be19d9a
+# ╟─3caf8d96-7cdd-45f4-a54e-08b7a1bc2251
+# ╟─12f92e46-9581-4c04-be11-3f3f9b316f26
+# ╟─a30ed481-a09a-4d9c-a960-2ca3b4898e30
+# ╟─d7a4bd52-8cf1-4495-bc14-2fe19fc9a037
+# ╟─d6550d70-a1c1-48fd-b99d-c041b40efad2
+# ╟─98672fd3-f85c-40e2-8f71-3a46b8632bf6
+# ╟─f7456b7a-3d05-468a-a7ee-50a83affba72
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
