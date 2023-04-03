@@ -65,22 +65,15 @@ Lei Fang (lf28@st-andrews.ac.uk)
 
 # ╔═╡ 88621eb4-0d63-4cb8-808c-78494cdfb0ad
 md"""
-## Welcome
-
-
-**Course title**: Bayesian modelling
-* a two-day practical course on applied Bayesian machine learning
-* **machine learning** take of Bayesian inference 
-  * supervised learning side (regression and classification)
-  * also with reference to classic statistical inference problems (GLMs)
+# Welcome
 
 
 
 
 
-## The lecturer
 
-A bit about the lecturer:
+## Who am I
+
 
 * **name**: *Lei Fang*
   * Lecturer with the School of Computer Science, University of St Andrews
@@ -89,13 +82,64 @@ A bit about the lecturer:
 * **Email**: lf28 @ st-andrews.ac.uk
 """
 
-# ╔═╡ a23a6adc-6b71-4795-b980-43b7c975b768
+# ╔═╡ 473eadf8-e1f7-4bdc-b937-da69aac35be5
 md"""
+## Target audience
 
-$(Resource("https://risweb.st-andrews.ac.uk/portal/files/276158931/ImportedProfilePhoto.jpg", :height=> 230, :align=>"left"))
 
+**Target audience**
+
+Researchers who are interested in learning Bayesian inference and applying statistical inference in their work
+
+
+**Pre-requisite**
+
+A basic knowledge of programming in R, Matlab, Mathematica, Python, C++, or similar
+
+* we will use `Julia` in this course
+* a popular language for numerical computing
+
+
+If you’re not comfortable with linear algebra, calculus, don’t worry. 
+* we will give intuitive explanations
+* but it might be worth looking at an A-level textbook to brush up on your skills.
 """
 
+# ╔═╡ 1371e5cd-cfd9-40ee-ad96-b97abdd30525
+md"""
+
+## Learning outcomes
+
+
+By the end of this course, you should be able to
+
+
+* Understand the basics and benefits of Bayesian inference
+* Understand the workflow of Bayesian inference
+* Construct and modify statistical generative models
+* Appreciate why we often need to use MCMC in Bayesian inference
+* Understand how MCMC algorithms work intuitively
+* Know how to do applied Bayesian inference in Julia's `Turing.jl`
+  * Bayesian linear regression; logistic regression; 
+  * Bayesian non-linear predictive models
+  * Bayesian unsupervised learning
+"""
+
+# ╔═╡ fd787b38-6945-49cf-becf-1d37847a88fe
+md"""
+
+## A couple of things
+
+
+
+* Lecture notes/slides available from Moodle
+
+
+* All source code available in `Github` [https://github.com/lf28/BayesianModelling](https://github.com/lf28/BayesianModelling)
+
+
+
+"""
 
 # ╔═╡ 0e80b64a-22ad-41d2-b6be-5d9b88af06c9
 md"""
@@ -134,16 +178,20 @@ md"""
   * Bayesian neural network
 
 * **Lecture 7** More topics (if time allowed)
-  * Gaussian process
   * Bayesian unsupervised learning
     * Bayesian finite mixture models
     * Probabilistic PCA
 
 
 
-#### Afternoon sessions:
+## Afternoon sessions:
 
-* Hands-on sessions on using *Turing.jl*
+A mix of applied and theoretical problems (all applied)
+
+* learn how to implement what we have learnt in the morning
+  * involves a bit programming
+* how to use `Turing.jl`
+* I will be around to help 
 """
 
 # ╔═╡ 692cb743-d345-4b1b-b71f-3e26d1c7c80a
@@ -249,7 +297,7 @@ Resource(bayes_figure_url * "logis_data.png", :width=>600)
 # ╔═╡ c9b2fa82-841d-47cf-b7b4-23f8a86e60a7
 md"""
 
-## 
+## Some motivating examples - 4 (cont.)
 
 > Which one do you prefer?
 """
@@ -2925,7 +2973,9 @@ version = "1.4.1+0"
 # ╟─fdc69b6d-247c-49f4-8642-0345281c2370
 # ╟─45b8e008-cfdc-11ed-24de-49f79ef9c19b
 # ╟─88621eb4-0d63-4cb8-808c-78494cdfb0ad
-# ╟─a23a6adc-6b71-4795-b980-43b7c975b768
+# ╟─473eadf8-e1f7-4bdc-b937-da69aac35be5
+# ╟─1371e5cd-cfd9-40ee-ad96-b97abdd30525
+# ╟─fd787b38-6945-49cf-becf-1d37847a88fe
 # ╟─0e80b64a-22ad-41d2-b6be-5d9b88af06c9
 # ╟─692cb743-d345-4b1b-b71f-3e26d1c7c80a
 # ╟─8bf95702-90ac-4b3c-a027-e1b673359a60

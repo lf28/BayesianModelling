@@ -8,6 +8,7 @@ using InteractiveUtils
 begin
 	using PlutoUI
 	using LaTeXStrings,Latexify
+	using PlutoTeachingTools
 end
 
 # ╔═╡ bcf4086f-1469-49d4-a3f5-730a30771da4
@@ -34,7 +35,7 @@ end
 TableOfContents()
 
 # ╔═╡ 35d6a20a-6ab1-4d46-be79-c84d664a6119
-md"[**↩ Home**](./index.jl.html) 
+md"[**↩ Home**](https://lf28.github.io/BayesianModelling/) 
 
 
 [**↪ Next Chapter**](./section1_introduction.html)"
@@ -783,11 +784,11 @@ where `func` can be
 Check the code below for an example. Note you can replace `Gamma` with any distribution of your choice.
 """
 
-# ╔═╡ b21fdb08-0aff-42a4-9d85-26e8fed4ed61
-md"[**↩ Home**](./index.jl.html) 
+# ╔═╡ 65dbb2b9-961b-43e0-9ff9-62790d60aa8e
+md"---"
 
-
-[**↪ Next Chapter**](./section1_introduction.html)"
+# ╔═╡ 1f699130-fb0f-434b-b0c2-5229e4745e1c
+TwoColumnWideLeft(md"[**↩ Home**](https://lf28.github.io/BayesianModelling/) ", md"[**↪ Next Chapter**](./section1_introduction.html)")
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -797,6 +798,7 @@ LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 Latexify = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+PlutoTeachingTools = "661c6b06-c737-4d37-b85c-46df65de6f69"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
 
@@ -805,6 +807,7 @@ Distributions = "~0.25.67"
 LaTeXStrings = "~1.3.0"
 Latexify = "~0.15.16"
 Plots = "~1.31.7"
+PlutoTeachingTools = "~0.2.8"
 PlutoUI = "~0.7.39"
 StatsPlots = "~0.15.1"
 """
@@ -815,7 +818,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.5"
 manifest_format = "2.0"
-project_hash = "eecf0cae6fc8c0adb32e2f7d29a05c28aed97e5c"
+project_hash = "e9893f090c2f26baef2330ce151a057d4c25dc06"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
@@ -898,6 +901,12 @@ deps = ["Distances", "LinearAlgebra", "NearestNeighbors", "Printf", "SparseArray
 git-tree-sha1 = "75479b7df4167267d75294d14b58244695beb2ac"
 uuid = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
 version = "0.14.2"
+
+[[deps.CodeTracking]]
+deps = ["InteractiveUtils", "UUIDs"]
+git-tree-sha1 = "0683f086e2ef8e2fdacd3f246b35c59e7088b283"
+uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
+version = "1.3.0"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -1243,6 +1252,12 @@ git-tree-sha1 = "b53380851c6e6664204efb2e62cd24fa5c47e4ba"
 uuid = "aacddb02-875f-59d6-b918-886e6ef4fbf8"
 version = "2.1.2+0"
 
+[[deps.JuliaInterpreter]]
+deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
+git-tree-sha1 = "6a125e6a4cb391e0b9adbd1afa9e771c2179f8ef"
+uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
+version = "0.9.23"
+
 [[deps.KernelDensity]]
 deps = ["Distributions", "DocStringExtensions", "FFTW", "Interpolations", "StatsBase"]
 git-tree-sha1 = "9816b296736292a80b9a3200eb7fbb57aaa3917a"
@@ -1370,6 +1385,12 @@ deps = ["Dates", "Logging"]
 git-tree-sha1 = "5d4d2d9904227b8bd66386c1138cf4d5ffa826bf"
 uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
 version = "0.4.9"
+
+[[deps.LoweredCodeUtils]]
+deps = ["JuliaInterpreter"]
+git-tree-sha1 = "60168780555f3e663c536500aa790b6368adc02a"
+uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
+version = "2.3.0"
 
 [[deps.MKL_jll]]
 deps = ["Artifacts", "IntelOpenMP_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "Pkg"]
@@ -1540,6 +1561,24 @@ git-tree-sha1 = "a19652399f43938413340b2068e11e55caa46b65"
 uuid = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 version = "1.31.7"
 
+[[deps.PlutoHooks]]
+deps = ["InteractiveUtils", "Markdown", "UUIDs"]
+git-tree-sha1 = "072cdf20c9b0507fdd977d7d246d90030609674b"
+uuid = "0ff47ea0-7a50-410d-8455-4348d5de0774"
+version = "0.0.5"
+
+[[deps.PlutoLinks]]
+deps = ["FileWatching", "InteractiveUtils", "Markdown", "PlutoHooks", "Revise", "UUIDs"]
+git-tree-sha1 = "8f5fa7056e6dcfb23ac5211de38e6c03f6367794"
+uuid = "0ff47ea0-7a50-410d-8455-4348d5de0420"
+version = "0.1.6"
+
+[[deps.PlutoTeachingTools]]
+deps = ["Downloads", "HypertextLiteral", "LaTeXStrings", "Latexify", "Markdown", "PlutoLinks", "PlutoUI", "Random"]
+git-tree-sha1 = "b970826468465da71f839cdacc403e99842c18ea"
+uuid = "661c6b06-c737-4d37-b85c-46df65de6f69"
+version = "0.2.8"
+
 [[deps.PlutoUI]]
 deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "Markdown", "Random", "Reexport", "UUIDs"]
 git-tree-sha1 = "8d1f54886b9037091edf146b517989fc4a09efec"
@@ -1609,6 +1648,12 @@ deps = ["UUIDs"]
 git-tree-sha1 = "838a3a4188e2ded87a4f9f184b4b0d78a1e91cb7"
 uuid = "ae029012-a4dd-5104-9daa-d747884805df"
 version = "1.3.0"
+
+[[deps.Revise]]
+deps = ["CodeTracking", "Distributed", "FileWatching", "JuliaInterpreter", "LibGit2", "LoweredCodeUtils", "OrderedCollections", "Pkg", "REPL", "Requires", "UUIDs", "Unicode"]
+git-tree-sha1 = "feafdc70b2e6684314e188d95fe66d116de834a7"
+uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
+version = "3.5.2"
 
 [[deps.Rmath]]
 deps = ["Random", "Rmath_jll"]
@@ -2141,6 +2186,7 @@ version = "1.4.1+0"
 # ╠═de16ea53-0391-41b5-950f-0c60654d0cd7
 # ╟─fcdfed67-380d-4b11-8881-2575df2008b0
 # ╠═0ee0e688-9bc7-489b-a4ae-a4f09477fd33
-# ╟─b21fdb08-0aff-42a4-9d85-26e8fed4ed61
+# ╟─65dbb2b9-961b-43e0-9ff9-62790d60aa8e
+# ╟─1f699130-fb0f-434b-b0c2-5229e4745e1c
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
