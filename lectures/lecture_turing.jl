@@ -4,870 +4,752 @@
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ f49dc24c-2220-11ed-0ff2-2df7e9f3a0cf
+# ╔═╡ 68018998-17d7-11ed-2d5e-2b2d5f8b0301
 begin
     using PlutoUI
 	using StatsPlots
-    using CSV, DataFrames
-	using LinearAlgebra
-	using RDatasets
-	using StatsBase
-	using StatsFuns:logistic
 	using Turing
-    using GLM
 	using Random
 	using LaTeXStrings
+	using HypertextLiteral
 	using Logging; 
-	Logging.disable_logging(Logging.Warn);
 end;
 
-# ╔═╡ ff6fcfa7-dcd1-4529-ac83-46f9f1e17bc7
-using Splines2
+# ╔═╡ ec23cd37-94df-489f-b892-24bffd755b50
+Logging.disable_logging(Logging.Warn);
 
-# ╔═╡ 709e2b13-67d2-4e5b-b148-aba16431b0ae
+# ╔═╡ a89d9509-7564-4b6e-bba6-0de1f3f7d64e
 TableOfContents()
 
-# ╔═╡ 81a47ad3-18de-4437-a5b2-c803e7938842
-md"""
+# ╔═╡ 717cb1fc-184d-4970-a56c-d3f8133c5034
+md"""# Bayesian inference with `Turing.jl`
 
-In this chapter, we are going to see how non-linear analysis can be achieved via a technique called fixed basis expansion. And it turns out the Bayesian approach works well with non-linear basis expansion. Compared with the Frequentist estimation, Bayesian inference is more sparse and generalises better in an unseen dataset.
+
+**Lecture 5. Introduction to `Turing.jl`** 
+
+
+$(Resource("https://www.st-andrews.ac.uk/assets/university/brand/logos/standard-vertical-black.png", :width=>130, :align=>"right"))
+
+Lei Fang (lf28@st-andrews.ac.uk)
+
+*School of Computer Science*
+
+*University of St Andrews, UK*
+
+*March 2023*
 """
 
-# ╔═╡ 7f290bd5-06be-4627-b34a-4748521c48e8
+# ╔═╡ 4b2fc478-b825-4758-b384-d7b7186b8e21
 md"""
-## Non-linear models
+
+## Practical Bayesian inference
+
+In the previous lectures, we introduced some basic concepts of Bayesian inference 
+* prior, likelihood models
+* and MCMC samplers. 
+
+In a nutshell, Bayesian inference requires 
+
+* a full generative model which includes both prior and the likelihood function 
+* efficient sampling algorithms, such as MCMC, are used to approximate the posterior
+
+So far, we have implemented all algorithms manually
+
+* writing everything from scratch is not practical 
 
 
-The simplest approach to obtaining a non-linear model is to apply **non-linear** functions to the original input predictors first and then estimate a model with the expanded features. And such a technique is called *basis expansion*. A lot of more advanced techniques, such as neural networks, support vector machines, and splines, can be viewed as special cases of this technique.
+## Probabilistic programming language (PPL)
 
-More formally, given input vector ``\mathbf{x}_n \in R^D`` and its target ``y_n``, instead of fitting a linear regression model with ``\mathbf{x}_n``, *i.e.*
+Fortunately, we have probabilistic programming languages (PPL)
 
-```math
-y_n = \beta_0 +\mathbf{x}_n^\top \boldsymbol{\beta}_1 + \varepsilon_n
+
+* such as `Turing.jl` or `Stan`, 
+* `PyMC`
+
+One can do Bayesian inferences easily 
+
+* a PPL is a programming language to specify probabilistic models
+* they provide a high-level syntax to specify the models
+* it can do the MCMC computation automatically
+
+
+"""
+
+# ╔═╡ 67d93f23-899b-4ddf-83f1-5d320c23f22f
+md"""
+
+## Install Julia and `Turing.jl`
+
+
+Install Julia (1.8 over greater)
+
+
+* install `Turing.jl` (and other packages if needed) by using Julia's package manager
+```juliarepl
+julia> Using Pkg
+julia> Pkg.add("Turing")
+```
+
+* you can now add `Turing` and start using it with the command line interface (not recommended; check Pluto's instructions below for details)
+
+```juliarepl
+julia> add Turing
+```
+
+"""
+
+# ╔═╡ b2980969-462c-44fe-bb66-fb5d968fc5f6
+md"""
+
+## Run `Turing` models with Pluto
+It is recommended that you run `Turing` models in your browser rather than Julia's REPL command line interface. 
+
+* Step 1: Install `Pluto.jl`; 
+```juliarepl
+julia> Using Pkg
+julia> Pkg.add("Pluto")
 ```
 
 
-we fit the model
+* Step 2: Use Pluto 
+```juliarepl
+julia> using Pluto
+julia> Pluto.run()
+```
+
+* Step 3: To get started, you can either run this notebook (recommended) or start your own new notebook
+  * if you start a new notebook, you need to add `Turing` and `StatsPlots` packages first in a cell of your notebook (**not** in REPL but in the Pluto notebook)
+  * then check the notes below for further details.
+```
+begin
+	using Pluto, StatsPlots
+end
+```
+"""
+
+# ╔═╡ aaeb3a9d-d655-427d-a397-62cab819e346
+md"""
+# `Turing.jl` basics
+
+"""
+
+# ╔═╡ d4a8b997-5dff-49b1-aa09-017051405790
+md"""
+
+## Model specification
+
+In a nutshell, a model in Turing is implemented as 
+
+* a Julia function wrapped with a `@model` macro
+
+
+* the macro rewrites the function to a probabilistic model for downstream tasks
+
+A general Turing model is listed below:
+
+```julia
+@model function my_model(data)
+  ...
+  # random variable `θ` with prior distribution `prior_dist`
+  θ ~ prior_dist
+  ...
+  # optional deterministic transformations 
+  ϕ = fun(θ)
+  ...
+
+  # observation `data` with likelihood distribution `likelihood_dist`
+  data ~ likelihood_dist
+  ...
+end
+```
+
+
+Two important constructs of `Turing.jl` are
+
+* macro "`@model`": a macro that rewrites a Julia function to a probabilistic program 
+  
+* operator "`~`": the tilde operator is used to specify random variables: e.g.
+  > ```θ ~ Beta(1,1); data ~ Bernoulli(θ)```
+  * where we assume `data` is a random draw from a Bernoulli with bias `θ`; 
+  * and the bias `θ` follows a flat Beta prior
+  * check [`Distributions.jl`](https://juliastats.org/Distributions.jl/stable/starting/) for available probability distributions and their interfaces.
+
+## Julia code with `Turing.jl`
+
+A Turing model can be specified with arbitrary Julia code 
+* `for, while` loop: can be used to specify some repeated distribution assumptions, 
+  * convenient for `i.i.d` assumption for the observed the data
+
+* `=` assignment: can be used to assign a deterministic value to a variable; e.g.
+  > ```μ = 0; data ~ Normal(μ, 1)```
+  * a Gaussian distribution with a fixed mean of 1
+  * note `=` is different from `~` operator; `~` is used to specify a distribution assumption for a random variable; `=` is a deterministic non-random assignment 
+
+"""
+
+# ╔═╡ 0e5f3c06-8e3e-4b66-a42e-78a1db358987
+md"""
+## Inference
+
+
+
+MCMC aims at drawing samples from the posterior distribution 
+
+$$\theta^{(r)} \sim p(\theta|\mathcal D)$$
+
+
+`Turing.jl` provides an easy-to-use interface: `sample()` to run MCMC algorithms
+
+```julia
+chain = sample(model, mcmc_algorithm, mc; 
+			discard_initial = 100, 
+			thinning=10, 
+			chain_type=Chains
+		)
+
+```
+
+The first three arguments are  
+* `model`: a Turing model 
+* `mcmc_algorithm`: 
+  * Hamiltonian sampler: `HMC(0.05, 10)`; 
+  * No-U-Turn sampler: `NUTS()` (which automatically choose the step size and length)
+* `mc`: how many MCMC samples to draw, e.g. `3000`
+
+The optional arguments (specified after `;`) are
+* `discard_initial`: discard the specified number of samples as burn-in
+* `thinning`: thin the chain to reduce temporal correlations
+* `chain_type`: return the sample as an object of `Chains` of `MCMCChains.jl`;
+
+"""
+
+# ╔═╡ 45a74e6a-ae59-49bd-8b41-ee1c73153f15
+md"""
+
+**Run multiple chains in parallel:** simulate multiple MCMC chains in parallel by calling
+
+```julia
+sample(model, mcmc_algorithm, parallel_type, n, n_chains)
+```
+
+where 
+
+* `parallel_type` can be e.g. `MCMCThreads()` 
+* `n_chains` is the number of parallel chains to simulate at the same time
+"""
+
+# ╔═╡ 8fbef2d5-9591-46fc-a35e-f44a0d492748
+md"""
+
+## [Auto-differentiation](https://turing.ml/dev/docs/using-turing/autodiff) backend
+"""
+
+# ╔═╡ c8863691-ffdc-4629-b0b6-acd61d6d905f
+md"""
+
+Hamiltonian Monte Carlo (HMC) or No-U-Turn sampler (NUTS) 
+
+* require the gradients of the target distribution
+
+
+Julia has a few auto-differentiation (AD) packages and `Turing` provide them as backends
+- [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl): forward-mode AD, the default backend
+- [Tracker.jl](https://github.com/FluxML/Tracker.jl): reverse-mode AD
+- [ReverseDiff.jl](https://github.com/JuliaDiff/ReverseDiff.jl): reverse-mode AD, has to be loaded explicitly (optional cache for some models)
+- [Zygote.jl](https://github.com/FluxML/Zygote.jl): reverse-mode AD, has to be loaded explicitly
+"""
+
+# ╔═╡ fefbf8e9-8920-4555-87bc-daf2e2a231f1
+md"""
+## Change auto-diff backend
+
+By default, `Turing` uses `ForwardDiff`
+
+
+One can change the AD backend by 
+
+```julia
+setadbackend(:forwarddiff)
+setadbackend(:reversediff) 
+setadbackend(:zygote)
+```
+* as a rule of thumb, use forward-mode AD for models with few parameters (say less than 50) 
+
+* and reverse-mode AD (`Zygote.jl` is recommended) for models with many parameters. 
+
+"""
+
+# ╔═╡ f56ea0d7-c4e8-469e-9863-adc2d9c917be
+md"""
+
+# Coin-flipping example
+
+Recall the coin-flipping problem in chapter one.
+
+> A coin 🪙 is tossed 10 times. And the tossing results are recorded: 
+> $$\mathcal D=\{1, 1, 1, 0, 1, 0, 1, 1, 1, 0\}$$; 
+> i.e. seven out of the ten tosses are heads (ones). Is the coin **fair**?
+
+"""
+
+# ╔═╡ a86ed206-aed8-40b4-89aa-1abf0d16fbb2
+md"""
+
+
+**Bayesian conjugate model**
+The Bayesian model starts with a generation process for the unknown (or prior) and then the model for the observed data (the likelihood).
+
+1. prior for the bias ``\theta``: 
 
 ```math
+\theta \sim \texttt{Beta}(a_0, b_0);
+```
 
+2. then a total 10 coin tosses are drawn from the coin with the bias ``\theta``. for ``n = 1,\ldots, 10``
+
+```math
+d_n \sim \texttt{Bernoulli}(\theta).
+```
+
+"""
+
+# ╔═╡ b49725d0-8239-4129-b0d6-982f998be91f
+md"""
+## `Turing.jl` model
+
+"""
+
+# ╔═╡ a2b84c25-bf58-411d-893b-48c8384cae04
+@model function coin_flipping(data; a₀=1.0, b₀=1.0)
+    # Our prior belief about the probability of heads in a coin toss.
+    θ ~ Beta(a₀, b₀)
+
+    # each observation in `data` is an independent draw from the coin, which is Bernoulli distributed
+	for i in eachindex(data)
+    	data[i] ~ Bernoulli(θ)
+	end
+end;
+
+# ╔═╡ f2dd09fa-9204-4f1e-80da-2f1bb185b3a8
+md"""
+In the above model, 
+* `a₀, b₀` (of the prior's parameters) are treated as input parameters 
+* `for` loop is used to repeatedly specify the independent tosses; 
+.
+
+"""
+
+# ╔═╡ d005c6e6-2f18-4466-aec3-97497b6b874e
+md"""
+## Demon
+"""
+
+# ╔═╡ 77a9ca64-87ad-465c-bec7-fe406145de40
+begin
+	# create the data as observed
+	coin_flipping_data = [true, true, true, false, true, false, true, true, true, false]
+	# create the model by feeding the data as observed
+	cf_model = coin_flipping(coin_flipping_data; a₀=1.0, b₀=1.0)
+end;
+
+# ╔═╡ 139a1d54-b018-4de4-9a9f-ec9cf429b3a1
+md"""
+
+**Inference:** To make inference, we run a MCMC algorithm to sample from the posterior
+
+* all random variables specified with `~` (except the observed `data`) will be sampled in the MCMC algorithm
+
+* the following command can be used to draw 2000 samples with a HMC sampler.
+"""
+
+# ╔═╡ 7d13ddd9-fb5f-4843-b1d5-176d505acd57
+begin
+	Random.seed!(100)
+	cf_chain = sample(cf_model, HMC(0.05, 20), MCMCThreads(), 2000, 3; discard_initial = 1000)
+end;
+
+# ╔═╡ a2278d07-f857-4910-afa8-bf484ef0dc10
+md"""
+
+In particular, the HMC sampler has
+  * a step length of the Leapfrog: ``\epsilon = 0.05``
+  * and Leapfrog algorithm's step count: ``{T}=20``
+"""
+
+# ╔═╡ 400b77d6-dc69-4ea9-ab45-5daeaa6e4bcc
+md"""
+
+## Use other samplers
+
+**Use other MCMC samplers:** 
+
+```julia
+sample(cf_model, NUTS(0.65), 2000; discard_initial = 500);
+```
+NUTS is a user-friendly extension of HMC 
+* where Hamiltonian dynamics' parameters are automatically tuned 
+  * such that a pre-specified `accept_rate` is achieved (an acceptance rate around 0.65 is recommended)
+* user does not need to manually set the HMC's parameters
+
+
+Similarly, one may also choose Metropolis-Hastings:
+```julia
+sample(cf_model, MH(), 2000; discard_initial = 500);
+```
+"""
+
+# ╔═╡ 9f119bba-fbd2-4c3a-93c2-22567c781e5f
+md"""
+## Diagnosis
+
+**Chain diagnostics:** We should always check the quality of the chain
+
+
+
+"""
+
+# ╔═╡ 4bb24996-24d0-4910-9996-83f0b34a005f
+plot(cf_chain)
+
+# ╔═╡ 6f7ecf38-3017-408e-9a8a-6d218bddc2d1
+md"""
+
+We can also check chain diagnostic statistics such as 
+* `rhat` ``\approx 0.99``; as a rule of thumb `rhat` should be smaller than 1.01
+* `ess` ``\approx 1920``; (essential sample size) signals efficiency of the sampler
+
+Both statistics show the sampler has mixed well.
+"""
+
+# ╔═╡ 4e9ac22f-a895-4d87-b1a9-2cd8a6da83fb
+describe(cf_chain)
+
+# ╔═╡ 5cd3314b-dff2-478f-9a1a-73545b26f797
+md"""
+
+## Compare with the exact posterior
+
+For this toy example, we know the posterior distribution exactly:
+
+$$p(\theta|\mathcal D) = \texttt{Beta}(8,4).$$
+
+* therefore, we can compare the performance between the exact posterior and the approximating distribution returned by `Turing.jl`. 
+* recall that one can use `density()` to plot the density of an MCMC chain.
+"""
+
+# ╔═╡ 5678e483-1292-440d-83de-462cd249c511
+let
+	plot(Beta(8,4), fill=true, alpha=0.5, lw=2, label=L"\texttt{Beta}(8,4)")
+	density!(cf_chain, xlim=[0,1], legend=:topleft, w=2)
+end
+
+# ╔═╡ 7c6e1185-4fe4-4d2b-9b0a-f6268a75b682
+md"""
+# Seven scientists example
+
+
+"""
+
+# ╔═╡ acbc4dcc-3352-4de0-a145-d4aa51975036
+md"""
+
+Recall the seven-scientist problem which was introduced in chapter 2.
+!!! question "Seven scientist problem"
+	[*The question is adapted from [^1]*] Seven scientists (A, B, C, D, E, F, G) with widely-differing experimental skills measure some signal ``\mu``. You expect some of them to do accurate work (i.e. to have small observation variance ``\sigma^2``, and some of them to turn in wildly inaccurate answers (i.e. to have enormous measurement error). What is the unknown signal ``\mu``?
+
+	The seven measurements are:
+
+	| Scientists | A | B | C | D | E | F | G |
+	| -----------| ---|---|---|--- | ---|---|---|
+	| ``d_n``    | -27.020| 3.570| 8.191| 9.898| 9.603| 9.945| 10.056|
+"""
+
+# ╔═╡ f06c5735-6a4a-4a91-8517-ec57a674225a
+begin
+	scientist_data = [-27.020, 3.57, 8.191, 9.898, 9.603, 9.945, 10.056]
+	μ̄ = mean(scientist_data)
+end;
+
+# ╔═╡ 782e9234-c02b-4abb-a72f-110d2fcabc33
+let
+	ylocations = range(0, 2, length=7) .+ 0.5
+	plt = plot(ylim = [0., 3.0], xminorticks =5, xlabel=L"d", yticks=false, showaxis=:x, size=(620,250))
+	scientists = 'A':'G'
+	δ = 0.1
+	for i in 1:7
+		plot!([scientist_data[i]], [ylocations[i]], label="", markershape =:circle, markersize=5, markerstrokewidth=1, st=:sticks, c=1)
+		annotate!([scientist_data[i]].+7*(-1)^i * δ, [ylocations[i]].+ δ, scientists[i], 8)
+	end
+	vline!([μ̄], lw=2, ls=:dash, label="sample mean", legend=:topleft)
+	plt
+end
+
+# ╔═╡ a662232b-524b-4918-93e9-204ab908a14d
+md"""
+
+## `Turing.jl` model
+
+To reflect the fact that each scientist has different experimental skills
+
+* we modify the usual i.i.d. assumption for the data. 
+
+* we assume scientists A and B have a similar level of skill 
+
+* whereas scientists C, D, E, F, and G are another group with better measurement skills
+
+
+The proposed Bayesian model becomes:
+```math
 \begin{align}
-y_n &= \beta_0 +\beta_1 \phi_1(\mathbf{x}_n) + \beta_2\phi_2(\mathbf{x}_n) + \ldots + \beta_K \phi_K(\mathbf{x}_n) + \varepsilon_n
+\text{prior}: \mu &\sim \mathcal N(m_0=0, v_0=10000)\\
+\lambda_1 &\sim \texttt{Gamma}(a_0=0.5, b_0=0.5)\\
+\lambda_2 &\sim \texttt{Gamma}(a_0=0.5, b_0=0.5)\\
+\text{likelihood}: d_1, d_2 &\sim \mathcal N(\mu, 1/\lambda_1) \\
+d_n &\sim \mathcal N(\mu, 1/\lambda_2), \;\; \text{for }n = 3, \ldots, 7.
 \end{align}
 ```
 
-where ``\varepsilon_n`` are still random white Gaussian noises; and the functions ``\{\phi_k\}_{k=1}^K`` are called **basis function**, and each ``\phi_k`` is
-* a ``R^D\rightarrow R`` function that transforms a ``D`` dimensional input observation ``\mathbf{x}_n`` to a scalar;
-* and the function has to be non-linear.
 """
 
-# ╔═╡ 89a89522-52d4-4591-a22f-5f0737176cf8
-md"""
-*Remarks. The idea can also be applied to generalised linear models (GLMs), such as logistic regression to achieve generalised non-linear models. The model assumption becomes*
-```math 
-g(\mathbf{E}[y_n|\mathbf{x}_n]) = \beta_0 +\beta_1 \phi_1(\mathbf{x}_n) + \beta_2\phi_2(\mathbf{x}_n) + \ldots + \beta_K \phi_K(\mathbf{x}_n),
-```
-*where ``g`` is the appropriate link function. For example, ``g^{-1}`` is a logistic function for the logistic regression.*
-"""
-
-# ╔═╡ 9c53adc3-8ecc-4c45-9c12-addfb30edf8d
-md"""
-
-By using matrix notation, the regression model with basis expansion can be compactly written as:
-
-```math
-p(\mathbf{y}|\mathbf{X}, \boldsymbol{\beta}, \sigma^2) = \mathcal{N}_N(\mathbf{y}; \mathbf{\Phi} \boldsymbol{\beta}, \sigma^2\mathbf{I}_N),
-```
-where ``\mathbf{y} = [y_1, y_2,\ldots,y_N]^\top``, ``\mathbf{I}_{N}`` is a ``N\times N`` identity matrix, and ``\mathbf{X}`` is original ``N\times D`` design matrix where each row corresponds to one observation, and ``D`` is number of input feature:
-
-```math
-\mathbf{X} = \begin{bmatrix}\rule[.5ex]{3.5 ex}{0.5pt} & \mathbf{x}_1^\top & \rule[.5ex]{3.5ex}{0.5pt} \\
-\rule[.5ex]{3.5ex}{0.5pt} & \mathbf{x}_2^\top & \rule[.5ex]{3.5ex}{0.5pt} \\
-&\vdots& \\
-\rule[.5ex]{3.5ex}{0.5pt} & \mathbf{x}_N^\top & \rule[.5ex]{3.5ex}{0.5pt}
-\end{bmatrix},
-```
-
-whereas ``\mathbf\Phi`` is the expanded ``N\times K`` matrix:
-```math
-
- \mathbf{\Phi} = \begin{bmatrix}
-   \phi_1(\mathbf{x}_1) & \phi_2(\mathbf{x}_1) & \ldots & \phi_K(\mathbf{x}_1) \\
-  \phi_1(\mathbf{x}_2) & \phi_2(\mathbf{x}_2) & \ldots & \phi_K(\mathbf{x}_2) \\
-\vdots & \vdots & \ddots & \vdots \\
-  \phi_1(\mathbf{x}_N) & \phi_2(\mathbf{x}_N) & \ldots & \phi_K(\mathbf{x}_N) \\
-  \end{bmatrix} = \begin{bmatrix}\rule[.5ex]{3.5 ex}{0.5pt} & \boldsymbol{\phi}_1^\top & \rule[.5ex]{3.5ex}{0.5pt} \\
-\rule[.5ex]{3.5ex}{0.5pt} & \boldsymbol{\phi}_2^\top & \rule[.5ex]{3.5ex}{0.5pt} \\
-&\vdots& \\
-\rule[.5ex]{3.5ex}{0.5pt} & \boldsymbol{\phi}_N^\top & \rule[.5ex]{3.5ex}{0.5pt}
-\end{bmatrix},
-```
-where each row is the ``n``-th observation's ``K`` dimensional expanded feature ``\boldsymbol{\phi}_n \in R^K``.
-
-It can be immediately observed that the new regression model is still linear with respect to ``\mathbf\Phi``, *i.e.*
-```math
-\mathbf{y} = \mathbf{\Phi}\boldsymbol{\beta} + \boldsymbol{\varepsilon}.
-```
-Therefore, the ordinary linear model's inference algorithms can be applied directly. One only needs to replace ``\mathbf{X}`` with the new design matrix ``\mathbf{\Phi}``.
-
-"""
-
-# ╔═╡ 4d0c7d09-4eac-40ab-9824-5b8739d4b146
-md"""
-**Example (Polynomial regression)** For simplicity, consider a simple regression problem with one predictor here: *i.e.*
-```math
-y_n = \beta_0 +\beta_1 x_n
-```
-
-
-A K-th degree polynomial regression can be achieved by assuming
-```math
-\phi_k(x) = x^k,\;\; \text{for }k = 0,\ldots, K.
-``` 
-Note here we have introduced a dummy basis function ``\phi_0(x) = 1`` here to serve as intercept. Substitute in the basis function, we have a non-linear regression 
-
-```math
-y_n = \beta_0 + \beta_1 x_n + \beta_2 x_n^2 +\ldots, \beta_K x_n^K.
-```
-"""
-
-# ╔═╡ eb9e22f8-2867-4320-9c81-5d63262089cc
-md"As a concrete example, we fit a ``K=4``-th degree Polynomial regression to the Wage data."
-
-# ╔═╡ 8b3660d5-e3a6-4f25-9c5b-553ca36a6b28
-md" And the fitted polynomial model is plotted below."
-
-# ╔═╡ b7981b85-d045-442b-89d0-d20cca6381f3
-md"""
-
-### Popular basis functions
-"""
-
-# ╔═╡ 988fb829-5ddb-43af-8836-f4fc95a945af
-md"""
-
-Technically speaking, any non-linear function can be used as a basis function. However, there are a few function choices that are more popular and successful. For example, the following are commonly used in the machine learning community:
-
-* radial basis function (RBF):
-```math
-\phi_k(x) = \exp\left \{-\frac{1}{2}\left (\frac{x-\mu_k}{s}\right )^2\right \}
-```
-
-* sigmoid function (or logistic function)
-
-```math
-\phi_k(x) = \frac{1}{1 + \exp(-\frac{x-\mu_k}{s})}
-```
-
-* tanh function
-
-```math
-\phi_k(x) = \tanh\left (\frac{x-\mu_k}{s}\right )
-```
-
-
-* `ReLU` function
-
-```math
-\phi_k(x) = \max\left(0, \frac{x-\mu_k}{s}\right)
-```
-"""
-
-# ╔═╡ 9e54b0ce-baaa-4116-a08e-2cc93e12026c
-md"""
-Some of the basis functions are plotted below for your reference. It is worth noting that all four functions are *local functions* which are parameterised with
-* a location parameter ``\mu_k`` and 
-* a scale parameter ``s``.
-
-Compared with the polynomial basis functions which are *global* functions, the local basis functions are more flexible. To overcome this limitation, one possible solution is to fit multiple polynomial functions in multiple truncated locations (predefined by knots). And the corresponding basis functions are commonly known as **splines functions**.
-
-"""
-
-# ╔═╡ df342965-f2eb-456f-b4d4-1fc76615e52a
+# ╔═╡ 4043d410-e338-45cc-a528-5afc5a23aea1
 begin
-	plt_poly_basis = plot(title="Polynomial basis functions")
-	for k in 1:10
-		plot!(-1:0.05:1, (x) -> x^k, label="")
+
+	@model function seven_scientist(data; m₀=0, v₀=10_000, a₀ = .5, b₀ =.5)
+		# prior for μ
+		μ ~ Normal(m₀, sqrt(v₀))
+		# prior for the two precisions
+		λ₁ ~ Gamma(a₀, 1/b₀)
+		λ₂ ~ Gamma(a₀, 1/b₀)
+		σ₁ = sqrt(1/λ₁)
+		σ₂ = sqrt(1/λ₂)
+		# likelihood for scientists A and B
+		data[1] ~ Normal(μ, σ₁)
+		data[2] ~ Normal(μ, σ₁)
+		# likelihood for the other scientists
+		for i in 3:length(data)
+			data[i] ~ Normal(μ, σ₂)
+		end
 	end
-
-
-	plt_rbf_basis = plot(title="RBF basis functions")
-	s = 0.25
-	for μ in -1:0.2:1
-		plot!(-1:0.01:1, (x) -> exp(-(x-μ)^2/(2*s^2)), label="")
-	end
-
-
-
-	plt_sigmoid_basis = plot(title="Sigmoid basis functions")
-	s_sig = 0.1
-	for μ in -1:0.2:1
-		plot!(-1:0.01:1, (x) -> logistic((x-μ)/s_sig), label="")
-	end
-
-
-	plt_relu_basis = plot(title="ReLu basis functions")
-	for μ in -1:0.2:1
-		plot!(-1:0.01:1, (x) -> max(0,x-μ), label="")
-	end
-	plot(plt_poly_basis, plt_rbf_basis, plt_sigmoid_basis, plt_relu_basis)
 end
 
-# ╔═╡ d6c1074b-530b-453a-a1e4-cb41b09f4fdf
+# ╔═╡ 0572a686-2a09-4c9e-9f33-51a390d5e66f
 md"""
-
-#### Specification of basis function parameters 
-
-For **fixed basis** expansion models, the user needs to decide what the expansion locations ``\{\mu_k\}_{k=1}^K ``and scale ``s`` (which is usually shared among the ``K`` functions) are. One option is to choose the ``k/(K+1)`` percentile of the input data as the expanded locations. For example, for ``K=3``, the 25%, 50% and 75% percentile of the input data will be used as the expansion locations. 
-
-A **non-parametric option** is to choose all the data points as expansion locations, *i.e.* ``\mu_n= \mathbf{x}_n`` for ``n=1,\ldots, N``. The new design matrix ``\mathbf{\Phi}`` then is a ``N\times (N+1)`` matrix. The expanded regression has ``N+1`` parameters, which potentially grow unbounded with the observation size. As will be demonstrated soon, this over-parameterised model proves to be too flexible to handle for the ordinary frequentist method (*i.e.* maximum likelihood estimation). 
-
-Lastly, the hyperparameters can also be learnt based on the data. The model becomes an **adaptive basis function** model. And the model is more commonly known as **Neural networks**.
+## Inference
+We infer the model with a `NUTS()` sampler.
 """
 
-# ╔═╡ 47d9675b-4427-45af-a02a-950961692d5d
-md"""
+# ╔═╡ 0096e848-46b0-4c85-8526-0302b03c4682
+seven_scientist_model = seven_scientist(scientist_data)
 
-### Frequentist MLE estimation
-
-To demonstrate the idea, we consider a one-dimensional toy dataset first. The data is generated with a non-linear true function:
-
-```math
-f(x) = -5\tanh(0.5x) \cdot (1- (\tanh(0.5x))^2).
-```
-and 18 noisy observations are simulated based on some randomly selected input locations. The code to simulate the data is listed below. 
-
-"""
-
-# ╔═╡ 2aebebfd-7009-4def-8362-1617d18b5c64
-begin
-	function true_f(x)
-		-5*tanh(0.5*x) * (1- tanh(0.5*x)^2)
-	end
+# ╔═╡ 04a162c0-3c7c-4056-8f2d-48d83df3d6e7
+seven_sci_chain = let 
 	Random.seed!(100)
-	x_input = [range(-4, -0.4, 10); range(0.8, 4, 8)]
-	y_output = true_f.(x_input) .+ sqrt(0.05) * randn(length(x_input))
+	sample(seven_scientist_model, 
+		NUTS(), 
+		MCMCThreads(),
+		2000,       #2000 iterations per chain
+		3; 			#three chains in parallel
+		discard_initial = 1000, 
+		thinning=4)
 end;
 
-# ╔═╡ 0edef66b-e323-475b-bd83-972afe153c23
-md"The simulated data is plotted below."
-
-# ╔═╡ e9dfde47-306d-4f04-b468-2178c00cce74
-begin
-	scatter(x_input, y_output, label="Observations")	
-	plot!(true_f, lw=2, xlim=[-10, 10], framestyle=:default,  lc=:gray, ls=:dash,label="true function", xlabel=L"x", ylabel=L"y")
-end
-
-# ╔═╡ 61398b43-d307-4e03-9097-1aae3414a8e7
+# ╔═╡ cea1df62-2e5a-4cac-a30b-3506ecb9b879
 md"""
 
-We choose `RBF` as the basis function and choose basis expansion locations non-parametrically. That means we apply `RBF` basis functions on all input locations. Specifically, ``\mu_n=x_n, s^2=1.0`` are used to generate the expanded design matrix ``\mathbf \Phi``.
 
-This expansion can be accomplished easily in `Julia`. The code below expand the given input vector ``\mathbf{X}``, which is a ``N`` element vector to a ``N\times (N+1)`` design matrix ``\mathbf\Phi``.
-"""
+Chain inspection `describe(.)` and `plot(.)`. 
 
-# ╔═╡ e21db2b0-2c2f-4bfd-9e5a-05b06db4d0fe
-begin
-	# Radial basis function
-	# called Gaussian kernel in the paper
-	function rbf_basis(x, μ, s)
-		exp.(-1 ./(2 .* s^2) .* (x .- μ).^2)
-	end
 
-	# vectorised version of basis expansion by RBF
-	function basis_expansion(xtest, xtrain, s=1, intercept = false)
-		# number of rows of xtrain, which is the size of basis
-		n_basis = size(xtrain)[1] 
-		n_obs = size(xtest)[1]
-		X = rbf_basis(xtest, xtrain', s)
-		intercept ? [ones(n_obs) X] : X
-	end
-	intercept = true
-	sϕ = 1.0
-	Φ = basis_expansion(x_input, x_input, sϕ, intercept);
-end;
-
-# ╔═╡ 2a0c544f-0442-41d7-84b7-b716b2a909ec
-md"""
-Next, we apply the frequentist maximum likelihood estimation (MLE) method (a.k.a. ordinary least square for linear regression) to fit the model with the new design matrix ``\mathbf\Phi`` and the output ``\mathbf y``.
-"""
-
-# ╔═╡ bf7857fd-1b69-4f54-86b7-4f6082081693
-freq_ols_model = lm(Φ, y_output);
-
-# ╔═╡ 2097b04a-c6a2-433a-8393-a5c4794db6c1
-md"""
-
-The model is then used to predict some testing data ``\mathbf{X}_{\text{test}}``. Note that to use the fitted model, one needs to apply the same basis expansion function to the testing data, and then make the prediction. The estimated model is plotted with the true signal function and also the observations.
-"""
-
-# ╔═╡ 53c7c995-c9c3-409c-9a77-1bea31bd9fa9
-begin
-	# apply the same expansion on the testing dataset
-	x_test = -10:0.1:10
-	Φₜₑₛₜ = basis_expansion(x_test, x_input, sϕ, intercept)
-	tₜₑₛₜ = true_f.(x_test)
-	# predict on the test dataset
-	βₘₗ = coef(freq_ols_model)
-	pred_y_ols = Φₜₑₛₜ*βₘₗ # or equivalently, one can use predict(freq_ols_model, Φₜₑₛₜ) from the GLM.jl package
-end;
-
-# ╔═╡ cd3c7fa8-dc4c-4101-b9d5-47e92c8df6f3
-let
-	plot(x_test, tₜₑₛₜ, linecolor=:black, ylim= [-3, 3], lw=2, linestyle=:dash, lc=:gray,framestyle=:default, label="true signal")
-	scatter!(x_input, y_output, markershape=:xcross, markersize=3, markerstrokewidth=3, markercolor=:gray, markeralpha=2, label="Obvs")
-	plot!(x_test, pred_y_ols, linestyle=:solid, lw=2, xlabel=L"x", ylabel=L"y", legend=:topright, label="Frequentist Est.")
-end
-
-# ╔═╡ c2ac1425-cff9-4cd9-8b6e-6465a9299274
-md"""
-
-**Frequentist MLE estimation overfits the data.** It can be observed that the frequentist's estimation fits the data too perfectly! The prediction goes through every single observation. However, the prediction is very bumpy and extravagant at many locations. This behaviour is called **overfitting**. An overfitting model has a poor generalisation performance on an unseen dataset.
-"""
-
-# ╔═╡ 8975b5af-3e5b-45ba-8954-6336addaa246
-md"""
-## Bayesian inference
+The MCMC's summary statistics also tell us a 95% credible range for ``\mu`` is between 8.59 and 10.45.
 
 """
 
-# ╔═╡ 10dac645-8078-45d7-ad66-64160f99a9a4
+# ╔═╡ 2af9eda0-a5f6-4b3c-b973-ea3c2ca03290
+describe(seven_sci_chain)
+
+# ╔═╡ a0671aeb-32dc-42f1-919f-a32f1c365a9a
+plot(seven_sci_chain)
+
+# ╔═╡ c266890f-da07-44be-b98f-cc129463ca6c
+density(seven_sci_chain[:μ], fill=(0, 0.1), label="", xlabel=L"\mu", ylabel="density", title="Posterior "*L"p(\mu|\mathcal{D})")
+
+# ╔═╡ 5bd72181-aa58-43b6-837e-47414c7152a1
 md"""
 
-Since the model is still linear after fixed basis expansion, the Bayesian model specified before can be immediately reused here.  Take regression as an example, a Bayesian model with Gaussian priors on the regression parameter can be specified as follows:
+# Predictive check with `Turing.jl`
 
-!!! infor "Bayesian linear regression"
-	```math
-	\begin{align}
-	\text{Priors: }\;\;\;\;\;\;\beta_0 &\sim \mathcal{N}(0, v_0^{\beta_0})\\
-	\boldsymbol{\beta}_1 &\sim \mathcal{N}(0, \lambda^2\mathbf{I})\\
-	\sigma^2 &\sim \texttt{HalfCauchy}(s_0) \\
-	\text{Likelihood: }\;\;\text{for } n &= 1,2,\ldots, N:\\
-	\mu_n &=\beta_0 + \boldsymbol{\beta}_1^\top  \boldsymbol{\phi}_n \\
-	y_n &\sim \mathcal{N}(\mu_n, \sigma^2).
-	\end{align}
-	```
-
-Compared with the Bayesian model used earlier, the only difference is that we have used the generated feature ``\boldsymbol{\phi}_n`` instead of ``\mathbf{x}_n`` in the likelihood part.
 
 
 """
 
-# ╔═╡ 100e5718-52df-4451-a42a-58c54ca5dfe5
+# ╔═╡ 7f16ec4f-ea2f-4990-9a6b-e473b997d786
 md"""
 
-### Hierarchical Bayesian modelling
+Recall **prior predictive check** and **posterior predictive check** are used to check
 
-One drawback of the above model is that the user needs to specify the parameters of the priors, which are called hyper-parameters. For example, a zero mean Gaussian prior is imposed for the regression parameter ``\boldsymbol{\beta}_1``:
-```math
-\boldsymbol{\beta}_1 \sim \mathcal{N}(0, \lambda^2\mathbf{I}),
-```
+* prior assumptions
+* end-to-end model check
 
-
-where ``\lambda^2 >0``, the prior variance, is a hyper-parameter that needs to be specified. In previous chapters, we have set all hyperparameters manually such that the priors are weakly-informative. 
-
-
-However, the Bayesian approach offers us an alternative more principled approach. The idea is to introduce an additional layer of prior, called **hyper-priors**, for the hyperparameters. We usually set non-informative priors or weakly informative priors for the hyper-parameters. 
-
-For our regression problem, the prior scale parameter ``\lambda`` controls the complexity of the regression. It, therefore, makes better sense to let the data determine its value. Since ``\lambda`` is a positive real value, a suitable prior is ``\texttt{HalfCauchy}(1)``.
-
-
-!!! infor "Hierarchical Bayesian linear regression"
-	```math
-	\begin{align}
-	\text{Hyper-prior: }\;\;\;\;\;\;\;\lambda  &\sim \texttt{HalfCauchy}(1.0)  \\
+The data simulation process is listed below:
+!!! information ""
+	Repeat the following many times:
 	
-	\text{Priors: }\;\;\;\;\;\;\beta_0 &\sim \mathcal{N}(0, v_0^{\beta_0})\\
-	\boldsymbol{\beta}_1 &\sim \mathcal{N}(\mathbf{0}, \lambda^2\mathbf{I})\\
-	\sigma^2 &\sim \texttt{HalfCauchy}(s_0) \\
-	\text{Likelihood: }\;\;\text{for } n &= 1,2,\ldots, N:\\
-	\mu_n &=\beta_0 + \boldsymbol{\beta}_1^\top  \boldsymbol{\phi}_n \\
-	y_n &\sim \mathcal{N}(\mu_n, \sigma^2).
-	\end{align}
+	1. First draw one sample from the posterior (or the prior for prior predictive check): 
+	  
+	$$\tilde \theta \sim p(\theta|\mathcal D)$$
+	2. Second, conditioning on ``\tilde \theta``, simulates the pseudo observations: 
+	
+	$$\tilde{\mathcal D}\sim p(\mathcal D|\tilde{\theta})$$
+
+## With `Turing.jl`
+
+When `Turing.jl` carries out the sampling algorithm
+* all random variables (specified on the left-hand side of `~`) will be sampled 
+* and also those `missing` observations
+
+
+To simulate data ``\mathcal D_{pred}`` by `Turing.jl` , one should carry out the following steps:
+1. create a data array with ``N`` `missing` elements, e.g. `D_missing = Vector{Union{Missing, Bool}}(undef, N)`
+2. initialise a `Turing` model with the missing data as an augment, e.g. `missing_model = turing_model(D_missing)`
+3. use `predict(missing_model, chain)` to simulate predictive data
+    * where `chain` should be MCMCChain instance
+    * either posterior or prior chains depending on the check
+
+
+"""
+
+# ╔═╡ fb668940-ebf8-44d0-bb57-93fedfcb9892
+md"""
+
+"""
+
+# ╔═╡ 15a73e90-c4b5-4cdf-bd9d-1ec4e02e0f2e
+md"""
+## Example: predictive checks of coin-flipping model
+
+"""
+
+# ╔═╡ ac926469-a1fb-4b8a-808e-cf8153a09edb
+md"""
+Create the "missing" data of the same size as ``\mathcal{D}``
+"""
+
+# ╔═╡ 6683d20c-21ca-412e-9e04-0fbc6fe33927
+# initialise an array of missing types
+# Union{Missing, Bool} is union type of Missing and Boolean
+# D_missing_coin_flipping is an array of 10 missing elements
+D_missing_coin_flipping = Vector{Union{Missing, Bool}}(undef, 10)
+
+# ╔═╡ 87b3b839-5fac-46e6-b080-ed7c22d7bb63
+md"""
+Initialise the Turing model with `missing` data
+"""
+
+# ╔═╡ 2c0de4c9-0498-4ae3-ab28-79816d1532ac
+cf_pred_model = coin_flipping(D_missing_coin_flipping)
+
+# ╔═╡ e7798191-fb9e-405c-9c5b-e5a52b26238f
+md"""
+Sample the predictive distribution
+"""
+
+# ╔═╡ 35ddd253-e28c-4f30-a2a1-ef81a61a740a
+begin
+	# D_pred as an MCMCChain object. 
+	post_pred_chain = predict(cf_pred_model, cf_chain)
+end
+
+# ╔═╡ 5b01a0b7-affd-465d-b9f1-422d76ce6dca
+md"""
+
+## Posterior predictive check
+
+Remember `cf_chain` is the posterior MCMC chain sampled earlier
+
+* for this case, it should contain 6000 simulated ``\mathcal D_{pred}`` (and each sample contains 10 tosses)
+* as `cf_chain` were simulated with 3 parallel chains and each chain with 2000 iterations
+
+
+To summarise the simulated data, we sum each ``\mathcal D^{(r)}_{pred}`` to find the simulated ``\tilde{N}_h^{(r)}`` and use histogram to do visual check. 
+
+
+"""
+
+# ╔═╡ 846d2693-b644-4cd7-af2a-5ce6b843cb7d
+let
+	histogram(sum(Array(post_pred_chain), dims=2)[:], normed=true, xticks = 0:10, label="Posterior predictive on Nₕ", legend=:outerbottom, xlabel="number of heads "*L"N_h", title="Posterior predictive check with a₀=b₀=1")
+	vline!([7], lw=4, lc=2, label="Observed Nₕ")
+end
+
+# ╔═╡ 11989831-8179-4978-adfa-480f9a962f5f
+md"""
+
+
+## Prior predictive check
+
+**Prior predictive check.**  one only needs to use a prior samples
+
+* to sample from the prior distribution, one can use command like `sample(model, Prior(), 5000)`
+
+* the rest is the same as posterior predictive check.
+
+"""
+
+# ╔═╡ 8c1e3f71-bae6-41be-a496-24dceaebc672
+begin
+	Random.seed!(100)
+	# sample from the prior distribution
+	coinflip_prior_chain = sample(cf_model, Prior(), 5000)
+	# simulate data based on the prior chain
+	prior_pred_chain = predict(cf_pred_model, coinflip_prior_chain)
+	# lastly, summarise and visualise the data
+	histogram(sum(Array(prior_pred_chain), dims=2)[:], bins = 20, xticks=0:10, normed=true, label="Prior predictive on Nₕ", legend=:outerbottom, xlabel="number of heads "*L"N_h", title="Prior predictive check with a₀=b₀=1")
+	vline!([7], lw=4, lc=2, label="Observed Nₕ")
+end
+
+# ╔═╡ b21c5a1f-9ba4-40f3-b58a-d9f635d36dbf
+md"""
+## Exercise: predictive checks with the seven scientists
+
+Carry out posterior predictive check on the seven-scientist problem by using `Turing.jl`. Replicate the KDE check in chapter 2 (as shown below).
+"""
+
+# ╔═╡ 15b3cfae-dc5a-4f5a-ad3a-e3f152c88e7a
+md"""
+
+!!! hint "Solution"
+	Simulate posterior predictive data
+	```julia
+		D_missing_scientist = Vector{Union{Missing, Float64}}(undef, 7)
+		seven_sci_pred_model = seven_scientist(D_missing_scientist)
+		D_pred_seven_sci = predict(seven_sci_pred_model, seven_sci_chain)
+	```
+	Plot KDEs of the observed and simulated.
+	```julia
+		D_pred = Array(D_pred_seven_sci)
+		R = 30
+		plt = density(scientist_data, label="Observed", lw=2, xlim=[-32,30], ylim=[0, 0.25], xlabel=L"d", ylabel="density", title="Posterior predictive check on the correct model")
+		for i in 1: R
+			density!(D_pred[i, :], label="", lw=0.4)
+		end
+		plt
 	```
 
-
-The hierarchical Bayesian model is translated in `Turing` as follows.
 """
 
-# ╔═╡ f969414b-6439-489d-af7a-fbb80cc9fff3
-# Bayesian linear regression.
-@model function hier_linear_regression(X, ys; v₀ = 10^2,  s₀ = 5)
-    # Set hyperprior for the λ
-	λ ~ truncated(Cauchy(0.0,1.0), lower=0.0)
-	 # Set variance prior.
-    σ² ~ truncated(Cauchy(0, s₀), 0, Inf)
-    intercept ~ Normal(0, sqrt(v₀))
-    # Set the priors on our coefficients.
-    nfeatures = size(X, 2)
-    coefficients ~ MvNormal(nfeatures, λ)
-    # Calculate all the mu terms.
-    μs = intercept .+ X * coefficients
-
-	for i in eachindex(ys)
-		ys[i] ~ Normal(μs[i], sqrt(σ²))
-	end
-	# ys .~ Normal.(μs, sqrt(σ²))
-	# ys ~ arraydist(Normal.(μs, sqrt(σ²)))
-	# ys ~ MvNormal(μs, sqrt(σ²))
-	return (; μs, ys)
-end
-
-# ╔═╡ 7c84879e-7bfe-41da-81f8-eab4f1360511
+# ╔═╡ 9ac490e1-2b15-40f1-a07a-543ce9dd95be
 md"""
 
-Next, we apply the `Turing` model to fit our simulated dataset.
-"""
-
-# ╔═╡ ef0da715-15b3-4dee-8a8a-dccd2bcc36f6
-chain_hier = let
-	Random.seed!(100)
-	# note that we exclude the first column i.e. the intercept since it has already been included in the Turing model
-	sample(hier_linear_regression(Φ[:, 2:end], y_output; v₀ = 5, s₀= 2),
-		# NUTS{Turing.TrackerAD}(),
-		NUTS(),
-		1000)
-end;
-
-# ╔═╡ 33803b7b-a60d-4c1b-a5ac-92b5e8aae8cd
-md"""
-
-Lastly, we compare the Bayesian prediction with the frequentist. To use `Turing` to make predictions on new testing input, we can use `generated_quantities()`. For example, the following code will return samples from the posterior predictive ``\mathbf{y}_{\texttt{test}}\sim p(\mathbf{y}_{\texttt{test}}|\mathcal{D}, \mathbf{X}_{\texttt{test}})`` and also the prediction means ``\mathbf{\mu}_{\texttt{test}}\sim p(\mathbf{\mu}_{\texttt{test}}|\mathcal{D}, \mathbf{X}_{\texttt{test}})`` based on the posterior samples.
-
-
-```julia
-pred_model = hier_linear_regression(Φₜₑₛₜ[:, 2:end], 
-	Vector{Union{Missing, Float64}}(undef, size(Φₜₑₛₜ)[1]);
-	v₀ = 5, s₀= 2)
-generated_quantities(pred_model, chain_hier)
-```
-"""
-
-# ╔═╡ 1e7628d4-e698-4469-b433-a0b9c3ffaa4a
-md"""
-
-Lastly, we plot the Bayesian prediction with the frequentist together to draw some comparison. It can be observed that the Bayesian approach automatically avoids **overfitting**. Noticeably, the Bayesian prediction is more reasonable at the two ends, where the data is scarce.
-"""
-
-# ╔═╡ 0dd33f5f-7d6c-4ebc-aff4-4a545f41e9bc
-begin
-	# extract the posterior samples as a R × D matrix; the third to last are the samples for β
-	βs_samples = Array(chain_hier[:,:,1])[:, 3:end]
-	μ_preds = Φₜₑₛₜ * βs_samples'
-	plot(x_test, tₜₑₛₜ, linecolor=:black, ylim= [-3, 3], linestyle=:dash, lw=2, lc=:gray, framestyle=:default, label="true signal")
-	scatter!(x_input, y_output, markershape=:xcross, markersize=3, markerstrokewidth=3, markercolor=:gray, markeralpha=2, label="Obvs")
-	plot!(x_test, pred_y_ols, linestyle=:solid, lw=2, label="Frequentist")
-	plot!(x_test, mean(μ_preds, dims=2),  linestyle=:solid, lw=2, label="Bayesian's mean")
-end
-
-# ╔═╡ 0165ce73-cad2-4e21-ab1c-1539e853bdc2
-md"""
-
-What is shown below is the 95% prediction credible intervals for the regression function ``\mu``. It can be observed that the uncertainty grows at the two ends and shrinks when there are enough data.
-"""
-
-# ╔═╡ 81040385-7216-4b79-af50-14098754a27f
-begin
-	stats_μ_pred = describe(Chains(μ_preds'))[2]
-	lower = stats_μ_pred[:, Symbol("2.5%")]
-	upper = stats_μ_pred[:, Symbol("97.5%")]
-	middle = stats_μ_pred[:, Symbol("50.0%")]
-	plot(x_test, tₜₑₛₜ, linecolor=:black, ylim= [-3, 3], linestyle=:dash, lw=2, lc=:gray, framestyle=:default, label="true signal")
-	scatter!(x_input, y_output, markershape=:xcross, markersize=3, markerstrokewidth=3, markercolor=:gray, markeralpha=2, label="Obvs")
-	βs_hier = Array(chain_hier[:,:,1])[:, 3:end]
-	bayes_preds2 = Φₜₑₛₜ * βs_hier'
-	plot!(x_test, middle,  linestyle=:solid, lw=2, lc=4, ribbon = (middle-lower, upper-middle), label="Bayesian's mean ± 95% CI")
-end
-
-# ╔═╡ 60f86e5e-98c1-475a-badd-6eeab9ebaaf7
-md"""
-### Why does Bayesian work?
-
-Bayesian makes better-generalised predictions almost out-of-box. Compared with the frequentist approach, the Bayesian approach has two unique features that make it stand out. The first is the inclusion of prior. As discussed before, zero-mean prior distributions play a key role in *regularising* extreme values of the regression parameters. And the second factor is Bayesian's *ensemble estimation* approach versus Frequentist's plug-in principle. 
-"""
-
-# ╔═╡ 38fade9c-fb40-40cd-8c43-d70d896c1f6f
-βml_mean = sum(abs.(βₘₗ)); βml_bayes = mean(sum(abs.(βs_samples), dims=1));
-
-# ╔═╡ 7ffdb827-59aa-4742-95cc-d0ff9b9f1fed
-md"""
-
-**Regularisation effect**
-
-As discussed in one of the previous chapters, the zero mean Gaussian prior regulates the estimation such that large extreme values of ``\boldsymbol{\beta}`` are discouraged. As a result, the posterior mean of the regression parameters is also shrunken towards ``\mathbf{0}``, the prior mean. 
-
-To draw a more direct comparison, we compare the averaged ``L_1`` norms,
-```math
-\Vert \boldsymbol{\beta}\Vert_1 = \sum_{d=1}^D |\beta_d|
-```
-of the two estimations. For the Bayesian method, we report the average of samples' ``L_1`` norms.
-
-|  | Frequentist | Bayesian|
-|---|---|---|
-|``{\Vert\beta \Vert_1}``|$(round(βml_mean, digits=2))|$(round(βml_bayes, digits=2))|
-
-As expected, the Bayesian estimator is much smaller in magnitude than the unregulated OLS estimator. The posterior samples of the regression parameters are also plotted below in a `boxplot`.
-"""
-
-# ╔═╡ 7e8d71db-6cdd-4b09-b93a-9d58e74c08e3
-boxplot("β" .* string.([18:-1:1]'...), Array(chain_hier[:, end:-1:4, :]), leg=false, permute=(:x, :y), outliers=false, ylim=[-10,10], title="Box plot on Bayesian β MCMC samples")
-
-# ╔═╡ 100d76d5-61ed-4e78-8103-a450b3834647
-md"""
-
-It can be observed that the majority of the parameters are close to zero except for a handful of parameters, such as ``\beta_8, \beta_9, \beta_{11}, \beta_{12}``, which corresponds to the 8-th, 9-th, 11-th and 12-th observations' basis functions (check the plot below). In other words, the corresponding basis (or input features) are considered more important in predicting the target. And the *importance* is automatically determined by the Bayesian algorithm. 
-
-
-The posterior means of the 18 parameters are plotted below together with the observed data and their corresponding basis functions. The important bases, *i.e.* ``\beta_d`` estimated with larger magnitudes, are highlighted.
-"""
-
-# ╔═╡ fa34843a-dafc-49f4-b3c3-b5426843176b
-let
-	mean_β = mean(βs_samples, dims=1)[2:end]
-	plt = plot(x_input, mean_β, st=:sticks, xticks=true, ylabel=L"\beta", xlim=[-7,7], xlabel=L"x", marker=:circle, label=L"\mathbb{E}[\beta|\mathcal{D}]")
-	for i in 1: 50
-		lbl = i == 1 ? L"\beta^{(r)} \sim p(\beta|\mathcal{D})" : ""
-		plot!(x_input, βs_samples[i, 2:end], lw=0.2, alpha=0.5, st=:line, ls=:dash, label=lbl, lc=:gray)
-	end
-	colors= cgrad(:tab20, length(x_input),scale = :linear, categorical = true)
-	important_basis = [8,9, 11,12]
-	for (i, μ) in enumerate(x_input)
-		scatter!([μ], [y_output[i]], markershape=:xcross, markersize=3, markerstrokewidth=3, markercolor=colors[i], markeralpha=2, label="")
-		plot!(-7:0.1:7, (x) -> exp(-(x-μ)^2/(2*sϕ^2)), lw=0.8, lc=colors[i], label="")
-		
-		if i ∈ important_basis
-			plot!([μ], [mean_β[i]], st=:sticks,  marker=:circle, c=:red, label="")
-		end
-	end
-	plt
-end
-
-# ╔═╡ 4de2a978-d13b-4968-b45c-645c2da210ff
-md"""
-
-**Ensemble learning** 
-
-As discussed before, when it comes to prediction at a new testing input location ``\mathbf{x}_\ast``, Bayesian predicts by integration rather than plug-in estimation:
-
-```math
-\begin{align}
-p(\mu_\ast |\mathbf{x}_\ast, \mathcal{D}) &= \int p(\mu_\ast|\boldsymbol{\beta}, \mathbf{x}_\ast)p(\boldsymbol{\beta}|\mathcal{D}) \mathrm{d}\boldsymbol{\beta}\\
-&= \int {\boldsymbol{\phi}_\ast}^\top \boldsymbol{\beta}\cdot p(\boldsymbol{\beta}|\mathcal{D}) \mathrm{d}\boldsymbol{\beta}\\
-&\approx \frac{1}{R} \sum_{r=1}^R \boldsymbol{\phi}_\ast^\top \boldsymbol{\beta}^{(r)},
-\end{align}
-```
-where ``\{\boldsymbol{\beta}^{(r)}\}_r`` are the MCMC posterior samples. In other words, there are ``R`` models, each indexed by the MCMC samples, that make contributions to the prediction. Bayesian simple takes the average of them. The ensemble prediction idea is illustrated below. The posterior mean of the regression function ``\mathbb E[\mu^{(r)}(x_\ast)|\mathcal{D}]`` (the thick solid line) is plotted with a few individual models' predictions (gray lighter lines).
-
-"""
-
-# ╔═╡ 2c2779a7-9983-4dec-9f99-c110c2d15fef
-let
-	plt =plot(x_test, tₜₑₛₜ, linecolor=:black, ylim= [-3, 3], linestyle=:dash, lw=2, lc=:gray, framestyle=:default, label="true signal")
-	scatter!(x_input, y_output, markershape=:xcross, markersize=3, markerstrokewidth=3, markercolor=:gray, markeralpha=2, label="Obvs")
-	# plot!(xs, pred_y_ols, linestyle=:solid, lw=2, label="Frequentist")
-	βs_hier = Array(chain_hier[:,:,1])[:, 3:end]
-	bayes_preds2 = Φₜₑₛₜ * βs_hier'
-	plot!(x_test, mean(bayes_preds2, dims=2),  linestyle=:solid, lw=2, lc=4, label="Bayesian's mean")
-
-	for i in 1:35
-		plot!(x_test, bayes_preds2[:, i],  linestyle=:dash, lw=0.3, lc=4, label="")
-	end
-	plt
-end
-
-# ╔═╡ 2770759d-1da9-4194-a3fc-0e6de9241bc5
-md"""
-## Bayesian non-linear classification
-
-The basis expansion idea can also be applied to solve non-linear classification problems. As a concrete example, consider the following simulated dataset. The two classes clearly cannot be classified by a linear model since class 2 data is scattered in two centres.
-"""
-
-# ╔═╡ 850d643d-f34f-44dd-9a19-e214280d9f21
-md"""
-
-### Basis expansion with RBF
-"""
-
-# ╔═╡ 5f053027-33ce-4915-b4ba-3cafb99001a6
-md"""
-As a reference, we fit a logistic regression with the expanded design matrix. The estimated model is plotted below. The frequentist method returns an irregular decision boundary that follows the shape of class 2's data. And the posterior prediction is very clean-cut (or overconfident), *i.e.* either 0% or 100% classification predictions are made for all input locations. However, one may argue input locations further away from the data centre should be given less confident predictions.
-"""
-
-# ╔═╡ 9837843d-c1a2-4782-8872-3547de23dc8f
-md"""
-
-### Bayesian inference with `Turing`
-"""
-
-# ╔═╡ dc4715c7-83f5-48bb-9990-1aacdd3050d5
-md"""
-
-Next, we apply the Bayesian model to solve the problem. A hierarchical Bayesian logistic regression model is specified below in `Turing`. The prior structure is almost the same as the regression model and the only difference is the Bernoulli likelihood. The model is then inferred with a `NUTS()` sampler. As a quick demonstration, only 1000 samples were drawn. 
-"""
-
-# ╔═╡ d46e2d45-92ea-47df-99d6-9e4b11fedfba
-begin
-	@model function hier_logistic_reg(X, y; v₀=10^2)
-		# Set hyperprior for the λ
-		λ ~ truncated(Cauchy(0.0,1.0), lower=0.0)
-		# priors
-		β₀ ~ Normal(0, sqrt(v₀))
-		nfeatures = size(X)[2]
-		β ~ MvNormal(zeros(nfeatures), λ)
-		# Likelihood
-		μs = β₀ .+ X * β
-		# logistic transformations
-		σs = logistic.(μs)
-		for i in eachindex(y)
-			y[i] ~ Bernoulli(σs[i])
-		end
-
-		# y ~ arraydist(Bernoulli.(σs))
-		return (; σs)
-	end
-
-end;
-
-# ╔═╡ 3e7742e7-9faf-4a2c-bd05-1c5eb386492d
-md"""
-### Comparison
-
-"""
-
-# ╔═╡ fbfa39b0-d3f9-455f-bcf5-30c877a44e21
-md"""
-
-Next, we compare the two methods' prediction performance. Note that to make a prediction at a new testing location, we need to first apply the basis expansion functions and then use the Monte Carlo estimation for the Bayesian approach.
-
-One can make a prediction at ``\mathbf{x}_\ast`` by using `predict()`. As an example, the following code makes predictions on randomly generated testing data ``\mathbf{X}_\text{test}``. 
-
-```julia
-Nₜₑₛₜ = 10
-Xₜₑₛₜ = rand(Nₜₑₛₜ,2)
-ϕₜₑₛₜ = apply_rbs_expansion(Xₜₑₛₜ, D[xknots,:], σ²_rbf)
-pred_model = hier_logistic_reg(ϕₜₑₛₜ, Vector{Union{Missing, Bool}}(undef, Nₜₑₛₜ))
-predict(pred_model,  chain_bayes_class)
-```
-"""
-
-# ╔═╡ eaaaaf70-78f5-4da7-a3c4-b10757702991
-md"The Bayesian's expected predictions are plotted below together with the Frequentists prediction. It can be observed that Bayesian prediction is more reasonable. 
-
-* a circular decision boundary is formed (check the .5 contour line) rather than an irregular one
-* the prediction is no longer black and white; 
-  * at input locations further away from the observed data, the predictions are around 0.7 rather than 1.0 "
-
-# ╔═╡ e1f91394-8da7-490a-acb9-d39b95ebdf33
-md"""
 ## Appendix
-
 """
 
-# ╔═╡ 3c06eb27-6147-4092-9ac5-312d7332cebd
-md"The wage dataset"
-
-# ╔═╡ a0b03301-805e-4d05-98ce-a320efff9667
-begin
-	wage_df = dataset("ISLR", "Wage");
-end;
-
-# ╔═╡ 4cc79cbf-68cd-4376-8fd8-22f44a0fe3f8
-begin
-	K_degree = 4
-	N_wage = length(wage_df.Age)
-	x_wage = wage_df.Age
-	# create a new design matrix Φ
-	Φ_poly = Float64.(hcat([x_wage.^k for k in 0:K_degree]...))
-	lm(Φ_poly, wage_df.Wage) # fit with GLM.jl
-end;
-
-# ╔═╡ e0d46820-da53-47e0-83eb-6f6503b3b3fb
-let
-	dt = fit(ZScoreTransform, Φ_poly[:, 2:end], dims=1)
-	Φ_poly_t= [ones(N_wage) StatsBase.transform(dt, Φ_poly[:, 2:end])]
-	poly_reg = lm(Φ_poly_t, wage_df.Wage)
-	@df wage_df scatter(:Age, :Wage, ms=3, malpha=0.1, mc=1,markershape=:circle, label="", xlabel="Age", ylabel="Wage", yguidefontsize=8, xguidefontsize=8, title="$(K_degree)-th degree polynomial regression")
-	order=sortperm(wage_df.Age)
-	plot!(wage_df.Age[order], predict(poly_reg)[order], lw=3, lc=2, label="")
-end
-
-# ╔═╡ c9c15c9e-7400-4047-b8c1-2bd0bf7f4dfb
-begin
-	wage = Float64.(wage_df.Age)
-	B = bs(wage, df=7, intercept=false)
-end;
-
-# ╔═╡ 2ab8821e-393f-4687-ac38-5f55b6263944
-lbm=lm([ones(size(B)[1]) B], wage_df.Wage);
-
-# ╔═╡ 5303c9ea-95c9-49fb-a9ff-0b085c2afae0
-logrbm=glm([ones(size(B)[1]) B], wage_df.Wage .> 250, Binomial(), LogitLink());
-
-# ╔═╡ b1d7ad9f-5019-47ea-84cc-7fc53153033b
-plt_wage_reg = let
-	@df wage_df scatter(:Age, :Wage, ms=3, malpha=0.1, mc=1,markershape=:circle, label="", xlabel="Age", ylabel="Wage", yguidefontsize=8, xguidefontsize=8)
-	order=sortperm(wage_df.Age)
-	plot!(wage_df.Age[order], predict(lbm)[order], lw=3, lc=2, label="")
-end;
-
-# ╔═╡ 41c95a38-d477-4047-bb29-c9d001fc3593
-plt_wage_class=let
-	order=sortperm(wage_df.Age)
-	plot(wage_df.Age[order], predict(logrbm)[order], lw=3, lc=2, label="", ylim=[-0.01, 0.22], xlabel="Age", ylabel=L"p(\texttt{Wage} >250|\texttt{Age})", yguidefontsize=8, xguidefontsize=8)
-	id_w250 = wage_df.Wage .> 250
-	scatter!(wage_df.Age[id_w250] + 0.2*randn(sum(id_w250)), 0.2 .* ones(sum(id_w250)), markershape=:vline, markersize=3,  mc=:gray, label="")
-	scatter!(wage_df.Age[.!id_w250] + 0.2*randn(sum(.!id_w250)), zeros(sum(.!id_w250)), markershape=:vline, markersize=3, mc=:gray, label="")
-end;
-
-# ╔═╡ 2c50b998-12e7-4bba-a29c-5b892aa1612a
+# ╔═╡ 91471258-6620-448c-981c-b7202790f014
 md"""
-
-# Bayesian sparse models
-
-So far we have focused on linear models, *i.e.* the relationship between the predictors and the target (or its transformation) is linear. The linear assumption makes sense for some simple cases. However, real-world data usually exhibit a more complicated correlation structure, and the relationships usually are **non-linear**. 
-
-As an example, we consider the `Wage` dataset discussed in the book [Introduction to Statistical Learning](https://hastie.su.domains/ISLR2/). The data records a number of factors that are considered to relate to wages for a group of men from the Atlantic region of the United States. The `Age` factor and `Wage` are plotted below on the left. It seems that wage increases with age initially but declines again after approximately age 60. We have also plotted `Age` against the binary variable `Wage > 250` on the right. The chance of earning over 250k is also non-linear with respect to the age factor. 
-
-$(begin
-
-plot(plt_wage_reg, plt_wage_class, size=(650,330))
-
-end)
-
+**Foldable details**
 """
 
-# ╔═╡ 09ed0b3a-1a92-441d-80da-d4ac2b7f80b3
-md"Non-linear classification dataset"
+# ╔═╡ 44a7215f-ae44-4379-a2e6-a6ebfe45bc8e
 
-# ╔═╡ 50007061-33bc-408f-8d8a-21b05e668cc3
-begin
-	Random.seed!(123)
-	n_= 30
-	D1 = [0 0] .+ randn(n_,2)
-	# D1 = [D1; [-5 -5] .+ randn(n_,2)]
-	D2 = [5 5] .+ randn(n_,2)
-	D2 = [D2; [-5 -5] .+ randn(n_,2)]
-	D = [D1; D2]
-	targets_ = [repeat(["class 1"], n_); repeat(["class 2"], n_*2)]
-	targets = [zeros(n_); ones(n_*2)]
-	df_class = DataFrame(x₁ = D[:, 1], x₂ = D[:, 2], y=targets_)
-end;
-
-# ╔═╡ 31647188-cb5b-4e92-8ae3-91247c15d976
-begin
-	Random.seed!(100)
-	nknots = 25
-	xknots = randperm(size(D)[1])[1:nknots]
-	rbf(xs, μ, σ²) = exp.(- 0.5 .* sum((xs .- μ).^2, dims=2) ./ σ²)[:]
-	function apply_rbs_expansion(D, μs, σ²)
-		hcat(map((x)-> rbf(D, x', σ²) , eachrow(μs))...)
-	end
-	σ²_rbf = 1.0
-	Φ_class = Array{Float64}(undef, size(D)[1], length(xknots))
-	for j in 1:length(xknots)
-		Φ_class[:, j] = rbf(D, D[xknots[j], :]', σ²_rbf)
-	end
-end
-
-# ╔═╡ 009ff641-1cf6-475b-8e63-2594bb40878f
-md"""
-
-To solve the problem, we apply (multi-dimensional) RBF basis expansions with randomly selected $(nknots) data points as centres and a fixed scale ``s^2=1.0``:
-
-```math
-\text{rbf}(\mathbf{x}, \boldsymbol{\mu}, s^2) = \exp\left( -\frac{1}{2s^2} (\mathbf{x}- \boldsymbol{\mu})^\top (\mathbf{x}- \boldsymbol{\mu})\right)
-```
-
-The randomly picked expansion locations and the contour plots of the corresponding RBF functions are plotted below. Each circle represents a new feature in the expanded design matrix ``\mathbf{\Phi}_{\text{class}}``.
-"""
-
-# ╔═╡ 267c8824-ad28-4e50-b331-7b6174778562
-let
-	plt=@df df_class scatter(:x₁, :x₂, group=:y, legend=:right, xlabel=L"x_1", alpha=0.2, ylabel=L"x_2", size=(400,350) )
-
-	scatter!(D[xknots, 1], D[xknots, 2], markershape=:xcross,alpha=1, color=:gray,markerstrokewidth=2,  ms=5, label=L"{\mu}")
-
-	for i in 1:length(xknots)
-		contour!(-7:0.1:7, -7:0.1:7, (x,y)->rbf([x y], D[xknots[i],:]', σ²_rbf)[1], levels=1, alpha=0.5)
-	end
-
-	plt
-	# b = glm([ones(size(D)[1]) D], targets, Bernoulli(), LogitLink()) |> coef
-	# contourf!(-10:0.1:10, -10:0.1:10, (x, y) -> logistic(b[1] + x*b[2] + y*b[3]), fill=false, alpha=0.1)
-end
-
-# ╔═╡ e0067b9a-dc9e-4dcb-95b9-71f040dd3d5c
-rbf_freq_fit=glm([ones(length(targets)) Φ_class], targets, Binomial(), LogitLink());
-
-# ╔═╡ 30547131-c50b-4ab0-a3ce-c55385f070cd
-pred_class_feq, pred_class_freq_surf=let
-	xs = -10:0.2:10
-	ys = -10:0.2:10
-
-	function pred(x, y)
-		predict(rbf_freq_fit, [1 apply_rbs_expansion([x y], D[xknots,:], σ²_rbf)])[1]
-	end
-
-	plt = contour(xs, ys, pred, levels=10, fill=true,  c=:jet1, alpha=0.5, title="Frequentist prediction: "*L"p(y=1|x)")
-
-	plt2 = surface(xs, ys, pred, levels=10, fill=true,  c=:jet1, alpha=0.5, title="Frequentist prediction: "*L"p(y=1|x)")
-	@df df_class scatter!(plt, :x₁, :x₂, group=:y, legend=:right, xlabel=L"x_1", alpha=0.2, ylabel=L"x_2", size=(400,350), framestyle=:box )
-	plt, plt2
-end;
-
-# ╔═╡ 73718d33-7a81-41fd-bb80-66f805e08c50
-plot(pred_class_feq, pred_class_freq_surf, size=(990,400))
-
-# ╔═╡ 1d3b5326-be29-4c8d-b32a-853a7b46fd2b
-chain_bayes_class=let
-	Random.seed!(123)
-	sample(hier_logistic_reg(Φ_class, targets), NUTS(), 1000; discard_init=500)
-end;
-
-# ╔═╡ fd46999c-ad42-4ad3-a94c-271263a5d7ad
-pred_class_bayes, pred_class_bayes_surf =let
-
-	pred_class_mod = hier_logistic_reg(Φ_class, Vector{Union{Missing, Bool}}(undef, length(targets)))
-
-	β_samples = Array(chain_bayes_class[:,2:end,:])
-	xs = -10:0.2:10
-	ys = -10:0.2:10
-	
-	function pred(x, y, βs)
-		ϕₓ = [1 apply_rbs_expansion([x y], D[xknots,:], σ²_rbf)]
-		mean(logistic.(βs * ϕₓ'))
-	end
-
-	plt = contour(xs, ys, (x,y)-> pred(x, y, β_samples), levels= 10,fill=true, alpha=0.5, c=:jet, lw=1, colorbar=true, xlim=[-10,10], framestyle=:box, title="Bayesian prediction: "*L"p(y=1|x)")
-
-	plt2 = surface(xs, ys, (x,y)-> pred(x, y, β_samples), levels= 10,fill=true, alpha=0.5, c=:jet, lw=1, colorbar=true, xlim=[-10,10], framestyle=:box, title="Bayesian prediction: "*L"p(y=1|x)")
-	@df df_class scatter!(plt, :x₁, :x₂, group=:y, legend=:right, xlabel=L"x_1", alpha=0.2, ylabel=L"x_2", size=(400,350) )
-	plt, plt2
-end;
-
-# ╔═╡ fa87351a-80dc-4486-85e6-e852ec244497
-plot(pred_class_feq, pred_class_bayes, size=(990,400))
-
-# ╔═╡ 84af3bc4-e82f-4049-96a6-2d5ee018bd97
-plot(pred_class_freq_surf, pred_class_bayes_surf, size=(990,400))
-
-# ╔═╡ 2951083d-79c3-4850-9d00-8a6fe030edd0
-p_nl_cls = let
-	@df df_class scatter(:x₁, :x₂, group=:y, legend=:right, xlabel=L"x_1", ylabel=L"x_2")
-	
-	# b = glm([ones(size(D)[1]) D], targets, Bernoulli(), LogitLink()) |> coef
-	# contourf!(-10:0.1:10, -10:0.1:10, (x, y) -> logistic(b[1] + x*b[2] + y*b[3]), fill=false, alpha=0.1)
-end;
-
-# ╔═╡ db1c1f87-c460-4e32-a965-13bff50fcd40
-md"""
-
-$(begin
-plot(p_nl_cls, size=(400,350), title="A non-linear classification data")
-end)
-"""
-
-# ╔═╡ 99506fba-05a5-4701-9e38-c8aee4c845ca
 begin
 	struct Foldable{C}
 		title::String
@@ -881,54 +763,52 @@ begin
 	end
 end
 
-# ╔═╡ 3f66d862-46f7-43b4-a93f-e4b5d861b5b5
-Foldable("Find the posterior samples manually.", md"""
 
-Since the problem is relatively simple, we can manually calculate the posterior samples for the prediction mean ``\mu`` based on the following deterministic relationship:
+# ╔═╡ e896351f-ae21-48ae-a0a2-e53e9b54cd9a
+Foldable("Julia code explanation.", md"`sum(Array(post_pred_chain), dims=2)[:]` 
+* `Array(post_pred_chain)` casts an `MCMCChain` object to `Array` object so it can be processed later 
+* `sum(., dims=2)` sums the first argument (a matrix here) by rows and return a row array
+* `[:]` reduces a row array to a column vector
+")
 
-```math
-\boldsymbol{\mu}^{(r)} = \mathbf{\Phi}_{\texttt{test}}\boldsymbol{\beta}^{(r)}
-``` 
+# ╔═╡ 5202ef8d-dcd5-4882-a18e-b1d2d4769387
+begin
+	D_missing_scientist = Vector{Union{Missing, Float64}}(undef, 7)
+	seven_sci_pred_model = seven_scientist(D_missing_scientist)
+	D_pred_seven_sci = predict(seven_sci_pred_model, seven_sci_chain)
+end;
 
-which can be implemented as 
-```julia
-# extract the posterior samples as a R × (N+1) matrix; the third to last are the samples for β
-βs_samples = Array(chain_hier[:,:,1])[:, 3:end]
-# need to apply a transpose on the β samples such that the matrix multiplication makes sense
-μ_preds = Φₜₑₛₜ * βs_samples'
-```
-""")
+# ╔═╡ 645b1343-6717-4920-a319-d9da7e14b29f
+begin
+	D_pred_seven = Array(D_pred_seven_sci)
+	plt_seven = density(scientist_data, label="Observed", lw=2, xlim=[-32,30], ylim=[0, 0.25], xlabel=L"d", ylabel="density", title="Posterior predictive check on the seven-scientist")
+	for i in 1: 30
+		density!(D_pred_seven[i, :], label="", lw=0.4)
+	end
+end;
+
+# ╔═╡ dda506eb-db21-436b-ad9f-3b95450347c7
+let
+	plt_seven
+end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
-CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
-DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-GLM = "38e38edf-8417-5370-95a0-9cbb8c7f171a"
+HypertextLiteral = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
-LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
-RDatasets = "ce6b1742-4840-55fa-b093-852dadbb1d8b"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
-Splines2 = "5a560754-308a-11ea-3701-ef72685e98d6"
-StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
-StatsFuns = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
 StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
 Turing = "fce5fe82-541a-59a6-adf8-730c64b5f9a0"
 
 [compat]
-CSV = "~0.10.4"
-DataFrames = "~1.3.4"
-GLM = "~1.8.0"
+HypertextLiteral = "~0.9.4"
 LaTeXStrings = "~1.3.0"
 PlutoUI = "~0.7.39"
-RDatasets = "~0.7.7"
-Splines2 = "~0.2.1"
-StatsBase = "~0.33.21"
-StatsFuns = "~1.0.1"
 StatsPlots = "~0.15.1"
-Turing = "~0.21.10"
+Turing = "~0.21.9"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -937,7 +817,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.5"
 manifest_format = "2.0"
-project_hash = "501ffe42f70684df02e7d0563b10de854bdaffd3"
+project_hash = "d569651cdea78fefab153279e96f11f256ceae94"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
@@ -1072,12 +952,6 @@ git-tree-sha1 = "19a35467a82e236ff51bc17a3a44b69ef35185a2"
 uuid = "6e34b625-4abd-537c-b88f-471c36dfa7a0"
 version = "1.0.8+0"
 
-[[deps.CSV]]
-deps = ["CodecZlib", "Dates", "FilePathsBase", "InlineStrings", "Mmap", "Parsers", "PooledArrays", "SentinelArrays", "Tables", "Unicode", "WeakRefStrings"]
-git-tree-sha1 = "873fb188a4b9d76549b81465b1f75c82aaf59238"
-uuid = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
-version = "0.10.4"
-
 [[deps.Cairo_jll]]
 deps = ["Artifacts", "Bzip2_jll", "CompilerSupportLibraries_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "JLLWrappers", "LZO_jll", "Libdl", "Pixman_jll", "Pkg", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Zlib_jll", "libpng_jll"]
 git-tree-sha1 = "4b859a208b2397a7a623a03449e4636bdb17bcf2"
@@ -1090,17 +964,11 @@ git-tree-sha1 = "f641eb0a4f00c343bbc32346e1217b86f3ce9dad"
 uuid = "49dc2e85-a5d0-5ad3-a950-438e2897f1b9"
 version = "0.5.1"
 
-[[deps.CategoricalArrays]]
-deps = ["DataAPI", "Future", "Missings", "Printf", "Requires", "Statistics", "Unicode"]
-git-tree-sha1 = "5f5a975d996026a8dd877c35fe26a7b8179c02ba"
-uuid = "324d7699-5711-5eae-9e2f-1d82baa6b597"
-version = "0.10.6"
-
 [[deps.ChainRules]]
-deps = ["Adapt", "ChainRulesCore", "Compat", "Distributed", "GPUArraysCore", "IrrationalConstants", "LinearAlgebra", "Random", "RealDot", "SparseArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "650415ad4c2a007b17f577cb081d9376cc908b6f"
+deps = ["ChainRulesCore", "Compat", "Distributed", "GPUArraysCore", "IrrationalConstants", "LinearAlgebra", "Random", "RealDot", "SparseArrays", "Statistics"]
+git-tree-sha1 = "f9d6dd293ed05233d37a5644f880f5def9fdfae3"
 uuid = "082447d4-558c-5d27-93f4-14fc19e9eca2"
-version = "1.44.2"
+version = "1.42.0"
 
 [[deps.ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra", "SparseArrays"]
@@ -1168,9 +1036,9 @@ version = "0.3.0"
 
 [[deps.Compat]]
 deps = ["Base64", "Dates", "DelimitedFiles", "Distributed", "InteractiveUtils", "LibGit2", "Libdl", "LinearAlgebra", "Markdown", "Mmap", "Pkg", "Printf", "REPL", "Random", "SHA", "Serialization", "SharedArrays", "Sockets", "SparseArrays", "Statistics", "Test", "UUIDs", "Unicode"]
-git-tree-sha1 = "78bee250c6826e1cf805a88b7f1e86025275d208"
+git-tree-sha1 = "9be8be1d8a6f44b96482c8af52238ea7987da3e3"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "3.46.0"
+version = "3.45.0"
 
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -1190,9 +1058,9 @@ version = "0.1.2"
 
 [[deps.ConstructionBase]]
 deps = ["LinearAlgebra"]
-git-tree-sha1 = "fb21ddd70a051d882a1686a5a550990bbe371a95"
+git-tree-sha1 = "59d00b3139a9de4eb961057eabb65ac6522be954"
 uuid = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
-version = "1.4.1"
+version = "1.4.0"
 
 [[deps.Contour]]
 git-tree-sha1 = "d05d9e7b7aedff4e5b51a029dced05cfb6125781"
@@ -1208,12 +1076,6 @@ version = "4.1.1"
 git-tree-sha1 = "fb5f5316dd3fd4c5e7c30a24d50643b73e37cd40"
 uuid = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
 version = "1.10.0"
-
-[[deps.DataFrames]]
-deps = ["Compat", "DataAPI", "Future", "InvertedIndices", "IteratorInterfaceExtensions", "LinearAlgebra", "Markdown", "Missings", "PooledArrays", "PrettyTables", "Printf", "REPL", "Reexport", "SortingAlgorithms", "Statistics", "TableTraits", "Tables", "Unicode"]
-git-tree-sha1 = "daa21eb85147f72e41f6352a57fccea377e310a9"
-uuid = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-version = "1.3.4"
 
 [[deps.DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
@@ -1275,15 +1137,15 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[deps.Distributions]]
 deps = ["ChainRulesCore", "DensityInterface", "FillArrays", "LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SparseArrays", "SpecialFunctions", "Statistics", "StatsBase", "StatsFuns", "Test"]
-git-tree-sha1 = "6180800cebb409d7eeef8b2a9a562107b9705be5"
+git-tree-sha1 = "aafa0665e3db0d3d0890cdc8191ea03dc279b042"
 uuid = "31c24e10-a181-5473-b8eb-7969acd0382f"
-version = "0.25.67"
+version = "0.25.66"
 
 [[deps.DistributionsAD]]
 deps = ["Adapt", "ChainRules", "ChainRulesCore", "Compat", "DiffRules", "Distributions", "FillArrays", "LinearAlgebra", "NaNMath", "PDMats", "Random", "Requires", "SpecialFunctions", "StaticArrays", "StatsBase", "StatsFuns", "ZygoteRules"]
-git-tree-sha1 = "74dd5dac82812af7041ae322584d5c2181dead5c"
+git-tree-sha1 = "ec811a2688b3504ce5b315fe7bc86464480d5964"
 uuid = "ced4e74d-a319-5a8a-b0ac-84af2272839c"
-version = "0.6.42"
+version = "0.6.41"
 
 [[deps.DocStringExtensions]]
 deps = ["LibGit2"]
@@ -1303,10 +1165,10 @@ uuid = "fa6b7ba4-c1ee-5f82-b5fc-ecf0adba8f74"
 version = "0.6.8"
 
 [[deps.DynamicPPL]]
-deps = ["AbstractMCMC", "AbstractPPL", "BangBang", "Bijectors", "ChainRulesCore", "ConstructionBase", "Distributions", "DocStringExtensions", "LinearAlgebra", "MacroTools", "Random", "Setfield", "Test", "ZygoteRules"]
-git-tree-sha1 = "b1d485d5e92a16545d14775d08eb22ca7a840515"
+deps = ["AbstractMCMC", "AbstractPPL", "BangBang", "Bijectors", "ChainRulesCore", "Distributions", "LinearAlgebra", "MacroTools", "Random", "Setfield", "Test", "ZygoteRules"]
+git-tree-sha1 = "c6f574d855670c2906af3f4053e6db10224e5dda"
 uuid = "366bfd00-2699-11ea-058f-f148b4cae6d8"
-version = "0.20.0"
+version = "0.19.3"
 
 [[deps.EarCut_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -1325,11 +1187,6 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "bad72f730e9e91c08d9427d5e8db95478a3c323d"
 uuid = "2e619515-83b5-522b-bb60-26c02a35a201"
 version = "2.4.8+0"
-
-[[deps.ExprTools]]
-git-tree-sha1 = "56559bbef6ca5ea0c0818fa5c90320398a6fbf8d"
-uuid = "e2ba6199-217a-4e67-a87a-7c52f15ade04"
-version = "0.1.8"
 
 [[deps.Extents]]
 git-tree-sha1 = "5e1e4c53fa39afe63a7d356e30452249365fba99"
@@ -1360,18 +1217,6 @@ git-tree-sha1 = "c6033cc3892d0ef5bb9cd29b7f2f0331ea5184ea"
 uuid = "f5851436-0d7a-5f13-b9de-f02708fd171a"
 version = "3.3.10+0"
 
-[[deps.FileIO]]
-deps = ["Pkg", "Requires", "UUIDs"]
-git-tree-sha1 = "94f5101b96d2d968ace56f7f2db19d0a5f592e28"
-uuid = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
-version = "1.15.0"
-
-[[deps.FilePathsBase]]
-deps = ["Compat", "Dates", "Mmap", "Printf", "Test", "UUIDs"]
-git-tree-sha1 = "129b104185df66e408edd6625d480b7f9e9823a0"
-uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
-version = "0.9.18"
-
 [[deps.FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 
@@ -1401,9 +1246,9 @@ version = "0.4.2"
 
 [[deps.ForwardDiff]]
 deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "LinearAlgebra", "LogExpFunctions", "NaNMath", "Preferences", "Printf", "Random", "SpecialFunctions", "StaticArrays"]
-git-tree-sha1 = "187198a4ed8ccd7b5d99c41b69c679269ea2b2d4"
+git-tree-sha1 = "425e126d13023600ebdecd4cf037f96e396187dd"
 uuid = "f6369f11-7733-5829-9624-2563aa707210"
-version = "0.10.32"
+version = "0.10.31"
 
 [[deps.FreeType2_jll]]
 deps = ["Artifacts", "Bzip2_jll", "JLLWrappers", "Libdl", "Pkg", "Zlib_jll"]
@@ -1422,12 +1267,6 @@ git-tree-sha1 = "241552bc2209f0fa068b6415b1942cc0aa486bcc"
 uuid = "069b7b12-0de2-55c6-9aab-29f3d0a68a2e"
 version = "1.1.2"
 
-[[deps.FunctionWrappersWrappers]]
-deps = ["FunctionWrappers"]
-git-tree-sha1 = "2da4f223fbc4328b389bcce5f3e93dbe71678590"
-uuid = "77dc65aa-8811-40c2-897b-53d922fa7daf"
-version = "0.1.0"
-
 [[deps.Functors]]
 git-tree-sha1 = "223fffa49ca0ff9ce4f875be001ffe173b2b7de4"
 uuid = "d9f16b24-f501-4c13-a1f2-28368ffc5196"
@@ -1443,17 +1282,11 @@ git-tree-sha1 = "d972031d28c8c8d9d7b41a536ad7bb0c2579caca"
 uuid = "0656b61e-2033-5cc2-a64a-77c0f6c09b89"
 version = "3.3.8+0"
 
-[[deps.GLM]]
-deps = ["Distributions", "LinearAlgebra", "Printf", "Reexport", "SparseArrays", "SpecialFunctions", "Statistics", "StatsBase", "StatsFuns", "StatsModels"]
-git-tree-sha1 = "039118892476c2bf045a43b88fcb75ed566000ff"
-uuid = "38e38edf-8417-5370-95a0-9cbb8c7f171a"
-version = "1.8.0"
-
 [[deps.GPUArraysCore]]
 deps = ["Adapt"]
-git-tree-sha1 = "6872f5ec8fd1a38880f027a26739d42dcda6691f"
+git-tree-sha1 = "d88b17a38322e153c519f5a9ed8d91e9baa03d8f"
 uuid = "46192b85-c4d5-4398-a991-12ede77f4527"
-version = "0.1.2"
+version = "0.1.1"
 
 [[deps.GR]]
 deps = ["Base64", "DelimitedFiles", "GR_jll", "HTTP", "JSON", "Libdl", "LinearAlgebra", "Pkg", "Printf", "Random", "RelocatableFolders", "Serialization", "Sockets", "Test", "UUIDs"]
@@ -1548,12 +1381,6 @@ git-tree-sha1 = "4da0f88e9a39111c2fa3add390ab15f3a44f3ca3"
 uuid = "22cec73e-a1b8-11e9-2c92-598750a2cf9c"
 version = "0.3.1"
 
-[[deps.InlineStrings]]
-deps = ["Parsers"]
-git-tree-sha1 = "d19f9edd8c34760dca2de2b503f969d8700ed288"
-uuid = "842dd82b-1e85-43dc-bf29-5d0ee9dffc48"
-version = "1.1.4"
-
 [[deps.InplaceOps]]
 deps = ["LinearAlgebra", "Test"]
 git-tree-sha1 = "50b41d59e7164ab6fda65e71049fee9d890731ff"
@@ -1572,15 +1399,15 @@ uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
 [[deps.Interpolations]]
 deps = ["Adapt", "AxisAlgorithms", "ChainRulesCore", "LinearAlgebra", "OffsetArrays", "Random", "Ratios", "Requires", "SharedArrays", "SparseArrays", "StaticArrays", "WoodburyMatrices"]
-git-tree-sha1 = "64f138f9453a018c8f3562e7bae54edc059af249"
+git-tree-sha1 = "23e651bbb8d00e9971015d0dd306b780edbdb6b9"
 uuid = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
-version = "0.14.4"
+version = "0.14.3"
 
 [[deps.IntervalSets]]
 deps = ["Dates", "Random", "Statistics"]
-git-tree-sha1 = "076bb0da51a8c8d1229936a1af7bdfacd65037e1"
+git-tree-sha1 = "57af5939800bce15980bddd2426912c4f83012d8"
 uuid = "8197267c-284f-5f27-9208-e0e47529a953"
-version = "0.7.2"
+version = "0.7.1"
 
 [[deps.InverseFunctions]]
 deps = ["Test"]
@@ -1779,9 +1606,9 @@ version = "5.3.1"
 
 [[deps.MCMCDiagnosticTools]]
 deps = ["AbstractFFTs", "DataAPI", "Distributions", "LinearAlgebra", "MLJModelInterface", "Random", "SpecialFunctions", "Statistics", "StatsBase", "Tables"]
-git-tree-sha1 = "59ac3cc5c08023f58b9cd6a5c447c4407cede6bc"
+git-tree-sha1 = "058d08594e91ba1d98dcc3669f9421a76824aa95"
 uuid = "be115224-59cd-429b-ad48-344e309966f0"
-version = "0.1.4"
+version = "0.1.3"
 
 [[deps.MKL_jll]]
 deps = ["Artifacts", "IntelOpenMP_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "Pkg"]
@@ -1840,12 +1667,6 @@ version = "1.0.2"
 
 [[deps.Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
-
-[[deps.Mocking]]
-deps = ["Compat", "ExprTools"]
-git-tree-sha1 = "29714d0a7a8083bba8427a4fbfb00a540c681ce7"
-uuid = "78c3b35d-d492-501b-9361-3d52fe80e533"
-version = "0.7.3"
 
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
@@ -1998,12 +1819,6 @@ git-tree-sha1 = "8d1f54886b9037091edf146b517989fc4a09efec"
 uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 version = "0.7.39"
 
-[[deps.PooledArrays]]
-deps = ["DataAPI", "Future"]
-git-tree-sha1 = "a6062fe4063cdafe78f4a0a81cfffb89721b30e7"
-uuid = "2dfb63ee-cc39-5dd5-95bd-886bf059d720"
-version = "1.4.2"
-
 [[deps.Preferences]]
 deps = ["TOML"]
 git-tree-sha1 = "47e5f437cc0e7ef2ce8406ce1e7e24d44915f88d"
@@ -2044,18 +1859,6 @@ git-tree-sha1 = "78aadffb3efd2155af139781b8a8df1ef279ea39"
 uuid = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
 version = "2.4.2"
 
-[[deps.RData]]
-deps = ["CategoricalArrays", "CodecZlib", "DataFrames", "Dates", "FileIO", "Requires", "TimeZones", "Unicode"]
-git-tree-sha1 = "19e47a495dfb7240eb44dc6971d660f7e4244a72"
-uuid = "df47a6cb-8c03-5eed-afd8-b6050d6c41da"
-version = "0.8.3"
-
-[[deps.RDatasets]]
-deps = ["CSV", "CodecZlib", "DataFrames", "FileIO", "Printf", "RData", "Reexport"]
-git-tree-sha1 = "2720e6f6afb3e562ccb70a6b62f8f308ff810333"
-uuid = "ce6b1742-4840-55fa-b093-852dadbb1d8b"
-version = "0.7.7"
-
 [[deps.REPL]]
 deps = ["InteractiveUtils", "Markdown", "Sockets", "Unicode"]
 uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
@@ -2093,10 +1896,10 @@ uuid = "01d81517-befc-4cb6-b9ec-a95719d0359c"
 version = "0.6.3"
 
 [[deps.RecursiveArrayTools]]
-deps = ["Adapt", "ArrayInterfaceCore", "ArrayInterfaceStaticArraysCore", "ChainRulesCore", "DocStringExtensions", "FillArrays", "GPUArraysCore", "IteratorInterfaceExtensions", "LinearAlgebra", "RecipesBase", "StaticArraysCore", "Statistics", "Tables", "ZygoteRules"]
-git-tree-sha1 = "3004608dc42101a944e44c1c68b599fa7c669080"
+deps = ["Adapt", "ArrayInterfaceCore", "ArrayInterfaceStaticArraysCore", "ChainRulesCore", "DocStringExtensions", "FillArrays", "GPUArraysCore", "LinearAlgebra", "RecipesBase", "StaticArraysCore", "Statistics", "ZygoteRules"]
+git-tree-sha1 = "4ce7584604489e537b2ab84ed92b4107d03377f0"
 uuid = "731186ca-8d62-57ce-b412-fbd966d074cd"
-version = "2.32.0"
+version = "2.31.2"
 
 [[deps.Reexport]]
 git-tree-sha1 = "45e428421666073eab6f2da5c9d310d99bb12f9b"
@@ -2138,10 +1941,10 @@ uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 version = "0.7.0"
 
 [[deps.SciMLBase]]
-deps = ["ArrayInterfaceCore", "CommonSolve", "ConstructionBase", "Distributed", "DocStringExtensions", "FunctionWrappersWrappers", "IteratorInterfaceExtensions", "LinearAlgebra", "Logging", "Markdown", "RecipesBase", "RecursiveArrayTools", "StaticArraysCore", "Statistics", "Tables"]
-git-tree-sha1 = "f1bc477b771a75178da44adb252fdc70b4b22e24"
+deps = ["ArrayInterfaceCore", "CommonSolve", "ConstructionBase", "Distributed", "DocStringExtensions", "IteratorInterfaceExtensions", "LinearAlgebra", "Logging", "Markdown", "RecipesBase", "RecursiveArrayTools", "StaticArraysCore", "Statistics", "Tables"]
+git-tree-sha1 = "3077587613bd4ba73e2acd4df2d1300ef19d8513"
 uuid = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
-version = "1.50.1"
+version = "1.47.0"
 
 [[deps.ScientificTypesBase]]
 git-tree-sha1 = "a8e18eb383b5ecf1b5e6fc237eb39255044fd92b"
@@ -2173,11 +1976,6 @@ version = "0.8.2"
 deps = ["Distributed", "Mmap", "Random", "Serialization"]
 uuid = "1a1011a3-84de-559e-8e89-a11a2f7dc383"
 
-[[deps.ShiftedArrays]]
-git-tree-sha1 = "22395afdcf37d6709a5a0766cc4a5ca52cb85ea0"
-uuid = "1277b4bf-5013-50f5-be3d-901d8477a67a"
-version = "1.0.0"
-
 [[deps.Showoff]]
 deps = ["Dates", "Grisu"]
 git-tree-sha1 = "91eddf657aca81df9ae6ceb20b959ae5653ad1de"
@@ -2204,15 +2002,9 @@ uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [[deps.SpecialFunctions]]
 deps = ["ChainRulesCore", "IrrationalConstants", "LogExpFunctions", "OpenLibm_jll", "OpenSpecFun_jll"]
-git-tree-sha1 = "d75bda01f8c31ebb72df80a46c88b25d1c79c56d"
+git-tree-sha1 = "5d65101b2ed17a8862c4c05639c3ddc7f3d791e1"
 uuid = "276daf66-3868-5448-9aa4-cd146d93841b"
-version = "2.1.7"
-
-[[deps.Splines2]]
-deps = ["LinearAlgebra", "OffsetArrays", "Statistics"]
-git-tree-sha1 = "0c929daf7cb741b611aa9f89f81d53e2fd9c291a"
-uuid = "5a560754-308a-11ea-3701-ef72685e98d6"
-version = "0.2.1"
+version = "1.8.7"
 
 [[deps.SplittablesBase]]
 deps = ["Setfield", "Test"]
@@ -2222,14 +2014,14 @@ version = "0.1.14"
 
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "Random", "StaticArraysCore", "Statistics"]
-git-tree-sha1 = "85bc4b051546db130aeb1e8a696f1da6d4497200"
+git-tree-sha1 = "23368a3313d12a2326ad0035f0db0c0966f438ef"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "1.5.5"
+version = "1.5.2"
 
 [[deps.StaticArraysCore]]
-git-tree-sha1 = "5b413a57dd3cea38497d745ce088ac8592fbb5be"
+git-tree-sha1 = "66fe9eb253f910fe8cf161953880cfdaef01cdf0"
 uuid = "1e83bf80-4336-4d27-bf5d-d5a4f845583c"
-version = "1.1.0"
+version = "1.0.1"
 
 [[deps.StatisticalTraits]]
 deps = ["ScientificTypesBase"]
@@ -2259,12 +2051,6 @@ git-tree-sha1 = "5783b877201a82fc0014cbf381e7e6eb130473a4"
 uuid = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
 version = "1.0.1"
 
-[[deps.StatsModels]]
-deps = ["DataAPI", "DataStructures", "LinearAlgebra", "Printf", "REPL", "ShiftedArrays", "SparseArrays", "StatsBase", "StatsFuns", "Tables"]
-git-tree-sha1 = "f8ba54b202c77622a713e25e7616d618308b34d3"
-uuid = "3eaba693-59b7-5ba5-a881-562e759f1c8d"
-version = "0.6.31"
-
 [[deps.StatsPlots]]
 deps = ["AbstractFFTs", "Clustering", "DataStructures", "DataValues", "Distributions", "Interpolations", "KernelDensity", "LinearAlgebra", "MultivariateStats", "Observables", "Plots", "RecipesBase", "RecipesPipeline", "Reexport", "StatsBase", "TableOperations", "Tables", "Widgets"]
 git-tree-sha1 = "2b35ba790f1f823872dcf378a6d3c3b520092eac"
@@ -2272,10 +2058,10 @@ uuid = "f3b207a7-027a-5e70-b257-86293d7955fd"
 version = "0.15.1"
 
 [[deps.StructArrays]]
-deps = ["Adapt", "DataAPI", "StaticArraysCore", "Tables"]
-git-tree-sha1 = "8c6ac65ec9ab781af05b08ff305ddc727c25f680"
+deps = ["Adapt", "DataAPI", "StaticArrays", "Tables"]
+git-tree-sha1 = "ec47fb6069c57f1cee2f67541bf8f23415146de7"
 uuid = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
-version = "0.6.12"
+version = "0.6.11"
 
 [[deps.SuiteSparse]]
 deps = ["Libdl", "LinearAlgebra", "Serialization", "SparseArrays"]
@@ -2325,12 +2111,6 @@ version = "0.1.5"
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
-[[deps.TimeZones]]
-deps = ["Dates", "Downloads", "InlineStrings", "LazyArtifacts", "Mocking", "Printf", "RecipesBase", "Scratch", "Unicode"]
-git-tree-sha1 = "d634a3641062c040fc8a7e2a3ea17661cc159688"
-uuid = "f269a46b-ccf7-5d73-abea-4c690281aa53"
-version = "1.9.0"
-
 [[deps.Tracker]]
 deps = ["Adapt", "DiffRules", "ForwardDiff", "LinearAlgebra", "LogExpFunctions", "MacroTools", "NNlib", "NaNMath", "Printf", "Random", "Requires", "SpecialFunctions", "Statistics"]
 git-tree-sha1 = "0874c1b5de1b5529b776cfeca3ec0acfada97b1b"
@@ -2356,9 +2136,9 @@ version = "0.1.6"
 
 [[deps.Turing]]
 deps = ["AbstractMCMC", "AdvancedHMC", "AdvancedMH", "AdvancedPS", "AdvancedVI", "BangBang", "Bijectors", "DataStructures", "DiffResults", "Distributions", "DistributionsAD", "DocStringExtensions", "DynamicPPL", "EllipticalSliceSampling", "ForwardDiff", "Libtask", "LinearAlgebra", "MCMCChains", "NamedArrays", "Printf", "Random", "Reexport", "Requires", "SciMLBase", "SpecialFunctions", "Statistics", "StatsBase", "StatsFuns", "Tracker", "ZygoteRules"]
-git-tree-sha1 = "c43c5b5e2c6dcebee8705c25dbf22f4411e992ab"
+git-tree-sha1 = "d5e128d1a8db72ebdd2b76644d19128cf90dda29"
 uuid = "fce5fe82-541a-59a6-adf8-730c64b5f9a0"
-version = "0.21.10"
+version = "0.21.9"
 
 [[deps.URIs]]
 git-tree-sha1 = "e59ecc5a41b000fa94423a578d29290c7266fc10"
@@ -2399,12 +2179,6 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "4528479aa01ee1b3b4cd0e6faef0e04cf16466da"
 uuid = "2381bf8a-dfd0-557d-9999-79630e7b1b91"
 version = "1.25.0+0"
-
-[[deps.WeakRefStrings]]
-deps = ["DataAPI", "InlineStrings", "Parsers"]
-git-tree-sha1 = "b1be2855ed9ed8eac54e5caff2afcdb442d52c23"
-uuid = "ea10d353-3f73-51f8-a26c-33c1cb351aa5"
-version = "1.4.2"
 
 [[deps.Widgets]]
 deps = ["Colors", "Dates", "Observables", "OrderedCollections"]
@@ -2638,87 +2412,72 @@ version = "1.4.1+0"
 """
 
 # ╔═╡ Cell order:
-# ╟─f49dc24c-2220-11ed-0ff2-2df7e9f3a0cf
-# ╟─709e2b13-67d2-4e5b-b148-aba16431b0ae
-# ╟─2c50b998-12e7-4bba-a29c-5b892aa1612a
-# ╟─81a47ad3-18de-4437-a5b2-c803e7938842
-# ╟─7f290bd5-06be-4627-b34a-4748521c48e8
-# ╟─89a89522-52d4-4591-a22f-5f0737176cf8
-# ╟─9c53adc3-8ecc-4c45-9c12-addfb30edf8d
-# ╟─4d0c7d09-4eac-40ab-9824-5b8739d4b146
-# ╟─eb9e22f8-2867-4320-9c81-5d63262089cc
-# ╠═4cc79cbf-68cd-4376-8fd8-22f44a0fe3f8
-# ╟─8b3660d5-e3a6-4f25-9c5b-553ca36a6b28
-# ╟─e0d46820-da53-47e0-83eb-6f6503b3b3fb
-# ╟─b7981b85-d045-442b-89d0-d20cca6381f3
-# ╟─988fb829-5ddb-43af-8836-f4fc95a945af
-# ╟─9e54b0ce-baaa-4116-a08e-2cc93e12026c
-# ╟─df342965-f2eb-456f-b4d4-1fc76615e52a
-# ╟─d6c1074b-530b-453a-a1e4-cb41b09f4fdf
-# ╟─47d9675b-4427-45af-a02a-950961692d5d
-# ╟─2aebebfd-7009-4def-8362-1617d18b5c64
-# ╟─0edef66b-e323-475b-bd83-972afe153c23
-# ╟─e9dfde47-306d-4f04-b468-2178c00cce74
-# ╟─61398b43-d307-4e03-9097-1aae3414a8e7
-# ╟─e21db2b0-2c2f-4bfd-9e5a-05b06db4d0fe
-# ╟─2a0c544f-0442-41d7-84b7-b716b2a909ec
-# ╟─bf7857fd-1b69-4f54-86b7-4f6082081693
-# ╟─2097b04a-c6a2-433a-8393-a5c4794db6c1
-# ╟─53c7c995-c9c3-409c-9a77-1bea31bd9fa9
-# ╟─cd3c7fa8-dc4c-4101-b9d5-47e92c8df6f3
-# ╟─c2ac1425-cff9-4cd9-8b6e-6465a9299274
-# ╟─8975b5af-3e5b-45ba-8954-6336addaa246
-# ╟─10dac645-8078-45d7-ad66-64160f99a9a4
-# ╟─100e5718-52df-4451-a42a-58c54ca5dfe5
-# ╠═f969414b-6439-489d-af7a-fbb80cc9fff3
-# ╟─7c84879e-7bfe-41da-81f8-eab4f1360511
-# ╠═ef0da715-15b3-4dee-8a8a-dccd2bcc36f6
-# ╟─33803b7b-a60d-4c1b-a5ac-92b5e8aae8cd
-# ╟─3f66d862-46f7-43b4-a93f-e4b5d861b5b5
-# ╟─1e7628d4-e698-4469-b433-a0b9c3ffaa4a
-# ╟─0dd33f5f-7d6c-4ebc-aff4-4a545f41e9bc
-# ╟─0165ce73-cad2-4e21-ab1c-1539e853bdc2
-# ╟─81040385-7216-4b79-af50-14098754a27f
-# ╟─60f86e5e-98c1-475a-badd-6eeab9ebaaf7
-# ╟─7ffdb827-59aa-4742-95cc-d0ff9b9f1fed
-# ╟─38fade9c-fb40-40cd-8c43-d70d896c1f6f
-# ╟─7e8d71db-6cdd-4b09-b93a-9d58e74c08e3
-# ╟─100d76d5-61ed-4e78-8103-a450b3834647
-# ╟─fa34843a-dafc-49f4-b3c3-b5426843176b
-# ╟─4de2a978-d13b-4968-b45c-645c2da210ff
-# ╟─2c2779a7-9983-4dec-9f99-c110c2d15fef
-# ╟─2770759d-1da9-4194-a3fc-0e6de9241bc5
-# ╟─db1c1f87-c460-4e32-a965-13bff50fcd40
-# ╟─850d643d-f34f-44dd-9a19-e214280d9f21
-# ╟─009ff641-1cf6-475b-8e63-2594bb40878f
-# ╠═31647188-cb5b-4e92-8ae3-91247c15d976
-# ╟─267c8824-ad28-4e50-b331-7b6174778562
-# ╟─5f053027-33ce-4915-b4ba-3cafb99001a6
-# ╠═e0067b9a-dc9e-4dcb-95b9-71f040dd3d5c
-# ╟─30547131-c50b-4ab0-a3ce-c55385f070cd
-# ╟─73718d33-7a81-41fd-bb80-66f805e08c50
-# ╟─9837843d-c1a2-4782-8872-3547de23dc8f
-# ╟─dc4715c7-83f5-48bb-9990-1aacdd3050d5
-# ╠═d46e2d45-92ea-47df-99d6-9e4b11fedfba
-# ╠═1d3b5326-be29-4c8d-b32a-853a7b46fd2b
-# ╟─3e7742e7-9faf-4a2c-bd05-1c5eb386492d
-# ╟─fbfa39b0-d3f9-455f-bcf5-30c877a44e21
-# ╟─eaaaaf70-78f5-4da7-a3c4-b10757702991
-# ╟─fd46999c-ad42-4ad3-a94c-271263a5d7ad
-# ╟─fa87351a-80dc-4486-85e6-e852ec244497
-# ╟─84af3bc4-e82f-4049-96a6-2d5ee018bd97
-# ╟─e1f91394-8da7-490a-acb9-d39b95ebdf33
-# ╟─3c06eb27-6147-4092-9ac5-312d7332cebd
-# ╠═a0b03301-805e-4d05-98ce-a320efff9667
-# ╠═ff6fcfa7-dcd1-4529-ac83-46f9f1e17bc7
-# ╠═c9c15c9e-7400-4047-b8c1-2bd0bf7f4dfb
-# ╠═2ab8821e-393f-4687-ac38-5f55b6263944
-# ╠═5303c9ea-95c9-49fb-a9ff-0b085c2afae0
-# ╠═b1d7ad9f-5019-47ea-84cc-7fc53153033b
-# ╠═41c95a38-d477-4047-bb29-c9d001fc3593
-# ╟─09ed0b3a-1a92-441d-80da-d4ac2b7f80b3
-# ╠═50007061-33bc-408f-8d8a-21b05e668cc3
-# ╠═2951083d-79c3-4850-9d00-8a6fe030edd0
-# ╠═99506fba-05a5-4701-9e38-c8aee4c845ca
+# ╟─68018998-17d7-11ed-2d5e-2b2d5f8b0301
+# ╟─ec23cd37-94df-489f-b892-24bffd755b50
+# ╟─a89d9509-7564-4b6e-bba6-0de1f3f7d64e
+# ╟─717cb1fc-184d-4970-a56c-d3f8133c5034
+# ╟─4b2fc478-b825-4758-b384-d7b7186b8e21
+# ╟─67d93f23-899b-4ddf-83f1-5d320c23f22f
+# ╟─b2980969-462c-44fe-bb66-fb5d968fc5f6
+# ╟─aaeb3a9d-d655-427d-a397-62cab819e346
+# ╟─d4a8b997-5dff-49b1-aa09-017051405790
+# ╟─0e5f3c06-8e3e-4b66-a42e-78a1db358987
+# ╟─45a74e6a-ae59-49bd-8b41-ee1c73153f15
+# ╟─8fbef2d5-9591-46fc-a35e-f44a0d492748
+# ╟─c8863691-ffdc-4629-b0b6-acd61d6d905f
+# ╟─fefbf8e9-8920-4555-87bc-daf2e2a231f1
+# ╟─f56ea0d7-c4e8-469e-9863-adc2d9c917be
+# ╟─a86ed206-aed8-40b4-89aa-1abf0d16fbb2
+# ╟─b49725d0-8239-4129-b0d6-982f998be91f
+# ╠═a2b84c25-bf58-411d-893b-48c8384cae04
+# ╟─f2dd09fa-9204-4f1e-80da-2f1bb185b3a8
+# ╟─d005c6e6-2f18-4466-aec3-97497b6b874e
+# ╠═77a9ca64-87ad-465c-bec7-fe406145de40
+# ╟─139a1d54-b018-4de4-9a9f-ec9cf429b3a1
+# ╠═7d13ddd9-fb5f-4843-b1d5-176d505acd57
+# ╟─a2278d07-f857-4910-afa8-bf484ef0dc10
+# ╟─400b77d6-dc69-4ea9-ab45-5daeaa6e4bcc
+# ╟─9f119bba-fbd2-4c3a-93c2-22567c781e5f
+# ╠═4bb24996-24d0-4910-9996-83f0b34a005f
+# ╟─6f7ecf38-3017-408e-9a8a-6d218bddc2d1
+# ╠═4e9ac22f-a895-4d87-b1a9-2cd8a6da83fb
+# ╟─5cd3314b-dff2-478f-9a1a-73545b26f797
+# ╟─5678e483-1292-440d-83de-462cd249c511
+# ╟─7c6e1185-4fe4-4d2b-9b0a-f6268a75b682
+# ╟─acbc4dcc-3352-4de0-a145-d4aa51975036
+# ╟─f06c5735-6a4a-4a91-8517-ec57a674225a
+# ╟─782e9234-c02b-4abb-a72f-110d2fcabc33
+# ╟─a662232b-524b-4918-93e9-204ab908a14d
+# ╠═4043d410-e338-45cc-a528-5afc5a23aea1
+# ╟─0572a686-2a09-4c9e-9f33-51a390d5e66f
+# ╠═0096e848-46b0-4c85-8526-0302b03c4682
+# ╠═04a162c0-3c7c-4056-8f2d-48d83df3d6e7
+# ╟─cea1df62-2e5a-4cac-a30b-3506ecb9b879
+# ╠═2af9eda0-a5f6-4b3c-b973-ea3c2ca03290
+# ╠═a0671aeb-32dc-42f1-919f-a32f1c365a9a
+# ╟─c266890f-da07-44be-b98f-cc129463ca6c
+# ╟─5bd72181-aa58-43b6-837e-47414c7152a1
+# ╟─7f16ec4f-ea2f-4990-9a6b-e473b997d786
+# ╟─fb668940-ebf8-44d0-bb57-93fedfcb9892
+# ╟─15a73e90-c4b5-4cdf-bd9d-1ec4e02e0f2e
+# ╟─ac926469-a1fb-4b8a-808e-cf8153a09edb
+# ╠═6683d20c-21ca-412e-9e04-0fbc6fe33927
+# ╟─87b3b839-5fac-46e6-b080-ed7c22d7bb63
+# ╠═2c0de4c9-0498-4ae3-ab28-79816d1532ac
+# ╟─e7798191-fb9e-405c-9c5b-e5a52b26238f
+# ╠═35ddd253-e28c-4f30-a2a1-ef81a61a740a
+# ╟─5b01a0b7-affd-465d-b9f1-422d76ce6dca
+# ╠═846d2693-b644-4cd7-af2a-5ce6b843cb7d
+# ╟─e896351f-ae21-48ae-a0a2-e53e9b54cd9a
+# ╟─11989831-8179-4978-adfa-480f9a962f5f
+# ╠═8c1e3f71-bae6-41be-a496-24dceaebc672
+# ╟─b21c5a1f-9ba4-40f3-b58a-d9f635d36dbf
+# ╟─dda506eb-db21-436b-ad9f-3b95450347c7
+# ╟─15b3cfae-dc5a-4f5a-ad3a-e3f152c88e7a
+# ╟─9ac490e1-2b15-40f1-a07a-543ce9dd95be
+# ╟─91471258-6620-448c-981c-b7202790f014
+# ╠═44a7215f-ae44-4379-a2e6-a6ebfe45bc8e
+# ╠═5202ef8d-dcd5-4882-a18e-b1d2d4769387
+# ╠═645b1343-6717-4920-a319-d9da7e14b29f
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

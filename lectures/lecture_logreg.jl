@@ -4,1228 +4,471 @@
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ da388a86-19cb-11ed-0c64-95c301c27153
+# ╔═╡ bce03358-19c9-11ed-31d9-5b0929af50b6
 begin
     using PlutoUI
 	using StatsPlots
-    using CSV, DataFrames
-	using LinearAlgebra
-	using Turing
+    using Turing
+	using DataFrames
+	using StatsFuns: logistic
     using Random
-	using LaTeXStrings, Latexify
+	using LaTeXStrings
 	using Logging; Logging.disable_logging(Logging.Warn);
 end;
 
-# ╔═╡ c1026d6b-4e2e-4045-923e-eb5886b45604
+# ╔═╡ 74a2053f-ef53-41df-8afc-997c166e6f67
+begin
+	using RDatasets
+	# Import the "Default" dataset.
+	default_df = dataset("ISLR", "Default");
+	# Show the first six rows of the dataset.
+	first(default_df, 6)
+end
+
+# ╔═╡ 920b9b1f-b56d-465c-bce2-e08530ec4bb4
+using StatsBase
+
+# ╔═╡ 0a8fff98-24fd-49d6-a6b2-061e6350350b
 TableOfContents()
 
-# ╔═╡ 4ed16d76-2815-4f8c-8ab0-3819a03a1acc
+# ╔═╡ 9810605e-586b-4f38-a43c-4240cb91e154
 md"""
 
-# Bayesian linear regressions
+# Bayesian logistic regression 2
 
-Supervised learning in general is to predict a *dependent variable* ``Y`` based on *covariate features* ``X``. In other words, it tries to access how ``X`` affects ``Y``. Depending on the value type of the labelled targets ``Y``, the analysis can be further classified as *regression* and *classification*. When ``Y`` can take a spectrum of continuous values, such as real value, the learning task is known as regression. When ``Y`` take discrete choices, the task is commonly referred to as classification.
-
-
-In this chapter, we consider the case of ``Y`` being real-valued, ``Y\in R``, *i.e.* regression. And leave the discussion on other general cases such as ``Y\in \{\texttt{true}, \texttt{false}\}`` or ``Y\in \{0,1,2,\ldots\}`` in the following chapters. We will first briefly review the Frequentist's regression model and then move on to introduce the Bayesian treatment. From a modelling perspective, the Bayesian model is almost the same as the Frequentist's model except for the additional prior distributions. It turns out the additional prior not only offers a way to incorporate the modeller's prior expert knowledge but also has a *regularisation* effect in estimating the model parameters.
-
-Lastly, we are going to see how to do practical Bayesian linear regression analysis with `Turing`. Some extensions are also considered at the end.
-"""
-
-# ╔═╡ c8547607-92be-4700-9468-863798c2ddce
-md"""
-## Frequentist's linear regression
+**Bayesian logistic regression with Turing**
 
 
-Firstly, we recap the Frequentist's regression model. A typical regression model assumes each observation ``y_n`` is generated based on some deterministic transformation of the independent variable ``\mathbf{x}_n \in R^D`` plus and some observation noise ``\varepsilon_n``:
+$(Resource("https://www.st-andrews.ac.uk/assets/university/brand/logos/standard-vertical-black.png", :width=>130, :align=>"right"))
 
-```math
-y_n =  \mu(\mathbf{x}_n) + \varepsilon_n
-```
-for ``n=1,\ldots, N``, where the observation noises are usually assumed to be white Gaussian noises:
+Lei Fang (lf28@st-andrews.ac.uk)
 
-$$\varepsilon_n \sim \mathcal N(0, \sigma^2).$$
+*School of Computer Science*
 
+*University of St Andrews, UK*
 
-The deterministic function ``\mu`` is usually assumed to be linear:
-
-$$\mu(\mathbf x_n) = \beta_0 + \mathbf{x}_n^\top \boldsymbol{\beta}_1 ,$$ 
-
-where ``\beta_0`` is called intercept and ``\boldsymbol{\beta}_1 \in R^D`` determine linear relationship between ``\mathbf{x}`` and ``y``. Since ``\mu`` is a linear function, the regression is called **linear regression**. 
-"""
-
-# ╔═╡ 8f95b8c8-70a0-471a-be06-3b020db667b3
-md"""
-**Probabilistic reformulation.**
-The Frequentist's model above can also be equivalently written as:
-
-```math
-p(y_n|\mathbf{x}_n, \boldsymbol{\beta}, \sigma^2) = \mathcal{N}(y_n; \beta_0+\mathbf{x}_n^\top \boldsymbol{\beta}_1, \sigma^2),
-```
-where ``\boldsymbol{\beta}^\top = [\beta_0, \boldsymbol{\beta}_1]`` is used to denote the both the intercept and regression parameters. In other words, a **likelihood model** for the observed data ``\mathbf{y} = \{y_n\}`` for ``n=1,\ldots, N``. And each ``y_n`` is Gaussian distributed with mean $\beta_0+\mathbf{x}_n^\top \boldsymbol{\beta}_1$ and variance $\sigma^2$. The model also assumes the independent variables ``\mathbf{x}_n`` are fixed (i.e. non-random).
-
-By using matrix notation, the above model can be compactly written as:
-
-```math
-p(\mathbf{y}|\mathbf{X}, \boldsymbol{\beta}, \sigma^2) = \mathcal{N}_N(\mathbf{y}; \beta_0 \mathbf{1}_N + \mathbf{X} \boldsymbol{\beta}_1, \sigma^2\mathbf{I}_N),
-```
-where ``\mathbf{y} = [y_1, y_2,\ldots,y_N]^\top, \mathbf{X} = [\mathbf{x}_1, \mathbf{x}_2, \ldots, \mathbf{x}_n]^\top``, ``\mathbf{1}_N=[1, \ldots, 1]^\top`` is a ``N\times 1`` column vector of ones and ``\mathbf{I}_{N}`` is a ``N\times N`` identity matrix.
-
-The likelihood assumption is illustrated below for a simple linear regression model with a one-dimensional predictor, i.e. ``D=1``. Conditioning on where ``x_n`` is, ``y_n`` is Gaussian distributed with a mean determined by the regression line and an observation variance ``\sigma^2``.
+*April 2023*
 
 """
 
-# ╔═╡ 3a46c193-5a25-423f-bcb5-038f3756d7ba
+# ╔═╡ ada4ad28-358e-4144-9d5c-f3b1d27deff1
 md"""
+## A toy dataset
 
-**OLS (MLE) Estimation*.** Frequentists estimate the model by using maximum likelihood estimation (MLE). The idea is to find point estimators ``\hat{\beta_0}, \hat{\boldsymbol{\beta}}_1, \hat{\sigma^2}`` such that the likelihood function is maximised. 
-```math
-\hat{\beta_0}, \hat{\boldsymbol{\beta}}_1, \hat{\sigma^2} \leftarrow \arg\max p(\mathbf y|\mathbf X, \beta_0, \boldsymbol{\beta}_1, \sigma^2)
-```
-It can be shown that the MLE are equivalent to the more widely known ordinary least square (OLS) estimators, in which we are minimising the sum of squared error
-
-```math
-\hat{\beta_0}, \hat{\boldsymbol{\beta}}_1 \leftarrow \arg\min \sum_{n=1}^N (y_n - \mathbf{x}_n^\top \boldsymbol{\beta}_1 -\beta_0)^2.
-```
-
-By taking the derivative and setting it to zero, the closed-form OLS estimator is:
-
-```math
-\hat{\boldsymbol{\beta}} = (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\mathbf{y},
-```
-
-where we have assumed ``\boldsymbol{\beta}^\top = [\beta_0, \boldsymbol{\beta}_1]``, and the design matrix ``\mathbf{X}`` is augmented with ``\mathbf{1}_N`` as the first column (*i.e.* dummy variable for intercept).
 """
 
-# ╔═╡ effcd3d2-ba90-4ca8-a69c-f1ef1ad697ab
-md"We use `GLM.jl` to fit the OLS estimation based on the simulated data. The estimated model and true model is shown below."
-
-# ╔═╡ af404db3-7397-4fd7-a5f4-0c812bd90c4a
+# ╔═╡ 7a189076-f53f-48ed-ace2-ffbcc287ff6f
 begin
-	Random.seed!(100)
-	β₀, β₁, σ² = 3, 3, 0.5
-	N = 50
-	X = rand(N)
-	μ = β₀ .+ β₁ * X 
-	yy = μ + sqrt(σ²) * randn(N)
+	D1 = [
+	    7 4;
+	    5 6;
+	    8 6;
+	    9.5 5;
+	    9 7
+	]
+	
+	D2 = [
+	    2 3;
+	    3 2;
+	    3 6;
+	    5.5 4.5;
+	    5 3;
+	]
+
+	D = [D1; D2]
+	targets = [ones(5); zeros(5)]
+	AB = [1.5 8; 10 1.9]
 end;
 
-# ╔═╡ c6938b7f-e6e5-4bea-a273-52ab3916d07c
-md"""
-
-**Example.** Consider a simple linear regression model with one predictor, i.e.
-```math
-y_n = \beta_0 + \beta_1 x_n + \varepsilon_n.
-```
-
-To better illustrate the idea, we have simulated a dataset with ``N``=$(N) observations and the regression is defined with the following parameters: ``\beta_0=3, \beta_1=3, \sigma^2=0.5``. The simulated dataset is plotted below.
-"""
-
-# ╔═╡ 3e98e9ff-b674-43f9-a3e0-1ca5d8614327
+# ╔═╡ 1068259e-a7f6-4a56-b526-59e080c54d27
 begin
 	using GLM
-	ols_simulated = lm([ones(N) X], yy)
+	glm_fit = glm([ones(size(D)[1]) D], targets, Bernoulli(), LogitLink())
 end
 
-# ╔═╡ f8040fa0-fdff-42da-8b9f-785627f51ee1
-let
-	p_lr = plot(title="Frequentist's linear regression's probabilistic model", framestyle = :origin,legend=:bottomright)
-	β0, σ²0, N = [3, 3], 0.5, 250
-	Random.seed!(100)
-	X = rand(N)
-	μ = β0[1] .+ β0[2] * X 
-	yy = μ + sqrt(σ²0) * randn(N)
-	plot!(X, yy, st=:scatter, label="")
-	plot!([0,1], x->β0[1]+β0[2]*x, c= 1, linewidth=5, label=L"\mu(x) = \beta_0+\beta_1x")
-	xis = [0, 0.25, 0.5, 0.75, 0.99, 0.4]
-	for i in 1:length(xis)
-		x = xis[i]
-		μi = dot(β0, [1, x])
-		xs_ = μi-3:0.01:μi+3
-		ys_ = pdf.(Normal(μi, sqrt(σ²0)), xs_)
-		ys_ = 0.1 *ys_ ./ maximum(ys_)
-		if i == length(xis)
-			plot!([x], [μi], st=:sticks, markerstrokewidth =1, markershape = :diamond, c=:black, label="", markersize=4)
-			plot!(ys_ .+x, xs_, c=:red, label=L"\mathcal{N}(\mu(x), \sigma^2)", linewidth=3)
-		else
-			plot!(ys_ .+x, xs_, c=:gray, label="", linewidth=1)
-		end
-		
-	end
-	old_xticks = xticks(p_lr[1])
-	new_xticks = ([xis[end]], ["\$x\$"])
-	keep_indices = findall(x -> all(x .≠ new_xticks[1]), old_xticks[1])
-	merged_xticks = (old_xticks[1][keep_indices] ∪ new_xticks[1], old_xticks[2][keep_indices] ∪ new_xticks[2])
-	xticks!(merged_xticks)
-	p_lr	
-end
-
-# ╔═╡ af2e55f3-08b8-48d4-ae95-e65168a23eeb
-let
-	pred(x) = coef(ols_simulated)' * [1, x]
-	scatter(X, yy, xlabel=L"x", ylabel=L"y", label="")
-	plot!(0:0.1:1, pred, lw=2, label="OLS fit", legend=:topleft)
-	plot!(0:0.1:1, (x) -> β₀ + β₁*x, lw=2, label="True model", legend=:topleft)
-end
-
-# ╔═╡ 43191a7a-f1a2-41df-910d-cf85907e8f7a
+# ╔═╡ d12ed6f0-b5c7-4492-9cd3-7ac2a6afafcd
 md"""
 
-## Bayesian linear regression model
+## Frequentist MLE
 """
 
-# ╔═╡ 98ef1cca-de03-44c2-bcf4-6e79da139e11
+# ╔═╡ 60a5cad4-c676-4334-8cbe-47877a68943f
 md"""
-
-The Bayesian model reuses the frequentist's likelihood model for ``\mathbf{y}``:
+We have plotted the fit model below. It can be observed the fitted regression function, defined as 
 
 ```math
-p(y_n|\mathbf{x}_n, \boldsymbol{\beta}, \sigma^2) = \mathcal{N}(y_n; \beta_0+\mathbf{x}_n^\top \boldsymbol{\beta}_1, \sigma^2),
-```
-where the model parameters are
-* ``\beta_0\in R`` -- intercept
-* ``\boldsymbol{\beta}_1 \in R^D`` -- regression coefficient vector
-* ``\sigma^2\in R^+`` -- Gaussian noise's variance
-
-
-In addition, the Bayesian model also needs to impose a suitable prior for the unknowns
-
-```math
-p(\beta_0, \boldsymbol{\beta}_1, \sigma^2).
+p(y_n=1|\mathbf{x}_n, \hat\beta_0, \hat{\boldsymbol{\beta}}_1) = \hat{\sigma}(\mu_n)= \frac{1}{1+\exp(- \hat\beta_0 - \mathbf{x}_n^\top\hat{\boldsymbol{\beta}}_1)}
 ```
 
-In most cases, we further assume the joint prior is independent, *i.e.*
-
-```math
-p(\beta_0, \boldsymbol{\beta}_1, \sigma^2)= p(\beta_0)p(\boldsymbol{\beta}_1)p( \sigma^2).
-```
-
-
-
+is a very sharp S-shaped surface valued between 0 and 1
 """
 
-# ╔═╡ a1421ccb-2d6e-4406-b770-ad7dff007c69
+# ╔═╡ e2918ef9-7f86-4d3b-93cb-65b8b5f48987
 md"""
 
-Based on their value ranges, a commonly used set of prior choices is summarised below.
-
-**Prior for the intercept ``p(\beta_0)``** 
-
-Since ``\beta_0`` takes an unconstrained real value, a common choice is Gaussian 
-
-$$p(\beta_0) = \mathcal N(m_0^{\beta_0}, v_0^{\beta_0});$$ 
-
-where the hyper-parameters ``m_0^{\beta_0}, v_0^{\beta_0}`` can be specified based on the data or independently.
-
-*Data-dependent hyper-parameter:* e.g. ``\mathcal{N}(m_0^{\beta_0}={\bar{\mathbf{y}}}, v_0^{\beta_0}= 2.5^2 \sigma_{\mathbf{y}}^2 )``
-
-* the corresponding prior on ``\beta_0`` centres around the sample average ``\bar{\mathbf{y}}`` with variance 2.5 times the standard deviation of ``\bar{\mathbf{y}}``
-* covering a wide range of possible values, the prior is a weakly informative prior
+## Bayesian logistic regression
 
 
-*Data-independent hyper-parameter:* e.g. ``\mathcal{N}(m_0^{\beta_0}=0, v_0^{\beta_0}= 10^2)`` 
 
-
-* the prior guess centres around ``0`` but with a great amount of uncertainty (very large variance)
-* the zero prior mean here encourages the posterior shrinks towards 0 (but very weakly).
-
-
-"""
-
-# ╔═╡ e1552414-e701-42b5-8eaf-21ae04a829a8
-md"""
-
-
-**Prior for the coefficient ``p(\boldsymbol{\beta}_1)``** 
-
-
-Since ``\boldsymbol{\beta}_1\in R^D`` is an unconstrained real vector, a suitable prior choice is a D-dimensional multivariate Gaussian (or other similar distributions such as Student-``t``):
-
-$$p(\boldsymbol{\beta}_1) = \mathcal N_{D}(\mathbf m_0^{\boldsymbol{\beta}_1}, \mathbf V_0^{\boldsymbol{\beta}_1}),$$
-
-
-where the hyper-parameters are usually set data-independently:
-
-* ``\mathbf{m}_0^{\boldsymbol{\beta}_1}=\mathbf{0}``, the prior encourages the posterior shrinks towards zeros, which has a regularisation effect
-* ``\mathbf{V}_0^{\boldsymbol{\beta}_1} = v_0 \mathbf{I}_D``, *i.e.* a diagonal matrix with a common variance ``v_0``; 
-    * the common variance ``v_0`` is often set to a large number, *e.g.``v_0=10^2``* to impose a vague prior. 
-
-
-**Prior for the observation variance ``p(\sigma)``**
-
-
-``\sigma^2 >0`` is a positive real number, a good choice is truncated real-valued distribution, where the negative part is truncated, such as ``\texttt{Half-Cauchy}`` (Some ``\texttt{Half-Cauchy}`` distributions are plotted below): 
-
-$$p(\sigma^2) = \texttt{HalfCauchy}(s_0^{\sigma^2});$$ 
-
-  * Cauchy distributions have heavy tails, making them suitable choices to express uncertain beliefs on the modelling parameter. And the hyperparameter ``s_0^{\sigma^2}`` controls the tail of a Cauchy. The larger the scale parameter ``s_0^{\sigma^2}`` is, the weaker the prior is. 
-  * ``s_0^{\sigma^2} > 2`` usually is good enough.
-"""
-
-# ╔═╡ 9387dcb4-3f4e-4ec7-8393-30a483e00c63
-let
-	plot(-5:0.1:25, (x) -> pdf(truncated(Cauchy(0, 2), lower=0), x), lw=1.5, label=L"\texttt{HalfCauchy}(2.0)")
-	plot!(-5:0.1:25, (x) -> pdf(truncated(Cauchy(0, 4), lower=0), x), lw=1.5, label=L"\texttt{HalfCauchy}(4.0)")
-	plot!(-5:0.1:25, (x) -> pdf(truncated(Cauchy(0, 6), lower=0), x), lw=1.5, label=L"\texttt{HalfCauchy}(6.0)")
-	plot!(-5:0.1:25, (x) -> pdf(truncated(Cauchy(0, 10), lower=0), x), lw=1.5, label=L"\texttt{HalfCauchy}(10.0)")
-end
-
-# ╔═╡ d3f4ac7b-1482-4840-b24b-d08066d1d70c
-md"""
-
-To put everything together, a fully-specified (data independent) Bayesian model is summarised below.
-
-
-!!! infor "Bayesian linear regression"
+!!! infor "Bayesian logistic regression"
 	```math
 	\begin{align}
 	\text{Priors: }\;\;\;\;\;\;\beta_0 &\sim \mathcal{N}(m_0^{\beta_0}, v_0^{\beta_0})\\
-	\boldsymbol{\beta}_1 &\sim \mathcal{N}(\mathbf{m}_0^{\boldsymbol{\beta}_1}, \mathbf{V}_0^{\boldsymbol{\beta}_1 })\\
-	\sigma^2 &\sim \texttt{HalfCauchy}(s_0) \\
+	\boldsymbol{\beta}_1 &\sim \mathcal{N}(\mathbf{m}_0^{{\beta}_1}, \mathbf{V}_0^{{\beta}_1})\\
 	\text{Likelihood: }\;\;\text{for } n &= 1,2,\ldots, N:\\
-	\mu_n &=\beta_0 + \boldsymbol{\beta}_1^\top  \mathbf{x}_n \\
-	y_n &\sim \mathcal{N}(\mu_n, \sigma^2).
+	\mu_n &=\beta_0 +  \boldsymbol{\beta}_1^\top\mathbf{x}_n \\
+	\sigma_n &= \texttt{logistic}(\mu_n)\\
+	y_n &\sim \texttt{Bernoulli}(\sigma_n).
 	\end{align}
 	```
 """
 
-# ╔═╡ bab3a19c-deb0-4b1c-a8f9-f713d66d9199
-md"""
-### Connection to ridge regression 
+# ╔═╡ 1f27c1d3-a4ee-4278-8140-d17d5c0d31c9
+Resource("https://leo.host.cs.st-andrews.ac.uk/figs/bayes/logis_bayes.png", :height=>240, :align=>"left")
 
-"""
-
-# ╔═╡ b433c147-f547-4234-9817-2b29e7d57219
+# ╔═╡ 8b73706e-fe00-4489-8095-b3ec4528c58b
 md"""
 
-Setting the prior's mean to zero, *i.e.* ``\mathbf{m}_0^{\beta_1}= \mathbf{0}``, seems an arbitrary choice. However, it can be justified from a regularisation perspective. For regression problems with many predictors, the regression model can be too flexible. In some extreme cases, the regression model can be under-determined, *i.e.* the number of predictors is greater than the number of observations. For problems like this, the ordinary OLS estimator is not stable or not even existed. 
+## With `Turing.jl`
 
-
-By introducing a zero-mean Gaussian prior for ``\boldsymbol{\beta}``, the log posterior density becomes:
-
-$$\begin{align}
-\ln p(\boldsymbol{\beta}|\mathbf y, \mathbf{X}) &= \ln p(\boldsymbol{\beta}) +\ln p(\mathbf y|\boldsymbol{\beta}, \mathbf{X}) + C\\
-&= -\frac{1}{2v_0} \|\boldsymbol{\beta}\|^2 - \frac{1}{2\sigma^2}\sum_{n=1}^N( y_n-\mathbf{x}_n^\top \boldsymbol{\beta})^2 + C
-\end{align}$$
-
-If one minimises the negative log posterior by:
-
-```math
-\hat{\boldsymbol{\beta}}_{\text{ridge}} \leftarrow \arg\min_{\boldsymbol{\beta}}\frac{\lambda}{2} \|\boldsymbol{\beta}\|^2 + \frac{1}{2}\sum_{n=1}^N( y_n-\mathbf{x}_n^\top \boldsymbol{\beta})^2,
-
-```
-where ``\lambda \triangleq \frac{\sigma^2}{v_0}``, and the estimator is called the **ridge estimator**. The corresponding regression model is Frequentist's **ridge regression**. Note that the first term serves as a penalty that regulates the estimation of ``\boldsymbol{\beta}`` such that large-magnitude estimators are discouraged. 
+Model translation is straightforward.
 """
 
-# ╔═╡ 824aa830-c958-4063-9ef7-39eeb743fc06
-md"""
-
-### Posterior distribution in analytical form*
-"""
-
-# ╔═╡ d825e29d-3e0b-4c25-852f-0c9a544aa916
-md"""
-
-After specifying the Bayesian model, what is left is to apply Bayes' rule to find the posterior distribution:
-
-```math
-p(\boldsymbol{\beta}, \sigma^2|\mathcal{D}) \propto p(\boldsymbol{\beta}, \sigma^2) p(\mathbf{y}|\boldsymbol{\beta}, \sigma^2,\mathbf{X}),
-```
-where ``\mathcal{D}`` denotes all the observed data *i.e.* ``\mathcal{D} = \{\mathbf{X}, \mathbf{y}\}``, and ``\boldsymbol{\beta}^\top = [\beta_0, \boldsymbol{\beta}_1]`` denotes the concatenated regression parameter vector. Due to the independence assumption, the joint prior for ``\boldsymbol{\beta}`` can be formed as a ``D+1`` dimensional Gaussian with mean ``\mathbf{m}_0^\top = [m_0^{\beta_0}, \mathbf{m}_0^{\beta_1}]`` and variance ``\mathbf{V}_0 = \text{diag}\{v_0^{\beta_0}, \mathbf{V}_0^{\boldsymbol{\beta}_1}\}.``
-
-Unfortunately, the full joint posterior distribution has no closed-form analytical form, and an approximation method such as MCMC is required to do a full-scale analysis. However, if the observation variance ``\sigma^2`` is assumed known, the *conditional posterior* ``p(\boldsymbol{\beta}|\mathcal{D}, \sigma^2)`` can be computed exactly. And it can be shown that the posterior admits a multivariate Gaussian form:
-
-```math
-p(\boldsymbol{\beta}|\mathcal{D}, \sigma^2) =\mathcal{N}_{D+1}(\mathbf{m}_N, \mathbf{V}_N),
-```
-
-where 
-
-
-```math
-\mathbf{m}_N = \mathbf{V}_N\left (\mathbf{V}_0^{-1}\mathbf{m}_0 +\frac{1}{\sigma^2}\mathbf{X}^\top\mathbf{y}\right ) ,\;\;\mathbf{V}_N =\left (\mathbf{V}_0^{-1} + \frac{1}{\sigma^2}\mathbf{X}^\top \mathbf{X}^\top\right )^{-1}.
-```
-
-
-It is one of very few models that the posterior can be evaluated in closed form.
-"""
-
-# ╔═╡ f6cedb98-0d29-40f0-b9f3-430dd283fa36
-md"""
-
-**Demonstration:**
-An animation is created below to demonstrate the posterior update equation. The toy dataset is reused here. Recall the true parameters are ``\beta_0=\beta_1=3``. A zero-mean vague Gaussian prior is placed on ``\boldsymbol{\beta}``:
-
-```math
-p\left(\begin{bmatrix}\beta_0\\ \beta_1\end{bmatrix}\right) = \mathcal{N}\left (\begin{bmatrix}0\\ 0\end{bmatrix}, \begin{bmatrix}10^2& 0 \\ 0 & 10^2\end{bmatrix}\right).
-```
-
-The posterior distribution is then updated sequentially with the first 10 observations. As can be observed, initially the prior distribution is circular and covers a wide range of possible values. With more data observed, the posterior quickly converges to the posterior centre: ``[3,3]^\top``. Also, note the shrinking posterior variance (or increasing estimation precision) as more data is observed.
-"""
-
-# ╔═╡ 71bb2994-7fd2-4e11-b2f1-d88b407f86c1
-let
-	xs = range(-10, 10, 200)
-	ys = range(-10, 10, 200)
-	m₀, V₀ = zeros(2), 10^2 * Matrix(1.0I,2,2)
-	prior = heatmap(xs, ys, (x,y)-> pdf(MvNormal(m₀, V₀), [x,y]), levels=20, colorbar=false , fill=true, ratio=1, color= :jet1, xlim=[-10, 10], xlabel=L"\beta_0", ylabel=L"\beta_1")
-	# lik1 = heatmap(xs, ys, (x,y)-> pdf(Normal(x + y * X[1] , sqrt(σ²)), yy[1]), levels=10,  colorbar=false, ratio=1, color= :jet1, xlim=[-15, 15], xlabel=L"\beta_0", ylabel=L"\beta_1")
-	function seq_update(x, y, m0, V0, σ²)
-		xx = [1  x]
-		mn = m0 + V0 * xx'* (dot(xx, V0, xx') + σ²)^(-1)*(y - dot(xx, m0) )
-		Vn = inv(1/σ²* xx'* xx + inv(V0))
-		return mn[:], Symmetric(Vn)
-	end
-
-
-	posts = [prior]
-	anim = @animate for i in 1:10	
-		post = heatmap(xs, ys, (x,y)-> pdf(MvNormal(m₀, V₀), [x,y]), levels=20, colorbar=false , fill=true, ratio=1, color= :jet1, xlim=[-10, 10], xlabel=L"\beta_0", ylabel=L"\beta_1", title="Update with N=$(i-1) data")
-		m₀, V₀ = seq_update(X[i], yy[i], m₀, V₀, σ²)
-		push!(posts, post)
-	end
-
-	gif(anim, fps=1)
-end
-
-# ╔═╡ d02d5490-cf53-487d-a0c6-651725600f52
-md"""
-
-**Interpretation:**
-The posterior's parameter provides us with some insights into what Bayesian computation is doing. If we assume the matrix inverse ``(\mathbf{X}^\top\mathbf{X})^{-1}`` exists, 
-the posterior's mean can be rewritten as 
-
-
-```math
-
-\mathbf{m}_N = \left (\mathbf{V}_0^{-1} + \frac{1}{\sigma^2}\mathbf{X}^\top \mathbf{X}\right )^{-1}\left (\mathbf{V}_0^{-1}\mathbf{m}_0 +\frac{1}{\sigma^2}\mathbf{X}^\top \mathbf{X}\hat{\boldsymbol{\beta}}\right ) .
-
-```
-
-Defining ``\tilde{\mathbf{V}}^{-1} = \frac{1}{\sigma^2}\mathbf{X}^\top \mathbf{X}``, the above formula becomes
-
-
-```math
-\mathbf{m}_N = \left (\mathbf{V}_0^{-1} + \tilde{\mathbf{V}}^{-1}\right )^{-1}\left (\mathbf{V}_0^{-1}\mathbf{m}_0 +\tilde{\mathbf{V}}^{-1}\hat{\boldsymbol{\beta}}\right ) .
-
-```
-Therefore, the posterior mean is a matrix-weighted average between the prior guess ``\mathbf{m}_0`` and the MLE estimator ``\hat{\boldsymbol{\beta}}``; and the weights are ``\mathbf{V}_0^{-1}``, the precision of the prior guess, and ``\tilde{\mathbf{V}}^{-1}`` the precision for the MLE. If the prior mean is zero, *i.e.* ``\mathbf{m}_0 =\mathbf{0}``, the posterior mean as an average will shrink towards ``\mathbf{0}``.
-
-This can be understood better to consider some de-generate examples. Assume ``D=1``, and both the intercept and observation noise's variance are known, say ``\beta_0=0, \sigma^2=1``. The posterior degenerates to 
-
-
-```math
-\begin{align}
-m_N &= \frac{v_0^{-1}}{v_0^{-1} + \tilde{v}^{-1}}m_0 + \frac{\tilde{v}^{-1} }{v_0^{-1} + \tilde{v}^{-1}}\hat{\beta}_1\\
-v_N &= \frac{1}{ v_0^{-1} + \tilde{v}^{-1}}
-\end{align}
-```
-where ``\tilde{v}^{-1} = \sum_n x_n^2`` by definition. 
-
-Note that if we assume ``m_0=0``, and the prior precision ``v_0^{-1}`` gets large, say ``v_0^{-1} \rightarrow \infty`` (in other words, we strongly believe the slope is zero), the posterior mean ``m_N`` will get closer to zero: ``m_N\rightarrow m_0=0``.
-Also note the posterior variance ``v_N`` is reduced in comparison with the prior variance ``v_0``. It makes sense since the posterior update reduces the estimation uncertainty.
-"""
-
-# ╔═╡ 59dd8a13-89c6-4ae9-8546-877bb7992570
-md"""
-## Implementation in `Turing`
-
-
-
-Now we move on to show how to implement the modelling and inference in `Turing`. For simplicity, we consider simple linear regression, *i.e.* regression with one predictor, with simulated data first and move on to see a multiple regression example by using a real-world dataset.
-
-
-
-### Simple linear regression
-
-The corresponding Bayesian simple linear regression model is a specific case of the general model in which ``D=1``. The model can be specified as:
-
-
-```math
-\begin{align}
-\text{Priors: }\;\;\;\;\;\;\beta_0 &\sim \mathcal{N}(0, v_0^{\beta_0})\\
-\beta_1 &\sim \mathcal{N}(0, v_0^{\beta_1})\\
-\sigma^2 &\sim \texttt{HalfCauchy}(s_0) \\
-\text{Likelihood: }\;\;\text{for } n &= 1,2,\ldots, N:\\
-\mu_n &=\beta_0 + \beta_1 x_n \\
-y_n &\sim \mathcal{N}(\mu_n, \sigma^2).
-\end{align}
-```
-
-Note that we have just replaced all the multivariate assumptions for ``\beta_1`` with its uni-variant equivalent.
-"""
-
-# ╔═╡ 632575ce-a1ce-4a36-95dc-010229367446
-md"""
-
-The model can be "translated" to `Turing` literally. Note that ``\texttt{HalfCauchy}`` distribution is a Cauchy distribution truncated from zero onwards, which can be implemented in `Julia` by:
-
-```julia
-truncated(Cauchy(0, s₀), lower=0)  # HalfCauchy distribution with mean 0 and scale s₀ 
-```
-"""
-
-# ╔═╡ c0f926f1-85e6-4d2c-8e9a-26cd099fd600
-md"""
-
-In terms of the prior parameters, we have set weak priors as default. For example, the ``\texttt{HalfCauchy}(s_0=5)`` prior for ``\sigma^2`` easily covers the true value, which is ``0.5``. 
-
-And the prior variances of the regression parameters are set to ``v_0^{\beta_0}= v_0^{\beta_1}=10^2``, leading to a very vague prior (and the true parameters are well covered within the prior's density area).
-
-"""
-
-# ╔═╡ e9bb7a3c-9143-48c5-b33f-e7d6b48cb224
-@model function simple_bayesian_regression(Xs, ys; v₀ = 10^2, V₀ = 10^2, s₀ = 5)
-	# Priors
-	# Gaussian is parameterised with sd rather than variance
-	β₀ ~ Normal(0, sqrt(v₀)) 
-	β ~ Normal(0, sqrt(V₀))
-	# Half-Cauchy prior for the observation variance
-	σ² ~ truncated(Cauchy(0, s₀), lower=0)
-	# calculate f(x) = β₀ + βx for all observations
-	# use .+ to broadcast the intercept to all 
-	μs = β₀ .+ β * Xs
-	
-	# Likelihood
-	for i in eachindex(ys)
-		# Gaussian in `Distributions.jl` is parameterised by std σ rather than variance
-		ys[i] ~ Normal(μs[i], sqrt(σ²))
-	end
-end
-
-# ╔═╡ 1ef001cc-fe70-42e5-8b97-690bb725a734
-md"""
-
-Next, we use the above Turing model to infer the simulated dataset. A Turing model is first instantiated with the simulated data and then MCMC sampling algorithms are used to draw posterior samples.
-"""
-
-# ╔═╡ 4ae89384-017d-4937-bcc9-3d8c63edaeb5
+# ╔═╡ 6d2af85d-8c9e-4da7-8a38-6c0df102f954
 begin
-	Random.seed!(100)
-	sim_data_model = simple_bayesian_regression(X, yy)
-	chain_sim_data = sample(sim_data_model, NUTS(), MCMCThreads(), 2000, 3; discard_initial=500)
+	@model function bayesian_logistic_reg(X, y; v₀=10^2, V₀ = 10^2)
+		# priors
+		β₀ ~ Normal(0, sqrt(v₀))
+		nfeatures = size(X)[2]
+		β ~ MvNormal(zeros(nfeatures), sqrt(V₀))
+		# Likelihood
+		μs = β₀ .+ X * β
+		# logistic transformations
+		σs = logistic.(μs)
+		for i in eachindex(y)
+			y[i] ~ Bernoulli(σs[i])
+		end
+		return (; σs)
+	end
+
 end;
 
-# ╔═╡ 1761f829-6c7d-4186-a66c-b347be7c9a15
+# ╔═╡ 8a8d8eb9-9cea-43f0-9607-9d3ca908c370
+md"Next, we use `Turing` to do Bayesian logistic regression analysis on the toy data example introduced earlier."
+
+# ╔═╡ 41a3984c-aee4-494f-8ba2-69c0274185ed
+chain_logreg_sim_data = let 
+	sample(
+		bayesian_logistic_reg(D, targets; v₀=5^2),
+		NUTS(),
+		MCMCThreads(),
+		2000,
+		3
+	)
+end;
+
+# ╔═╡ e1e43074-9e5f-4516-bf0d-0ce4209afb6c
+summarystats(chain_logreg_sim_data)
+
+# ╔═╡ 15b2d945-4e78-4c41-9712-5d623b15914e
+describe(chain_logreg_sim_data)[2]
+
+# ╔═╡ 5e5fdd62-ac1c-4ef6-a5a4-64ffe441b496
+plot(chain_logreg_sim_data)
+
+# ╔═╡ bdcc9726-d1fd-4d34-987e-925e1a96e58f
 md"""
-Next, we inspect the chain first to do some diagnostics to see whether the chain has converged. 
+
+## Bayesian prediction
 """
 
-# ╔═╡ d57a7a26-a8a5-429d-b1b9-5e0499549544
-summarystats(chain_sim_data)
-
-# ╔═╡ ba598c45-a76e-41aa-bfd6-a64bb6cea875
-md"""Based on the fact that `rhat < 1.01` and the `ess` count, the chain has converged well. We can also plot the chain to visually check the chain traces."""
-
-# ╔═╡ 391a1dc8-673a-47e9-aea3-ad79f366460d
+# ╔═╡ fd9d6126-d764-40f5-9a4d-fda49a0962a9
 md"""
-**Result analysis** 
+
+To make a prediction at a new input location ``\mathbf{x}_\ast``, we can use
+
+* either `predict()` 
+
+* or `generated_quantities()` 
+
+The procedure 
+
+* starts with  initialising a `Turing` model with `missing` prediction targets ``\mathbf{y}_\ast``
+
+* then use either `predict()` or `generated_quantities()` to generate samples
 """
 
-# ╔═╡ d3d8fe25-e674-42de-ac49-b83aac402e2d
-md"Recall the true parameters are ``\beta_0=3, \beta_1=3, \sigma^2=0.5``. And the inferred posteriors are summarised below. 
+# ╔═╡ bea7b8a5-f20a-4de1-8358-8697dc525aa3
+md"""
+**Demonstration**
+"""
+
+# ╔═╡ 69258680-fc21-40ca-998a-1a81279342ea
+begin
+	# randomly generated test dataset
+	N_test = 5
+	D_test = rand(N_test, 2) * 10
+	pred_model = bayesian_logistic_reg(D_test, Vector{Union{Missing, Float64}}(undef, size(D_test)[1]))
+	y_preds = predict(pred_model, chain_logreg_sim_data)
+end;
+
+# ╔═╡ be4d04ff-9ae8-40c6-ae7b-9ec29cd23b43
+mixeddensity(y_preds[:,1:1,:], size(100,100));
+
+# ╔═╡ a84e1f2f-fdde-432f-89d3-265480ef9f53
+md"""
+## Prediction comparison
+
+"""
+
+# ╔═╡ 44ccb675-a657-4fe8-934f-ddf29cb78f74
+md"""
+
+In this case, what we are interested in is the predictive distribution on a new input location ``\mathbf{x}_\ast``:
+
+```math
+p(y_\ast=1|\mathbf{x}_\ast, \mathcal{D}).
+```
+The contour plot of the Bayesian predictive distribution is listed below.
+
+
+"""
+
+# ╔═╡ 68b88445-fb94-4d26-a723-234b3045ca54
+begin
+	p1_ = Plots.plot(D1[:,1], D1[:,2],  xlabel=L"$x_1$", ylabel=L"$x_2$", label="class 1", seriestype=:scatter, markersize = 4, legend = :outerright, title="Binary classification", xlim=[0, 11], ylim=[0, 9.5])
+	Plots.plot!(p1_, D2[:,1], D2[:,2], label="class 2", seriestype=:scatter, markersize = 4)
+	Plots.plot!(p1_, AB[1:1, 1], AB[1:1, 2], label="", seriestype=:scatter, markersize = 3, markershape =:x, annotate = [(AB[1,1]-0.8, AB[1,2], "A"), (AB[2,1]-0.8, AB[2,2], "B")], markerstrokewidth = 3, markercolor=:red)
+	Plots.plot!(p1_, AB[2:2, 1], AB[2:2,2], seriestype=:scatter, label="", markersize = 3, markershape =:x, markerstrokewidth = 3, markercolor=:red)
+	# Plots.plot!(size=(500,500))
+end;
+
+# ╔═╡ 39c43d27-6806-4fb6-a0e8-5f41ae0ee94e
+md"""
+# A real-world example
+
+
+The data used here is described in the book [Introduction to Statistical Learning](https://hastie.su.domains/ISLR2/ISLRv2_website.pdf)
+
+* the dataset (referred to as `Default`) is about customer default records for a credit card company
+"""
+
+# ╔═╡ 436f0628-ee73-4045-82f3-6d785b5ba51f
+md"""
+
+## Step 1: import the dataset
+"""
+
+# ╔═╡ e47c4ad6-17e4-4265-bee2-738b81e61696
+md"""
+
+## Step 2: pre-process the dataset
+"""
+
+# ╔═╡ 8b56260f-2e42-4a89-a1c0-bf856b9f75d3
+md"""
+By checking the raw data, we find the `Default` and `Student` variables are of `string` type. We need to first encode them into binary data types.
+"""
+
+# ╔═╡ 40db5082-3558-4fd4-ab47-1127f6d67e38
+begin
+	# transform the non-numerical features to numerical 
+	default_df[!, :DefaultNum] = map((x) -> x.Default == "Yes" ? true : false, eachrow(default_df))
+	default_df[!, :StudentNum] = map((x) -> x.Student == "Yes" ? true : false, eachrow(default_df))
+end;
+
+# ╔═╡ fbcdbc4e-f55b-4bf8-a10d-42f2627dbfdb
+describe(default_df)
+
+# ╔═╡ 8c73a18f-55a1-4740-8795-5bbb6ff425de
+md"
+
+
+The two numerical features `Balance` and `Income` are with very different mean and value ranges. 
+
+
+It is generally a good idea to 
+
+* standardize them: zero mean and unit variance
+
+
+By standardising the features
+
+* the prior's variances, *i.e. ``\mathbf{V}_0^{\boldsymbol{\beta}}``*, are also easier to be specified, since all the features are of the same scale.
 "
 
-# ╔═╡ 748c1ff2-2346-44f4-a799-75fb2002c6fc
-describe(chain_sim_data)[1]
-
-# ╔═╡ ae720bcd-1607-4155-9a69-bfb6944d5dde
-b0, b1 = describe(chain_sim_data)[1][:, :mean][1:2];
-
-# ╔═╡ 08f7be6d-fda9-4013-88f5-92f1b5d26336
-md"""
-The posterior's means for the three unknowns are around $(round(b0; digits=2)) and $(round(b1; digits=2)), which are almost the same as the OLS estimators, which are expected since very weak-informative priors have been used.
-
-!!! information "Bayesian inference under weak priors"
-	As a rule thumb, when non-informative or weak-informative priors are used, the Bayesian inference's posterior mean should be similar to the Frequentist estimators.
-"""
-
-# ╔═╡ 40daa902-cb85-4cda-9b9f-7a32ee9cbf1c
-describe(chain_sim_data)[2]
-
-# ╔═╡ ab77aef9-920c-423a-9ce0-2b5adead1b7f
-density(chain_sim_data)
-
-# ╔═╡ b1d7e28a-b802-4fa1-87ab-7df3369a468a
-md"""
-The above density plots show the posterior distributions. It can be observed the true parameters are all within good credible ranges. 
-
-The following diagram shows the model ``\mu = \beta_0 + \beta_1 x`` estimated by the Bayesian method:
-* The thick red line shows the posterior mean of the Bayesian model
-* The lighter lines are some posterior samples, which also indicates the uncertainty about the posterior distribution (the true model is within the prediction)
-  * the posterior mean is simply the average of all the posterior samples.
-"""
-
-# ╔═╡ 4293298e-52a5-40ca-970d-3f17c2c89adb
-let
-	parms_turing = describe(chain_sim_data)[1][:, :mean]
-	β_samples = Array(chain_sim_data[[:β₀, :β]])
-	pred(x) = parms_turing[1:2]' * [1, x]
-	plt = scatter(X, yy, xlabel=L"x", ylabel=L"y", label="")
-	plot!(0:0.1:1, pred, lw=2, label=L"\mathbb{E}[\mu|\mathcal{D}]", legend=:topleft)
-	plot!(0:0.1:1, (x) -> β₀ + β₁*x, lw=2, label="True model", legend=:topleft)
-	plot!(0:0.1:1, (x) -> β_samples[1, 1] + β_samples[1, 2] *x, lw=0.5, lc=:gray, label=L"\mu^{(r)} \sim p(\mu|\mathcal{D})", legend=:topleft)
-	for i in 2:100
-		plot!(0:0.1:1, (x) -> β_samples[i, 1] + β_samples[i, 2] *x, lw=0.15, lc=:gray, label="", legend=:topleft)
-	end
-	plt
-end
-
-# ╔═╡ 860c4cf4-59b2-4036-8a30-7fbf44b18648
-md"""
-
-#### Predictive checks
-
-To make sure our Bayesian model assumptions make sense, we should always carry out predictive checks. This is relatively straightforward to do the checks with `Turing`. Recall the procedure is to first simulate multiple pseudo samples ``\{\mathbf{y}_{pred}^{(r)}\}`` based on the posterior predictive distribution 
-
-```math
-\mathbf{y}_{pred} \sim p(\mathbf{y}|\mathcal{D}, \mathbf{X}),
-```
-
-and then the empirical distribution of the simulated data is compared against the observed. If the model assumptions are reasonable, we should expect the observed lies well within the possible region of the simulated.
-"""
-
-# ╔═╡ 74a9a678-60b9-4e3f-97a2-56c8fdc7094f
-md"""
-
-To simulate the pseudo data, we first create a dummy `Turing` with the targets filled with `missing` types. And then use `predict()` method to simulate the missing data.
-"""
-
-# ╔═╡ 435036f6-76fc-458b-b0eb-119de02eabb7
-pred_y_matrix = let
-	# define the predictive model by passing `missing` targets y such that the values will be samples
-	pred_model = simple_bayesian_regression(X, Vector{Union{Missing, Float64}}(undef, length(yy)))
-	# simulate the predictive pseudo observations
-	predict(pred_model, chain_sim_data) |> Array
+# ╔═╡ 0ca3c752-627f-40ce-ac6c-d10fc90d4663
+begin
+	XX, yy = Matrix(default_df[!, [:Balance, :Income, :StudentNum]]), default_df[!, :DefaultNum]
+	feature_scalar = fit(ZScoreTransform, XX[:, 1:2], dims=1)	
+	XX[:, 1:2] .= StatsBase.transform(feature_scalar, XX[:, 1:2])
 end;
 
-# ╔═╡ 6eff54f2-d2e0-4c18-8eda-3be3124b16a0
+# ╔═╡ a84de1b9-3c27-4b63-822f-f454b7d3098b
 md"""
-**Kernel density estimation** check. One of the possible visual checks is to use Kernel density estimation (KDE), which is demonstrated below for our model. It can be seen the simulated data agree with the observed.
+
+## Step 3: making inference with `Turing`
 """
 
-# ╔═╡ f11a15c9-bb0b-43c1-83e6-dce55f2a772f
-let
-	pred_check_kde=density(yy, lw=2, label="Observed KDE", xlabel=L"y", ylabel="density")
+# ╔═╡ bd11a4c4-1f2b-4d3c-8e3f-8382dd9f3b3c
+md"Use `Turing` to do the inference."
 
-	for i in 1:20
-		label_ = i ==1 ? "Simulated KDE" : ""
-		density!(pred_y_matrix[i,:], lw=0.2, lc=:grey, label=label_)
-	end
-	pred_check_kde
-end
+# ╔═╡ 244ba3cf-63ba-4501-8e88-f71c95c15a7c
+chain_default = let
+	chain = sample(
+		bayesian_logistic_reg(XX, yy; v₀=1, V₀ =1),
+		NUTS(),
+		MCMCThreads(),
+		2000,
+		3
+	)
+	replacenames(chain,  Dict(["β[1]" => "Balance", "β[2]" => "Income", "β[3]" => "Student"]))
+end;
 
-# ╔═╡ 03b571e6-9d35-4123-b7bb-5f3b31558c9e
-md"""
-**Summary statistics** check. Another common visual check is to plot the summary statistics of the simulated data, such as mean and standard deviation (std). Again, the simulated data is similar to the observed.
+# ╔═╡ c83f3735-6aba-4183-b010-5f21cd2ff968
+describe(chain_default)[1]
 
+# ╔═╡ 53c5b238-61fd-4ef3-9194-b076b3434b16
+describe(chain_default)[2]
 
-"""
+# ╔═╡ 0c34decf-ee35-4f9d-bf83-cfff75f8ff3b
+md"The Bayesian's credible interval tells us 
 
-# ╔═╡ 7cffa790-bf2d-473f-95cc-ed67802d7b4f
-let
-	# plot one third of the samples for a cleaner visualisation
-	first_N = Int(floor(size(pred_y_matrix)[1]/3))
-	df_pred_stats = DataFrame(mean= mean(pred_y_matrix, dims=2)[1:first_N], logstd = log.(std(pred_y_matrix, dims=2)[1:first_N]))
+* the intercept, `Balance`, and `Student` are significant predictors (their 95% credible intervals are either strictly positive or negative)
 
-	@df df_pred_stats scatter(:mean, :logstd, label="Simulated", ms=3, malpha=0.3, xlabel=L"\texttt{mean}(\mathbf{y})", ylabel=L"\ln(\texttt{std}(\mathbf{y}))")
-	scatter!([mean(yy)], [log(std(yy))], label="Observed")
-end
-
-# ╔═╡ 21aaa2db-6df0-4573-8951-bdfd9b6be6f9
-md"""
-### A multiple linear regression example
-
-Consider the *Advertising* dataset which is described in the book [Introduction to Statistical Learning](https://hastie.su.domains/ISLR2/ISLRv2_website.pdf). The dataset records how advertising on TV, radio, and newspaper affects sales of a product. 
-"""
-
-# ╔═╡ b1401e7d-9207-4e31-b5ce-df82c8e9b069
-begin
-	Advertising = DataFrame(CSV.File(download("https://www.statlearning.com/s/Advertising.csv")))
-	first(Advertising, 5)
-end
-
-# ╔═╡ 241faf68-49b2-404b-b5d5-99061d1dd2a7
-md"""
-First, we shall plot the data to get a feeling about the dataset. By checking the correlations, it seems both *TV, radio* are effective methods and the correlation between *newspaper* and *sales* seems not strong enough.
-
-$(begin
-	@df Advertising cornerplot([:sales :TV :radio :newspaper], compact = true)
-end)
-
-"""
-
-# ╔═╡ 796ad911-9c95-454f-95f4-df5370b2496a
-md"""
-To understand the effects of the three different advertising methods, we can apply **multiple linear regression**. The multiple linear regression is formulated as:
-
-```math
-\texttt{sales} = \beta_0 + \beta_1 \times \texttt{TV} + \beta_2 \times \texttt{radio} + \beta_3 \times \texttt{newspaper} + \varepsilon
-```
-
-"""
-
-# ╔═╡ ce97fbba-f5d0-42de-8b67-827c3478d8b0
-md"A Frequentist's model is fitted by using `GLM` as a reference first."
-
-# ╔═╡ f3b6f3ab-4304-4ef4-933c-728841c17998
-ols_advertising = lm(@formula(sales ~ TV+radio+newspaper), Advertising)
-
-# ╔═╡ ab51e2c3-dbd4-43e1-95b5-a875954ac532
-md"According to the OLS fit, we can observe that the newspaper's effect is not statistically significant since its lower and upper 95% confidence interval encloses zero.
-
-We now move on to fit a Bayesian model. A `Turing` multiple linear regression model is specified below. Note that the model is almost the same as the simple regression model. The only difference is we allow the number of predictors to vary.
+* but `Income` factor's impact on predicting the log-ratio of `Default` is not statistically significant, which is in agreement with the Frequentist's analysis.
 "
 
-# ╔═╡ e1db0ee1-1d91-49c4-be6c-1ea276750bfc
-# Bayesian linear regression.
-@model function general_linear_regression(X, ys; v₀ = 10^2, V₀ = 10^2, s₀ = 5)
-    # Set variance prior.
-    σ² ~ truncated(Cauchy(0, s₀), 0, Inf)
-    # Set intercept prior.
-    intercept ~ Normal(0, sqrt(v₀))
-    # Set the priors on our coefficients.
-    nfeatures = size(X, 2)
-    coefficients ~ MvNormal(nfeatures, sqrt(V₀))
-    # Calculate all the mu terms.
-    μs = intercept .+ X * coefficients
-	for i in eachindex(ys)
-		ys[i] ~ Normal(μs[i], sqrt(σ²))
-	end
-end
+# ╔═╡ f092a42e-16e9-45ac-88cd-133a92402ff6
+plot(chain_default)
 
-# ╔═╡ 80727f81-2440-4da5-8a8b-38ebfdc4ddc9
-md"We then fit the Bayesian model with the advertisement dataset:"
-
-# ╔═╡ 929330bf-beb5-4e42-8668-2a10adf13972
-chain_adv = let
-	xs = Advertising[:,2:4] |> Array # |> cast the dataframe to an array
-	advertising_bayes_model = general_linear_regression(xs, Advertising.sales)
-	Random.seed!(100)
-	chain_adv = sample(advertising_bayes_model, NUTS(), MCMCThreads(), 2000, 4)
-	replacenames(chain_adv,  Dict(["coefficients[1]" => "TV", "coefficients[2]" => "radio", "coefficients[3]" => "newspaper"]))
-end;
-
-# ╔═╡ 9668ab51-f86d-4af5-bf1e-3bef7081a53f
-summarystats(chain_adv)
-
-# ╔═╡ ead10892-a94c-40a4-b8ed-efa96d4a32b8
-describe(chain_adv)[2]
-
-# ╔═╡ 6a330f81-f581-4ccd-8868-8a5b22afe9b8
-md"As can be seen from the summary, the Bayesian results are very similar to the Frequentists again: the posterior means are close to the OLS estimators. By checking the posterior's 95% credible intervals, we can conclude again newspaper (with a 95% credible interval between -0.013 and 0.011) is not an effective method, which is in agreement with the frequentist's result. The trace and density plot of the posterior samples are listed below for reference."
-
-# ╔═╡ b1f6c262-1a2d-4973-bd1a-ba363bcc5c41
-plot(chain_adv)
-
-# ╔═╡ 659a3760-0a18-4a95-8168-fc6ca237c4d5
-md"""
-
-## Extensions
-
-For both examples we have seen so far, the Bayesian method and the frequentist's method return very similar results. So the reader may wonder why to bother learning the Bayesian inference. The benefit of the Bayesian approach lies in its flexibility: by modifying the model as the modeller sees fit, everyone can do statistical inference like a statistician. With the help of `Turing`, the modeller only needs to do the modelling and leave the computation to the powerful MCMC inference engine.
-
-
-### Heterogeneous observation σ
-
-To demonstrate the flexibility of the Bayesian approach, we are going to make improvements to the Advertising data's regression model. Here, we consider the effect of *TV* on *sales* only.
-"""
-
-# ╔═╡ 9cb32dc0-8c0c-456e-bbcb-7ff6ae63da60
-ols_tv = lm(@formula(sales ~ TV), Advertising);
-
-# ╔═╡ 2e7f780e-8850-446e-97f8-51ec26f5e36a
-let
-	plt=@df Advertising scatter(:TV, :sales, xlabel="TV", ylabel="Sales", label="")
-	xis = [25, 150, 280]
-	σ²0 = [5, 12, 30]
-	pred(x) = coef(ols_tv)' * [1, x]
-	for i in 1:length(xis)
-		x = xis[i]
-		μi = pred(x)
-		xs_ = μi-2*sqrt(σ²0[i]):0.01:μi+2*sqrt(σ²0[i])
-		ys_ = pdf.(Normal(μi, sqrt(σ²0[i])), xs_)
-		ys_ = 20 * ys_ ./ maximum(ys_)
-		plot!(ys_ .+x, xs_, c=2, label="", linewidth=2)
-	end
-	plt
-end
-
-# ╔═╡ 65d702d6-abec-43a1-89a8-95c30b3e748a
-md"It can be observed that the observation noise's scale ``\sigma^2`` is not constant across the horizontal axis. With a larger investment on TV, the sales are increasing but also the variance of the sales (check the two Gaussians' scales at two ends of the axis). Therefore, the old model which assumes a constant observation variance scale is not a good fit for the data. 
-"
-
-# ╔═╡ 611ad745-f92d-47ac-8d58-6f9baaf3077c
-let
-	# error = Advertising.sales - [ones(length(Advertising.TV)) Advertising.TV] * coef(ols_tv)
-	# σ²_ml = sum(error.^2) / (length(Advertising.sales)-2)
-	pred(x) = coef(ols_tv)' * [1, x]
-	@df Advertising scatter(:TV, :sales, xlabel="TV", ylabel="Sales", label="")
-	plot!(0:1:300, pred, lw=2, lc=2, label="OLS", legend=:topleft)
-	test_data = DataFrame(TV= 0:300)
-	pred_ = predict(ols_tv, test_data, interval = :prediction, level = 0.9)
-	# plot!(0:1:300, (x) -> pred(x) + 2 * , lw=2, label="OLS", legend=:topleft)
-	# plot!(0:1:300, pred, lw=2, label="OLS", legend=:topleft)
-	plot!(0:300, pred_.prediction, linewidth = 0.1,
-        ribbon = (pred_.prediction .- pred_.lower, pred_.upper .- pred_.prediction), label=L"90\% "* " OLS prediction interval")
-end
-
-# ╔═╡ ddb0d87e-cf0a-4b09-9bb6-4ee267fcdb9d
-md"""
-
-The ordinary OLS estimated model with the old model assumption is plotted above. It can be observed that the prediction interval is too wide at the lower end of the input scale but too small on the upper side.
-
-"""
-
-# ╔═╡ 1954544c-48b4-4997-871f-50c9bfa402b7
-md"""
-
-**A better "story".**
-One possible approach to improve the model is to assume the observation scale ``\sigma`` itself is a function of the independent variable:
-
-```math
-\sigma(x) = r_0 + r_1  x,
-```
-If the slope ``r_1>0``, then the observation scale ``\sigma(x)`` will steadily increase over the input ``x``.
-
-However, note that ``\sigma`` is a constrained parameter, which needs to be strictly positive. To make the transformation valid across the input ``x``, we model ``\sigma``'s transformation ``\rho`` instead. 
-
-To be more specific, we define the following deterministic transformations between ``\rho`` and ``\sigma``:
-```math
-\begin{align}
-&\rho(x) = \gamma_0 + \gamma_1  x,\\
-&\sigma = \ln(1+\exp(\rho)).
-\end{align}
-``` 
-
-The unconstrained observation scale ``\rho \in R`` is linearly dependent on the input ``x``; and a ``\texttt{softplus}`` transformation ``\ln(1+\exp(\cdot))`` is then applied to ``\rho`` such that the output is always positive.
-
-The second transformation ``\ln(1+ \exp(\cdot))`` is widely known as soft-plus method. The function is plotted below.
-
-$(begin
-plot(-10:.1:10, (x)-> log(1+exp(x)), label=L"\ln(1+\exp(x))", legend=:topleft, lw=2, size=(400,300))
-end)
-
-``\texttt{Softplus}`` function takes any real-value as input and outputs a positive number, which satisfies our requirement. Note that one can also simply use ``\exp(\cdot)`` instead, which is also a ``R \rightarrow R^+`` transformation.
-"""
-
-# ╔═╡ 85ae4791-6262-4f07-9796-749982e00fec
-md"""
-
-The full Bayesian model is specified below:
-
-
-```math
-\begin{align}
-\text{Priors: }\beta_0 &\sim \mathcal{N}(m_0^{\beta_0}, v_0^{\beta_0})\\
-\gamma_0 &\sim \mathcal{N}(m_0^{\gamma_0}, v_0^{\gamma_0}) \\
-\beta_1 &\sim \mathcal{N}(m_0^{\beta_1}, v_0^{\beta_1})\\
-\gamma_1 &\sim \mathcal{N}(m_0^{\gamma_1}, v_0^{\gamma_1}) \\
-\text{Likelihood: for } n &= 1,2,\ldots, N:\\
-\mu_n &=\beta_0 + \beta_1 x_n \\
-\rho_n &= \gamma_0 + \gamma_1 x_n\\
-\sigma_n &= \log(1+\exp(\rho_n))\\
-y_n &\sim \mathcal{N}(\mu_n, \sigma_n^2),
-\end{align}
-```
-
-which can be translated to `Turing` as follows. For simplicity, we have assumed all priors are with mean zero and variance ``10^2``. 
-"""
-
-# ╔═╡ 08c52bf6-0920-43e7-92a9-275ed298c9ac
-@model function hetero_var_model(X, y; v₀=100)
-	β₀ ~ Normal(0, sqrt(v₀))
-	β₁ ~ Normal(0, sqrt(v₀))
-	γ ~ MvNormal(zeros(2), sqrt(v₀))
-	μs = β₀ .+ β₁ .* X
-	ρs = γ[1] .+ γ[2] .* X
-	σs = log.(1 .+  exp.(ρs))
-	for i in eachindex(y)
-		y[i] ~ Normal(μs[i], σs[i])
-	end
-	return (;μs, ρs, σs)
-end
-
-# ╔═╡ 11021fb7-b072-46ac-8c23-f92825182c8c
-begin
-	Random.seed!(100)
-	model2 = hetero_var_model(Advertising.TV, Advertising.sales)
-	chain2 = sample(model2, NUTS(), MCMCThreads(), 2000, 3)
-end;
-
-# ╔═╡ cece17c2-bacb-4b4a-897c-4116688812c6
-describe(chain2)
-
-# ╔═╡ 29175b82-f208-4fcf-9704-4a1996cc6e3c
-plot(chain2)
-
-# ╔═╡ 05b90ddb-8479-4fbf-a469-d5b0bf4a91c8
-md"""
-#### Use `generated_quantities()`
-
-**Analyse internel hidden values.** ``\sigma, \mu`` are of importance in evaluating the model. They represent the observation noise scale and regression-line's expectation respectively. Recall that they depend on the independent variable *TV* and the unknown model parameters ``\gamma_0, \gamma_1, \beta_0, \beta_1`` via deterministic functions
-```math
-\sigma(\texttt{TV}) = \ln(1+ \exp(\gamma_0 +\gamma_1 \texttt{TV})).
-```
-
-and 
-
-```math
-\mu(\texttt{TV}) = \beta_0 +\beta_1 \texttt{TV}.
-``` 
-
-To gain deeper insights into the inference results, we can analyse the posterior distributions of ``\mu`` and ``\sigma`` directly: i.e.
-```math
-p(\sigma|\texttt{TV}, \mathcal{D}),\;\; p(\mu|\texttt{TV}, \mathcal{D}). 
-```
-
-Based on the Monte Carlo principle, their posterior distributions can be empirically approximated based on their posterior samples, which can be subsequently computed based on the MCMC samples ``\{\gamma_0^{(r)}, \gamma_1^{(r)}\}_{r=1}^R``, and ``\{\beta_0^{(r)},\beta_0^{(r)}\}_{r=1}^R`` respectively.
-
-
-Take ``\sigma`` for example, its posterior can be approximated based on ``\{\gamma_0^{(r)}, \gamma_1^{(r)}\}_{r=1}^R`` by an empirical distribution:
-
-```math
-p(\sigma |\texttt{TV}, \mathcal{D}) \approx \frac{1}{R} \sum_{r=1}^R \delta_{\sigma^{(r)}_{\texttt{TV}}},
-```
-where 
-
-
-$$\sigma^{(r)}_{\texttt{TV}} =\ln(1+ \exp( \gamma_0^{(r)} +\gamma_1^{(r)} \texttt{TV})).$$ and ``\delta_{x}`` is a Dirac measured at ``x``. The posterior mean can then be approximated by the Monte Carlo average:
-
-```math
-\mathbb{E}[\sigma|\mathcal{D}, \texttt{TV}] \approx \frac{1}{R} \sum_{r=1}^R \sigma^{(r)}_{\texttt{TV}}.
-```
-
-To make the idea concrete, we manually implement and plot the posterior approximation below. 
-
-
-"""
-
-# ╔═╡ 2d7f773e-9fa1-475d-9f74-c13908209aeb
-begin
-	σ(x; γ) = log(1.0 +  exp(γ[1] + γ[2] * x))
-	# obtain the posterior mean of the γ
-	γ_mean = describe(chain2)[1][:,:mean][3:4]
-	# obtain γ samples from the chain object
-	γ_samples = Array(group(chain2, :γ))
-	tv_input = 0:300
-	# calculate each σⁱ
-	σ_samples = map(γⁱ -> σ.(tv_input; γ = γⁱ), eachrow(γ_samples))
-	# E[σ|𝒟]: the Monte Carlo average
-	σ_mean = mean(σ_samples)
-end;
-
-# ╔═╡ 8a0692db-6b85-42f6-8893-4219d58b1032
-let
-	# Plotting
-	plt = plot(tv_input, σ_mean, lw=3, xlabel="TV", ylabel=L"\sigma", label=L"\mathbb{E}[\sigma|\mathcal{D}]", legend=:topleft)
-	plot!(tv_input, σ_samples[1], lw=0.2, lc=:gray, xlabel="TV", ylabel=L"\sigma", label=L"\sigma^{(r)}\sim p(\sigma|\mathcal{D})", legend=:topleft)
-	for i in 2:25
-		plot!(tv_input, σ_samples[i], lw=0.2, lc=:gray, label="")
-	end
-	plt
-end
-
-# ╔═╡ 3c3f6378-ed20-4f40-a780-f9329ace34bc
-md"""
-
-It is not practical to implement the approximation for every single internal variable manually. Fortunately, `Turing` provides us with an easy-to-use method:
-```
-generated_quantities(model, chain)
-```  The method takes a `Turing` model and a chain object as input arguments and it returns all internal variables' samples, which are returned at the end of the `Turing` model. For example, to obtain the posterior samples of the hidden variables ``\mu`` and ``\sigma``, simply issue commands:
-"""
-
-# ╔═╡ a43189a3-a94f-4e69-85b1-3a586b2cc0eb
-begin
-	gen_adv = generated_quantities(model2, chain2)
-	σs = map((x) -> x.σs, gen_adv)
-	μs = map((x) -> x.μs, gen_adv)
-end;
-
-# ╔═╡ 4bf4c216-fefb-40fc-9d36-eaa82ff5454b
-md"""
-
-And we can plot the posterior samples to visually interpret the results. It is worth noting that the observation's scale ``\sigma`` increases as investment on *TV* increases, which is exactly what we want to model. And also note the uncertainty about the observation scale is not uniform over the scale of the input *TV*. The uncertainty about ``\sigma`` also increases as *TV* gets larger (check the gray lines' spread)."""
-
-# ╔═╡ 5a507f39-a6be-43aa-a909-4c87005ad1d2
-begin
-	order = sortperm(Advertising.TV)
-	plt = plot(Advertising.TV[order], mean(σs)[order], lw=4,  label=L"\mathbb{E}[\sigma|\mathcal{D}]", legend=:topleft, xlabel="TV", ylabel=L"\sigma",ribbon = (2*std(σs)[order], 2*std(σs)[order]))
-	plot!(Advertising.TV[order], σs[:][1][order], lw=0.2, lc=:gray, label=L"\sigma^{(r)}\sim p(\sigma|\mathcal{D})")
-	for i in 50:75
-		plot!(Advertising.TV[order], σs[:][i][order], lw=0.2, lc=:gray, label="")
-	end
-	plt
-end
-
-# ╔═╡ db76ed48-f0c0-4664-b2cf-d47be7faaa3f
-let
-	plt = plot(Advertising.TV[order], mean(μs)[order], lw=4, lc=2, xlabel="TV", label=L"\mathbb{E}[\mu|\mathcal{D}]", legend=:topleft, ribbon = (2*std(μs)[order], 2*std(μs)[order]))
-	plot!(Advertising.TV[order], μs[:][1][order], lw=0.15, lc=:gray, label=L"\mu^{(r)}\sim p(\mu|\mathcal{D})", legend=:topleft)
-	for i in 2:25
-		plot!(Advertising.TV[order], μs[:][i][order], lw=0.2, lc=:gray, label="")
-	end
-	@df Advertising scatter!(:TV, :sales, xlabel="TV", ylabel="Sales", label="", alpha=0.3, ms=3)
-	plt
-end
-
-# ╔═╡ fc324c67-85be-4c50-b315-9d00ad1dc2be
-md"""
-**Predictions.**
-Lastly, we show how to make predictions with `Turing`. To make predictions on new testing input ``x``, we will use `Turing`'s `predict()` method. Similar to prior and posterior predictive checks, we first feed in an array of missing values to the Turing model and use `predict` to draw posterior inference on the unknown targets ``y``.
-
-
-Take the extended Advertising for example, the code below predicts at testing input at ``\texttt{TV} = 0, 1, \ldots, 300``.
-
-"""
-
-# ╔═╡ 61b1e15f-f3ff-4649-b90b-e85e2d172aaf
-begin
-	ad_test = collect(0:300)
-	missing_mod = hetero_var_model(ad_test, Vector{Union{Missing, Float64}}(undef, length(ad_test)))
-	ŷ=predict(missing_mod, chain2)
-end;
-
-# ╔═╡ 7e992f3e-0337-4b5f-8f4d-c20bdb3b6b66
-md"""
-After making predictions on the inputs, we can summarise the prediction by calculating the mean and standard deviation. The code below calculates the posterior predictive's mean and standard deviations and then the summary statistics are plotted together with the original dataset. Note how the prediction's variance increases when the input increases.
-"""
-
-# ╔═╡ ddc0f5b3-385a-4ceb-82e1-f218299b26d9
-begin
-	tmp=Array(ŷ)
-	ŷ_mean = mean(tmp, dims=1)[:]
-	ŷ_std = std(tmp, dims=1)[:]
-end;
-
-# ╔═╡ 9eef45d5-0cd2-460e-940f-bdc7114106c3
-begin
-	@df Advertising scatter(:TV, :sales, xlabel="TV", ylabel="Sales", label="", title="Bayesian posterior predictive on the testing data")
-	plot!(ad_test, ŷ_mean, lw=3, ribbon = (2 * ŷ_std, 2 * ŷ_std), label=L"E[y|\mathcal{D}]", legend=:topleft)
-	plot!(ad_test, ŷ_mean + 2 * ŷ_std, lw=2, lc=3, ls=:dash, label=L"E[y|\mathcal{D}] + 2\cdot \texttt{std}")
-	plot!(ad_test, ŷ_mean - 2 * ŷ_std, lw=2, lc=3, ls=:dash, label=L"E[y|\mathcal{D}] - 2\cdot \texttt{std}")
-end
-
-# ╔═╡ 1d5835ad-4e04-48f0-90e6-aa1776d9406f
-md"""
-### Handle outlier -- Bayesian robust linear regression
-
-A handful of outliers might skew the final OLS estimation. For example, some outliers were added to the simulated dataset we consider earlier. The new dataset is plotted together with the estimated OLS estimated model. The model now deviates a lot from the ground true model.
-"""
-
-# ╔═╡ ee37602c-229c-4709-8b29-627d32a25823
-begin
-	Random.seed!(123)
-	X_outlier = [0.1, 0.15]
-	y_outlier = [13, 13.5]
-	X_new = [X; X_outlier]
-	yy_new = [yy; y_outlier]
-
-end;
-
-# ╔═╡ 0fc9fd84-9fb1-42a1-bd68-8a9fcdce999d
-let
-	
-	ols_outlier =lm([ones(length(X_new)) X_new], yy_new)
-	pred(x) = coef(ols_outlier)' * [1, x]
-	scatter(X_new, yy_new, xlabel=L"x", ylabel=L"y", label="",title="OLS estimation with outliers")
-	# scatter!(X_outlier, y_outlier, xlabel=L"x", ylabel=L"y", label="")
-	plot!(0:0.1:1, pred, lw=2, label="OLS fit", legend=:topleft)
-	plot!(0:0.1:1, (x) -> β₀ + β₁*x, lw=2, label="True model", legend=:topright)
-end
-
-# ╔═╡ 9348f3e5-4224-46f5-bc07-dee20b47a8d3
-md"""
-To deal with outliers, classic frequentist's methods might either suggest identifying and removing the outliers or deriving a new estimator to accommodate the outlier. Bayesian's approach is more consistent: modify the modelling assumption.
-
-
-One way to achieve **robust Bayesian regression** is to assume the dependent observation is generated with Cauchy noise rather than Gaussian. As demonstrated below, a Cauchy distribution has heavier tails than its Gaussian equivalence, which makes Cauchy more resilient to outliers.
-"""
-
-# ╔═╡ 36fb8291-fea9-4f9f-ac52-a0eb61c2c8a8
-begin
-	plot(-5:0.1:5, Normal(), fill=(0, 0.2), ylabel="density", label=L"\mathcal{N}(0,1)")
-	plot!(-5:0.1:5, Cauchy(), fill=(0, 0.2), label=L"\texttt{Cauchy}(0,1)")
-end
-
-# ╔═╡ f67d1d47-1e25-4c05-befd-c958dce45168
-md"""The robust Bayesian regression model can be specified by replacing the Gaussian likelihood with its Cauchy equivalent. 
-
-
-
-!!! infor "Bayesian robust linear regression"
-	```math
-	\begin{align}
-	\text{Priors: }\beta_0 &\sim \mathcal{N}(m_0^{\beta_0}, v_0^{\beta_0})\\
-	\beta_1 &\sim \mathcal{N}(m_0^{\beta_1}, v_0^{\beta_1})\\
-	\sigma^2 &\sim \texttt{HalfCauchy}(s_0) \\
-	\text{Likelihood: for } n &= 1,2,\ldots, N:\\
-	\mu_n &=\beta_0 + \beta_1 x_n \\
-	y_n &\sim \texttt{Cauchy}(\mu_n, \sigma^2).
-	\end{align}
-	```
-
-The `Turing` translation of the model is listed below. Note the model is almost the same as the ordinary model except the likelihood part."""
-
-# ╔═╡ e4a67732-ff93-476e-8f5b-8433c1bf015e
-@model function simple_robust_blr(Xs, ys; v₀ = 5^2, V₀ = 5^2, s₀ = 5)
-	# Priors
-	# Gaussian is parameterised with sd rather than variance
-	β₀ ~ Normal(0, sqrt(v₀)) 
-	β ~ Normal(0, sqrt(V₀))
-	σ² ~ truncated(Cauchy(0, s₀), lower=0)
-	# calculate f(x) = β₀ + βx for all observations
-	# use .+ to broadcast the intercept to all 
-	μs = β₀ .+ β * Xs
-	
-	# Likelihood
-	for i in eachindex(ys)
-		ys[i] ~ Cauchy(μs[i], sqrt(σ²))
-	end
-end
-
-# ╔═╡ 92206a26-d361-4be5-b215-3ae388dd7f2f
-begin
-	Random.seed!(100)
-	robust_mod = simple_robust_blr(X_new, yy_new)
-	chain_robust = sample(robust_mod, NUTS(), MCMCThreads(), 2000,4)
-end;
-
-# ╔═╡ c65e9c09-52c5-4647-9414-ad53841e8ff3
-md"""
-To compare the results, we plot both ordinary Bayesian model with Gaussian likelihood and the proposed robust Bayesian inference results. It can be seen the ordinary model's posterior (left) has much larger prediction variance due to the influence of the outliers and the prediction mean (the red line) deviates from the true model significantly. On the other hand, the robust model (right) still provides very consistent result.
-"""
-
-# ╔═╡ 40f528f0-acca-43ff-a500-16aeb97898c8
-md"""
-The MCMC chain of the robust analysis is also listed below. Recall the true regression parameters are ``\beta_0=\beta_1=3``. The posterior distribution correctly recovers the ground truth.  
-"""
-
-# ╔═╡ 9fdaefb8-28b4-4b70-8412-1275dc1ed224
-describe(chain_robust)[1]
-
-# ╔═╡ 559660b8-1e69-41fe-9139-d031eb26e31c
-describe(chain_robust)[2]
-
-# ╔═╡ 139b5acb-c938-4fc9-84a5-fdcbd697b9da
+# ╔═╡ 59245146-ef30-4df1-9ac3-776871e5d062
 md"""
 ## Appendix
 
 """
 
-# ╔═╡ d8dae6b8-00fb-4519-ae45-36d36a9c90bb
+# ╔═╡ ea897f9a-89ff-421c-989a-b5f395cec705
 begin
-	struct Foldable{C}
-		title::String
-		content::C
-	end
-	
-	function Base.show(io, mime::MIME"text/html", fld::Foldable)
-		write(io,"<details><summary>$(fld.title)</summary><p>")
-		show(io, mime, fld.content)
-		write(io,"</p></details>")
-	end
+	prediction(ws, x1, x2) = mean(logistic.(ws * [1.0, x1, x2]))
 end
 
-# ╔═╡ 1cae04d1-82ca-47c8-b1fa-7fa5a754d4b1
-Foldable("Derivation details about the MLE.", md"
-Due to the independence assumption,
-
-```math
-p(\mathbf{y}|\mathbf{X}, \boldsymbol{\beta}, \sigma^2) = \prod_{n=1}^N p({y}_n|\mathbf{x}_n, \boldsymbol{\beta}, \sigma^2)= \prod_{n=1}^N \mathcal{N}(y_n; \mathbf{x}_n^\top \boldsymbol{\beta}, \sigma^2)
-```
-Since the logarithm function is a monotonically increasing function, the maximum is invariant under the transformation. We therefore can maximise the log-likelihood function instead. And the log-likelihood function is
-
-$$\begin{align}\mathcal{L}(\beta_0, \boldsymbol{\beta}, \sigma^2) &= \ln \prod_{n} \mathcal{N}(y_n; \mathbf{x}_n^\top \boldsymbol{\beta}, \sigma^2)\\
-&= \sum_{n=1}^N \ln  \left\{ (2\pi)^{-\frac{1}{2}}({\sigma^2})^{-\frac{1}{2}} \exp\left ( -\frac{1}{2 \sigma^2} (y_n - \beta_0 - \mathbf{x}_n^\top \boldsymbol{\beta})^2\right )\right \} \\
-&= {-\frac{N}{2}}\cdot 2\pi -\frac{N}{2}{\sigma^2} -\frac{1}{2 \sigma^2} \sum_{n=1}^N   (y_n - \beta_0 - \mathbf{x}_n^\top \boldsymbol{\beta})^2\end{align}$$
-
-Maximising the above log-likelihood is the same as minimising its negation, which leads to the least squared error estimation:
-
-```math
-\begin{align}
-\hat{\beta_0}, \hat{\boldsymbol{\beta}} &\leftarrow \arg\min -\mathcal{L}(\beta_0, \boldsymbol{\beta}, \sigma^2)  \\
-&= \arg\min  \sum_{n=1}^N   (y_n - \beta_0 - \mathbf{x}_n^\top \boldsymbol{\beta})^2,
-\end{align}
-```
-where we have assumed ``\sigma^2`` is known.
-
-")
-
-# ╔═╡ 89414966-5447-4133-80cb-0933c8b0d5d0
-Foldable("Derivation details.", md"
-
-The prior is 
-
-$$p(\boldsymbol{\beta}) = \mathcal{N}(\mathbf{0}, v_0 \mathbf{I}) = \frac{1}{\sqrt{(2\pi)^d |v_0 \mathbf{I}|}} \text{exp}\left (-\frac{1}{2v_0 }\boldsymbol{\beta}^\top \boldsymbol{\beta} \right ).$$ 
-
-Take the log and add the log-likelihood function, we have
-
-```math
-\begin{align}
-\ln p(\boldsymbol{\beta}|\mathbf y, \mathbf{X}) &= \ln p(\boldsymbol{\beta}) +\ln p(\mathbf y|\boldsymbol{\beta}, \mathbf{X}) + C\\
-&= -\frac{1}{2v_0}\boldsymbol{\beta}^\top \boldsymbol{\beta} - \frac{1}{2\sigma^2}(\mathbf y-\mathbf{X} \boldsymbol{\beta})^\top (\mathbf y-\mathbf{X} \boldsymbol{\beta}) + C\\
-&=-\frac{1}{2v_0} \|\boldsymbol{\beta}\|^2 - \frac{1}{2\sigma^2}\sum_{n=1}^N( y_n-\mathbf{x}_n^\top \boldsymbol{\beta})^2.
-\end{align}
-```
-
-
-")
-
-# ╔═╡ 969df742-bc8a-4e89-9e5e-62cb9e7c2215
-begin
-	chain_outlier_data = sample(simple_bayesian_regression(X_new, yy_new), NUTS(), 2000)
-	parms_turing = describe(chain_outlier_data)[1][:, :mean]
-	β_samples = Array(chain_outlier_data[[:β₀, :β]])
-	pred(x) = parms_turing[1:2]' * [1, x]
-	plt_outlier_gaussian = scatter(X_new, yy_new, xlabel=L"x", ylabel=L"y", label="", title="Ordinary Bayesian model")
-	plot!(0:0.1:1, pred, lw=2, label=L"\mathbb{E}[\mu|\mathcal{D}]", legend=:topleft)
-	plot!(0:0.1:1, (x) -> β₀ + β₁*x, lw=2, label="True model", legend=:topleft)
-	plot!(0:0.1:1, (x) -> β_samples[1, 1] + β_samples[1, 2] *x, lw=0.5, lc=:gray, label=L"\mu^{(r)} \sim p(\mu|\mathcal{D})", legend=:topleft)
-	for i in 2:50
-		plot!(0:0.1:1, (x) -> β_samples[i, 1] + β_samples[i, 2] *x, lw=0.15, lc=:gray, label="", legend=:topright)
-	end
-	plt_outlier_gaussian
+# ╔═╡ 78d6fe62-432b-49f3-b38f-0f6f6f5a04ed
+chain_array = let
+	model_ex1 = bayesian_logistic_reg(D, targets)
+	Random.seed!(100)
+	chain=sample(model_ex1, NUTS(), 1000, discard_initial=100, thinning=10)
+	Array(chain)
 end;
 
-# ╔═╡ e585393f-e1bd-4199-984f-5a09745171cf
-let
-	β_mean = describe(chain_robust)[1][:, :mean]
-	β_samples = Array(chain_robust[[:β₀, :β]])
-	plt = scatter(X_new, yy_new, xlabel=L"x", ylabel=L"y", label="", title="Robust Bayesian model")
-	pred(x; β) = x*β[2] + β[1]
-	plot!(0:0.1:1, (x)->pred(x; β = β_mean), lw=2, label=L"\mathbb{E}[\mu|\mathcal{D}]", legend=:topleft)
-	plot!(0:0.1:1, (x) -> β₀ + β₁*x, lw=2, label="True model", legend=:topleft)
-	plot!(0:0.1:1, (x) -> pred(x; β = β_samples[1,:]), lw=0.5, lc=:gray, label=L"\mu^{(r)} \sim p(\mu|\mathcal{D})", legend=:topleft)
-	for i in 2:50
-		plot!(0:0.1:1, (x) -> pred(x; β = β_samples[i,:]), lw=0.15, lc=:gray, label="", legend=:topright)
+# ╔═╡ 3e45f16f-ea6c-4960-98b7-1e642fb919c1
+p_bayes_1 = let
+	p_bayes_1 = Plots.contour(2:0.1:9, 2:0.1:8, (x, y) -> prediction(chain_array, x, y), fill=false, connectgaps=true, levels=8, line_smoothing = 0.85, legend=:left, title="Bayesian Prediction", c=:roma, ratio=1.0, xlabel=L"x_1", ylabel=L"$x_2")
+	Plots.plot!(p_bayes_1, D1[:, 1], D1[:,2], seriestype=:scatter, markersize = 3, markercolor=1, label="class 1")
+	Plots.plot!(p_bayes_1, D2[:, 1], D2[:,2], seriestype=:scatter, markersize = 3,  markercolor=2, label="class 2")
+	Plots.plot!(p_bayes_1, AB[1:2, 1], AB[1:2, 2], label="", seriestype=:scatter, markersize = 2, markershape =:star4, annotate = [(AB[1,1], AB[1,2], text("A", :top,:red, 9)), (AB[2,1], AB[2,2], text("B", :top, :red, 9))], markerstrokewidth = 1, markercolor=:red)
+	markers = [2, 5, 6, 9]
+	for m in markers
+		p0 = round(prediction(chain_array, D[m, 1], D[m, 2]), digits=2)
+		annotate!(D[m, 1], D[m,2], text(L"\hat{\sigma}="*"$(p0)", :bottom, 10))
 	end
-	plot(plt_outlier_gaussian, plt)
+
+	for i in 1:2
+		p0 = round(prediction(chain_array, AB[i, 1], AB[i, 2]), digits=2)
+		annotate!(AB[i, 1], AB[i,2], text(L"\hat{\sigma}="*"$(p0)", :bottom, :red, 10))
+	end
+	p_bayes_1
+end
+
+# ╔═╡ 2a632fe1-698f-4265-8509-453ee7827ae6
+let
+	p_bayes_pred = Plots.plot(D1[:, 1], D1[:,2], seriestype=:scatter, markersize = 5, markercolor=1, label="class 1", legend=:topright, xlim=[-1, 11], ylim=[-1,11])
+	Plots.plot!(p_bayes_pred, D2[:, 1], D2[:,2], seriestype=:scatter, markersize = 5,  markercolor=2, label="class 2")
+	mean_pred = mean(chain_array, dims=1)[:]
+
+	b, k =  -chain_array[1, 1:2] ./	chain_array[1, 3]
+	plot!(-2:12, (x) -> k*x+b,  lw=0.1, lc=:gray, label=L"\sigma^{(r)}\sim p(\sigma|\mathcal{D})")
+	for i in 2:60
+		b, k =  -chain_array[i, 1:2] ./	chain_array[i, 3]
+		plot!(-2:12, (x) -> k*x+b,  lw=0.1, lc=:gray, label="")
+	end
+	b, k =  - mean_pred[1:2] ./	mean_pred[3]
+	plot!(-2:12, (x) -> k*x+b,  lw=3, lc=3, label=L"\texttt{mean}(\sigma^{(r)})")
+	p_bayes_pred
 
 end
+
+# ╔═╡ c92f0602-9a6c-4e2c-8a28-2a870d332fe4
+begin
+	p1 = Plots.plot(D1[:,1], D1[:,2],  xlabel=L"$x_1$", ylabel=L"$x_2$", label="class 1", seriestype=:scatter, markersize = 4, legend = :bottomright, title="Binary classification", ratio =1.0)
+	Plots.plot!(p1, D2[:,1], D2[:,2], label="class 2", seriestype=:scatter, markersize = 4)
+	# plot!((x)-> -x, lw=4, lc=:gray, label="Decision boundary", ls=:dash, legend=:outerright)
+end;
+
+# ╔═╡ 82fc962c-a172-47ef-a86c-fa49bace3567
+p_freq_1= let
+	freq_coef = coef(glm_fit)'
+	# prediction(ws, x1, x2) = logistic(ws * [1.0, x1, x2])
+	p_freq_1 = Plots.contour(2:0.1:9, 2:0.1:8, (x, y) -> prediction(freq_coef, x, y), fill=false, connectgaps=true, levels=8, line_smoothing = 0.85, legend=:left, title="Frequentist Prediction", c=:roma, ratio=1.0, xlabel=L"x_1", ylabel=L"$x_2")
+	Plots.plot!(p_freq_1, D1[:, 1], D1[:,2], seriestype=:scatter, markersize = 3, markercolor=1, label="class 1")
+	Plots.plot!(p_freq_1, D2[:, 1], D2[:,2], seriestype=:scatter, markersize = 3,  markercolor=2, label="class 2")
+	Plots.plot!(p_freq_1, AB[1:2, 1], AB[1:2, 2], label="", seriestype=:scatter, markersize = 2, markershape =:star4, annotate = [(AB[1,1], AB[1,2], text("A", :top,:red, 9)), (AB[2,1], AB[2,2], text("B", :top, :red, 9))], markerstrokewidth = 1, markercolor=:red)
+	markers = [2, 5, 6, 9]
+	for m in markers
+		p0 = round(prediction(freq_coef, D[m, 1], D[m, 2]), digits=2)
+		annotate!(D[m, 1], D[m,2], text(L"\hat{\sigma}="*"$(p0)", :bottom, 10))
+	end
+
+	for i in 1:2
+		p0 = round(prediction(freq_coef, AB[i, 1], AB[i, 2]), digits=2)
+		annotate!(AB[i, 1], AB[i,2], text(L"\hat{\sigma}="*"$(p0)", :bottom, :red, 10))
+	end
+	p_freq_1
+end;
+
+# ╔═╡ cd76fa94-d0d7-43bb-8221-2a4dafa8af53
+p_freq_1
+
+# ╔═╡ 8a21c570-9bfe-4f66-9157-1b0dc4028ef4
+p_freq_surface_1 = let
+	freq_coef = coef(glm_fit)'
+	Plots.surface(0:0.1:10, 0:0.1:10, (x, y) -> prediction(freq_coef, x, y), legend=:best, title="Frequentist Prediction", c=:roma, ratio=1.0, xlabel=L"x_1", ylabel=L"$x_2", zlabel=L"p(y=1|\ldots)")
+end;
+
+# ╔═╡ 0c70c6be-518b-4ba4-bd69-cc34d2217077
+p_freq_surface_1
+
+# ╔═╡ f9b3916a-d4b2-4e6b-9a7d-be077fd45ac0
+p_bayes_surface_1 = let
+	Plots.surface(0:0.1:10, 0:0.1:10, (x, y) -> prediction(chain_array, x, y), legend=:best, title="Bayesian Prediction", c=:roma, ratio=1.0, xlabel=L"x_1", ylabel=L"$x_2", zlabel=L"p(y=1|\ldots)")
+end;
+
+# ╔═╡ 922704a0-b0c9-4fe0-a0fb-3ab58a7f01d9
+plot(p_freq_surface_1, p_bayes_surface_1, size=(800,400))
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
-CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 GLM = "38e38edf-8417-5370-95a0-9cbb8c7f171a"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
-Latexify = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
-LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+RDatasets = "ce6b1742-4840-55fa-b093-852dadbb1d8b"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+StatsFuns = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
 StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
 Turing = "fce5fe82-541a-59a6-adf8-730c64b5f9a0"
 
 [compat]
-CSV = "~0.10.4"
 DataFrames = "~1.3.4"
 GLM = "~1.8.0"
 LaTeXStrings = "~1.3.0"
-Latexify = "~0.15.16"
 PlutoUI = "~0.7.39"
+RDatasets = "~0.7.7"
+StatsBase = "~0.33.21"
+StatsFuns = "~1.0.1"
 StatsPlots = "~0.15.1"
 Turing = "~0.21.9"
 """
@@ -1236,7 +479,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.5"
 manifest_format = "2.0"
-project_hash = "8d2af6f085a0ecd672124f45c5d4ae9bb678b37a"
+project_hash = "50f4d97c12c5e4fcbfdd0d0aab004e966888a69b"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
@@ -1388,6 +631,12 @@ deps = ["LinearAlgebra"]
 git-tree-sha1 = "f641eb0a4f00c343bbc32346e1217b86f3ce9dad"
 uuid = "49dc2e85-a5d0-5ad3-a950-438e2897f1b9"
 version = "0.5.1"
+
+[[deps.CategoricalArrays]]
+deps = ["DataAPI", "Future", "Missings", "Printf", "Requires", "Statistics", "Unicode"]
+git-tree-sha1 = "5f5a975d996026a8dd877c35fe26a7b8179c02ba"
+uuid = "324d7699-5711-5eae-9e2f-1d82baa6b597"
+version = "0.10.6"
 
 [[deps.ChainRules]]
 deps = ["ChainRulesCore", "Compat", "Distributed", "GPUArraysCore", "IrrationalConstants", "LinearAlgebra", "Random", "RealDot", "SparseArrays", "Statistics"]
@@ -1619,6 +868,11 @@ git-tree-sha1 = "bad72f730e9e91c08d9427d5e8db95478a3c323d"
 uuid = "2e619515-83b5-522b-bb60-26c02a35a201"
 version = "2.4.8+0"
 
+[[deps.ExprTools]]
+git-tree-sha1 = "56559bbef6ca5ea0c0818fa5c90320398a6fbf8d"
+uuid = "e2ba6199-217a-4e67-a87a-7c52f15ade04"
+version = "0.1.8"
+
 [[deps.Extents]]
 git-tree-sha1 = "5e1e4c53fa39afe63a7d356e30452249365fba99"
 uuid = "411431e0-e8b7-467b-b5e0-f676ba4f2910"
@@ -1647,6 +901,12 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "c6033cc3892d0ef5bb9cd29b7f2f0331ea5184ea"
 uuid = "f5851436-0d7a-5f13-b9de-f02708fd171a"
 version = "3.3.10+0"
+
+[[deps.FileIO]]
+deps = ["Pkg", "Requires", "UUIDs"]
+git-tree-sha1 = "94f5101b96d2d968ace56f7f2db19d0a5f592e28"
+uuid = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
+version = "1.15.0"
 
 [[deps.FilePathsBase]]
 deps = ["Compat", "Dates", "Mmap", "Printf", "Test", "UUIDs"]
@@ -2117,6 +1377,12 @@ version = "1.0.2"
 [[deps.Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
+[[deps.Mocking]]
+deps = ["Compat", "ExprTools"]
+git-tree-sha1 = "29714d0a7a8083bba8427a4fbfb00a540c681ce7"
+uuid = "78c3b35d-d492-501b-9361-3d52fe80e533"
+version = "0.7.3"
+
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
 version = "2022.2.1"
@@ -2313,6 +1579,18 @@ deps = ["DataStructures", "LinearAlgebra"]
 git-tree-sha1 = "78aadffb3efd2155af139781b8a8df1ef279ea39"
 uuid = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
 version = "2.4.2"
+
+[[deps.RData]]
+deps = ["CategoricalArrays", "CodecZlib", "DataFrames", "Dates", "FileIO", "Requires", "TimeZones", "Unicode"]
+git-tree-sha1 = "19e47a495dfb7240eb44dc6971d660f7e4244a72"
+uuid = "df47a6cb-8c03-5eed-afd8-b6050d6c41da"
+version = "0.8.3"
+
+[[deps.RDatasets]]
+deps = ["CSV", "CodecZlib", "DataFrames", "FileIO", "Printf", "RData", "Reexport"]
+git-tree-sha1 = "2720e6f6afb3e562ccb70a6b62f8f308ff810333"
+uuid = "ce6b1742-4840-55fa-b093-852dadbb1d8b"
+version = "0.7.7"
 
 [[deps.REPL]]
 deps = ["InteractiveUtils", "Markdown", "Sockets", "Unicode"]
@@ -2576,6 +1854,12 @@ version = "0.1.5"
 [[deps.Test]]
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[[deps.TimeZones]]
+deps = ["Dates", "Downloads", "InlineStrings", "LazyArtifacts", "Mocking", "Printf", "RecipesBase", "Scratch", "Unicode"]
+git-tree-sha1 = "d634a3641062c040fc8a7e2a3ea17661cc159688"
+uuid = "f269a46b-ccf7-5d73-abea-4c690281aa53"
+version = "1.9.0"
 
 [[deps.Tracker]]
 deps = ["Adapt", "DiffRules", "ForwardDiff", "LinearAlgebra", "LogExpFunctions", "MacroTools", "NNlib", "NaNMath", "Printf", "Random", "Requires", "SpecialFunctions", "Statistics"]
@@ -2884,112 +2168,59 @@ version = "0.9.1+5"
 """
 
 # ╔═╡ Cell order:
-# ╟─da388a86-19cb-11ed-0c64-95c301c27153
-# ╟─c1026d6b-4e2e-4045-923e-eb5886b45604
-# ╟─4ed16d76-2815-4f8c-8ab0-3819a03a1acc
-# ╟─c8547607-92be-4700-9468-863798c2ddce
-# ╟─8f95b8c8-70a0-471a-be06-3b020db667b3
-# ╟─3a46c193-5a25-423f-bcb5-038f3756d7ba
-# ╟─1cae04d1-82ca-47c8-b1fa-7fa5a754d4b1
-# ╟─f8040fa0-fdff-42da-8b9f-785627f51ee1
-# ╟─c6938b7f-e6e5-4bea-a273-52ab3916d07c
-# ╟─effcd3d2-ba90-4ca8-a69c-f1ef1ad697ab
-# ╠═3e98e9ff-b674-43f9-a3e0-1ca5d8614327
-# ╟─af404db3-7397-4fd7-a5f4-0c812bd90c4a
-# ╟─af2e55f3-08b8-48d4-ae95-e65168a23eeb
-# ╟─43191a7a-f1a2-41df-910d-cf85907e8f7a
-# ╟─98ef1cca-de03-44c2-bcf4-6e79da139e11
-# ╟─a1421ccb-2d6e-4406-b770-ad7dff007c69
-# ╟─e1552414-e701-42b5-8eaf-21ae04a829a8
-# ╟─9387dcb4-3f4e-4ec7-8393-30a483e00c63
-# ╟─d3f4ac7b-1482-4840-b24b-d08066d1d70c
-# ╟─bab3a19c-deb0-4b1c-a8f9-f713d66d9199
-# ╟─b433c147-f547-4234-9817-2b29e7d57219
-# ╟─89414966-5447-4133-80cb-0933c8b0d5d0
-# ╟─824aa830-c958-4063-9ef7-39eeb743fc06
-# ╟─d825e29d-3e0b-4c25-852f-0c9a544aa916
-# ╟─f6cedb98-0d29-40f0-b9f3-430dd283fa36
-# ╟─71bb2994-7fd2-4e11-b2f1-d88b407f86c1
-# ╟─d02d5490-cf53-487d-a0c6-651725600f52
-# ╟─59dd8a13-89c6-4ae9-8546-877bb7992570
-# ╟─632575ce-a1ce-4a36-95dc-010229367446
-# ╟─c0f926f1-85e6-4d2c-8e9a-26cd099fd600
-# ╠═e9bb7a3c-9143-48c5-b33f-e7d6b48cb224
-# ╟─1ef001cc-fe70-42e5-8b97-690bb725a734
-# ╠═4ae89384-017d-4937-bcc9-3d8c63edaeb5
-# ╟─1761f829-6c7d-4186-a66c-b347be7c9a15
-# ╠═d57a7a26-a8a5-429d-b1b9-5e0499549544
-# ╟─ba598c45-a76e-41aa-bfd6-a64bb6cea875
-# ╟─391a1dc8-673a-47e9-aea3-ad79f366460d
-# ╟─d3d8fe25-e674-42de-ac49-b83aac402e2d
-# ╠═748c1ff2-2346-44f4-a799-75fb2002c6fc
-# ╟─ae720bcd-1607-4155-9a69-bfb6944d5dde
-# ╟─08f7be6d-fda9-4013-88f5-92f1b5d26336
-# ╠═40daa902-cb85-4cda-9b9f-7a32ee9cbf1c
-# ╠═ab77aef9-920c-423a-9ce0-2b5adead1b7f
-# ╟─b1d7e28a-b802-4fa1-87ab-7df3369a468a
-# ╟─4293298e-52a5-40ca-970d-3f17c2c89adb
-# ╟─860c4cf4-59b2-4036-8a30-7fbf44b18648
-# ╟─74a9a678-60b9-4e3f-97a2-56c8fdc7094f
-# ╠═435036f6-76fc-458b-b0eb-119de02eabb7
-# ╟─6eff54f2-d2e0-4c18-8eda-3be3124b16a0
-# ╠═f11a15c9-bb0b-43c1-83e6-dce55f2a772f
-# ╟─03b571e6-9d35-4123-b7bb-5f3b31558c9e
-# ╠═7cffa790-bf2d-473f-95cc-ed67802d7b4f
-# ╟─21aaa2db-6df0-4573-8951-bdfd9b6be6f9
-# ╠═b1401e7d-9207-4e31-b5ce-df82c8e9b069
-# ╟─241faf68-49b2-404b-b5d5-99061d1dd2a7
-# ╟─796ad911-9c95-454f-95f4-df5370b2496a
-# ╟─ce97fbba-f5d0-42de-8b67-827c3478d8b0
-# ╠═f3b6f3ab-4304-4ef4-933c-728841c17998
-# ╟─ab51e2c3-dbd4-43e1-95b5-a875954ac532
-# ╠═e1db0ee1-1d91-49c4-be6c-1ea276750bfc
-# ╟─80727f81-2440-4da5-8a8b-38ebfdc4ddc9
-# ╠═929330bf-beb5-4e42-8668-2a10adf13972
-# ╠═9668ab51-f86d-4af5-bf1e-3bef7081a53f
-# ╠═ead10892-a94c-40a4-b8ed-efa96d4a32b8
-# ╟─6a330f81-f581-4ccd-8868-8a5b22afe9b8
-# ╠═b1f6c262-1a2d-4973-bd1a-ba363bcc5c41
-# ╟─659a3760-0a18-4a95-8168-fc6ca237c4d5
-# ╟─9cb32dc0-8c0c-456e-bbcb-7ff6ae63da60
-# ╟─2e7f780e-8850-446e-97f8-51ec26f5e36a
-# ╟─65d702d6-abec-43a1-89a8-95c30b3e748a
-# ╟─611ad745-f92d-47ac-8d58-6f9baaf3077c
-# ╟─ddb0d87e-cf0a-4b09-9bb6-4ee267fcdb9d
-# ╟─1954544c-48b4-4997-871f-50c9bfa402b7
-# ╟─85ae4791-6262-4f07-9796-749982e00fec
-# ╠═08c52bf6-0920-43e7-92a9-275ed298c9ac
-# ╠═11021fb7-b072-46ac-8c23-f92825182c8c
-# ╠═cece17c2-bacb-4b4a-897c-4116688812c6
-# ╠═29175b82-f208-4fcf-9704-4a1996cc6e3c
-# ╟─05b90ddb-8479-4fbf-a469-d5b0bf4a91c8
-# ╠═2d7f773e-9fa1-475d-9f74-c13908209aeb
-# ╟─8a0692db-6b85-42f6-8893-4219d58b1032
-# ╟─3c3f6378-ed20-4f40-a780-f9329ace34bc
-# ╠═a43189a3-a94f-4e69-85b1-3a586b2cc0eb
-# ╟─4bf4c216-fefb-40fc-9d36-eaa82ff5454b
-# ╟─5a507f39-a6be-43aa-a909-4c87005ad1d2
-# ╟─db76ed48-f0c0-4664-b2cf-d47be7faaa3f
-# ╟─fc324c67-85be-4c50-b315-9d00ad1dc2be
-# ╠═61b1e15f-f3ff-4649-b90b-e85e2d172aaf
-# ╟─7e992f3e-0337-4b5f-8f4d-c20bdb3b6b66
-# ╠═ddc0f5b3-385a-4ceb-82e1-f218299b26d9
-# ╠═9eef45d5-0cd2-460e-940f-bdc7114106c3
-# ╟─1d5835ad-4e04-48f0-90e6-aa1776d9406f
-# ╟─ee37602c-229c-4709-8b29-627d32a25823
-# ╟─0fc9fd84-9fb1-42a1-bd68-8a9fcdce999d
-# ╟─9348f3e5-4224-46f5-bc07-dee20b47a8d3
-# ╟─36fb8291-fea9-4f9f-ac52-a0eb61c2c8a8
-# ╟─f67d1d47-1e25-4c05-befd-c958dce45168
-# ╠═e4a67732-ff93-476e-8f5b-8433c1bf015e
-# ╠═92206a26-d361-4be5-b215-3ae388dd7f2f
-# ╟─c65e9c09-52c5-4647-9414-ad53841e8ff3
-# ╟─e585393f-e1bd-4199-984f-5a09745171cf
-# ╟─40f528f0-acca-43ff-a500-16aeb97898c8
-# ╠═9fdaefb8-28b4-4b70-8412-1275dc1ed224
-# ╠═559660b8-1e69-41fe-9139-d031eb26e31c
-# ╟─139b5acb-c938-4fc9-84a5-fdcbd697b9da
-# ╟─d8dae6b8-00fb-4519-ae45-36d36a9c90bb
-# ╠═969df742-bc8a-4e89-9e5e-62cb9e7c2215
+# ╟─bce03358-19c9-11ed-31d9-5b0929af50b6
+# ╟─0a8fff98-24fd-49d6-a6b2-061e6350350b
+# ╟─9810605e-586b-4f38-a43c-4240cb91e154
+# ╟─ada4ad28-358e-4144-9d5c-f3b1d27deff1
+# ╠═7a189076-f53f-48ed-ace2-ffbcc287ff6f
+# ╟─d12ed6f0-b5c7-4492-9cd3-7ac2a6afafcd
+# ╠═1068259e-a7f6-4a56-b526-59e080c54d27
+# ╟─60a5cad4-c676-4334-8cbe-47877a68943f
+# ╟─0c70c6be-518b-4ba4-bd69-cc34d2217077
+# ╟─cd76fa94-d0d7-43bb-8221-2a4dafa8af53
+# ╟─e2918ef9-7f86-4d3b-93cb-65b8b5f48987
+# ╟─1f27c1d3-a4ee-4278-8140-d17d5c0d31c9
+# ╟─8b73706e-fe00-4489-8095-b3ec4528c58b
+# ╠═6d2af85d-8c9e-4da7-8a38-6c0df102f954
+# ╟─8a8d8eb9-9cea-43f0-9607-9d3ca908c370
+# ╠═41a3984c-aee4-494f-8ba2-69c0274185ed
+# ╠═e1e43074-9e5f-4516-bf0d-0ce4209afb6c
+# ╠═15b2d945-4e78-4c41-9712-5d623b15914e
+# ╠═5e5fdd62-ac1c-4ef6-a5a4-64ffe441b496
+# ╟─bdcc9726-d1fd-4d34-987e-925e1a96e58f
+# ╟─fd9d6126-d764-40f5-9a4d-fda49a0962a9
+# ╟─bea7b8a5-f20a-4de1-8358-8697dc525aa3
+# ╠═69258680-fc21-40ca-998a-1a81279342ea
+# ╟─be4d04ff-9ae8-40c6-ae7b-9ec29cd23b43
+# ╟─a84e1f2f-fdde-432f-89d3-265480ef9f53
+# ╟─44ccb675-a657-4fe8-934f-ddf29cb78f74
+# ╟─3e45f16f-ea6c-4960-98b7-1e642fb919c1
+# ╠═2a632fe1-698f-4265-8509-453ee7827ae6
+# ╟─922704a0-b0c9-4fe0-a0fb-3ab58a7f01d9
+# ╟─68b88445-fb94-4d26-a723-234b3045ca54
+# ╟─39c43d27-6806-4fb6-a0e8-5f41ae0ee94e
+# ╟─436f0628-ee73-4045-82f3-6d785b5ba51f
+# ╠═74a2053f-ef53-41df-8afc-997c166e6f67
+# ╟─e47c4ad6-17e4-4265-bee2-738b81e61696
+# ╟─8b56260f-2e42-4a89-a1c0-bf856b9f75d3
+# ╠═40db5082-3558-4fd4-ab47-1127f6d67e38
+# ╠═fbcdbc4e-f55b-4bf8-a10d-42f2627dbfdb
+# ╟─8c73a18f-55a1-4740-8795-5bbb6ff425de
+# ╠═920b9b1f-b56d-465c-bce2-e08530ec4bb4
+# ╠═0ca3c752-627f-40ce-ac6c-d10fc90d4663
+# ╟─a84de1b9-3c27-4b63-822f-f454b7d3098b
+# ╟─bd11a4c4-1f2b-4d3c-8e3f-8382dd9f3b3c
+# ╠═244ba3cf-63ba-4501-8e88-f71c95c15a7c
+# ╠═c83f3735-6aba-4183-b010-5f21cd2ff968
+# ╠═53c5b238-61fd-4ef3-9194-b076b3434b16
+# ╟─0c34decf-ee35-4f9d-bf83-cfff75f8ff3b
+# ╟─f092a42e-16e9-45ac-88cd-133a92402ff6
+# ╟─59245146-ef30-4df1-9ac3-776871e5d062
+# ╠═ea897f9a-89ff-421c-989a-b5f395cec705
+# ╠═78d6fe62-432b-49f3-b38f-0f6f6f5a04ed
+# ╠═c92f0602-9a6c-4e2c-8a28-2a870d332fe4
+# ╠═82fc962c-a172-47ef-a86c-fa49bace3567
+# ╠═8a21c570-9bfe-4f66-9157-1b0dc4028ef4
+# ╠═f9b3916a-d4b2-4e6b-9a7d-be077fd45ac0
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

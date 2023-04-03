@@ -4,6 +4,16 @@
 using Markdown
 using InteractiveUtils
 
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
+end
+
 # ╔═╡ da388a86-19cb-11ed-0c64-95c301c27153
 begin
     using PlutoUI
@@ -13,92 +23,263 @@ begin
 	using Turing
     using Random
 	using LaTeXStrings, Latexify
+	using PlutoTeachingTools
+	using MLDatasets
 	using Logging; Logging.disable_logging(Logging.Warn);
 end;
 
 # ╔═╡ c1026d6b-4e2e-4045-923e-eb5886b45604
 TableOfContents()
 
+# ╔═╡ 96708550-225d-4312-bf74-737ab8fe0b4d
+present_button()
+
+# ╔═╡ 684f63ec-1e2f-4384-8ddd-f18d2469ebc3
+md"""# Bayesian linear regression 
+
+
+
+
+$(Resource("https://www.st-andrews.ac.uk/assets/university/brand/logos/standard-vertical-black.png", :width=>130, :align=>"right"))
+
+Lei Fang (lf28@st-andrews.ac.uk)
+
+*School of Computer Science*
+
+*University of St Andrews, UK*
+
+*March 2023*
+"""
+
+# ╔═╡ b94583a3-7a04-4b30-ba7b-4ff5a72baf5f
+md"""
+
+## Notations
+
+
+Super-index with brackets ``.^{(i)}``: ``i \in \{1,2,\ldots, n\}`` index for observations/data
+* ``n`` total number of observations
+* *e.g.* ``y^{(i)}`` the i-th observation's label
+* ``\mathbf{x}^{(i)}`` the i-th observation's predictor vector
+
+Feature/predictor index ``j \in \{1,2,,\ldots, m\} ``
+* ``m`` total number of features
+* *e.g.* ``\mathbf{x}^{(i)}_2``: the second entry/predictor/feature of ``i``-th observation vector
+
+
+Vectors: **Bold-face** smaller case:
+* ``\mathbf{x},\mathbf{y}, \boldsymbol{\beta}``
+* ``\mathbf{x}^\top``: row vector
+
+Matrices: **Bold-face** capital case: 
+* ``\mathbf{X},\mathbf{A}, \boldsymbol{\Gamma}``  
+
+
+Scalars: normal letters
+* ``x,y,\beta,\gamma``
+
+"""
+
 # ╔═╡ 4ed16d76-2815-4f8c-8ab0-3819a03a1acc
 md"""
 
-# Bayesian linear regressions
+## Supervised learning
 
-Supervised learning in general is to predict a *dependent variable* ``Y`` based on *covariate features* ``X``. In other words, it tries to access how ``X`` affects ``Y``. Depending on the value type of the labelled targets ``Y``, the analysis can be further classified as *regression* and *classification*. When ``Y`` can take a spectrum of continuous values, such as real value, the learning task is known as regression. When ``Y`` take discrete choices, the task is commonly referred to as classification.
+Supervised learning in general 
+
+* predict *targets* ``Y`` with *covariates* ``X``
+* it tries to access how ``X`` affects ``Y``
 
 
-In this chapter, we consider the case of ``Y`` being real-valued, ``Y\in R``, *i.e.* regression. And leave the discussion on other general cases such as ``Y\in \{\texttt{true}, \texttt{false}\}`` or ``Y\in \{0,1,2,\ldots\}`` in the following chapters. We will first briefly review the Frequentist's regression model and then move on to introduce the Bayesian treatment. From a modelling perspective, the Bayesian model is almost the same as the Frequentist's model except for the additional prior distributions. It turns out the additional prior not only offers a way to incorporate the modeller's prior expert knowledge but also has a *regularisation* effect in estimating the model parameters.
 
-Lastly, we are going to see how to do practical Bayesian linear regression analysis with `Turing`. Some extensions are also considered at the end.
+
+Depending on the type of the labelled targets ``Y``
+* regression*: ``Y`` is continuous real values
+* and *classification*: ``Y`` is categorical 
+
+In this chapter, we consider regression in Bayesian approach
 """
 
-# ╔═╡ c8547607-92be-4700-9468-863798c2ddce
+# ╔═╡ c21f64bb-a934-4ec0-b1eb-e3fd6695d116
 md"""
-## Frequentist's linear regression
+
+## Regression example
 
 
-Firstly, we recap the Frequentist's regression model. A typical regression model assumes each observation ``y_n`` is generated based on some deterministic transformation of the independent variable ``\mathbf{x}_n \in R^D`` plus and some observation noise ``\varepsilon_n``:
+Example: **House price** prediction
 
-```math
-y_n =  \mu(\mathbf{x}_n) + \varepsilon_n
-```
-for ``n=1,\ldots, N``, where the observation noises are usually assumed to be white Gaussian noises:
+The data is ``\mathbf{x}^{(i)}, y^{(i)}`` for ``i=1,2,\ldots, n``
 
-$$\varepsilon_n \sim \mathcal N(0, \sigma^2).$$
+* ``\mathbf{x}^{(i)}`` has 14 features: such as average number of rooms, crime rate, *etc*
+
+* ``y^{(i)} \in R``:  house price of the ``i``- observation
 
 
-The deterministic function ``\mu`` is usually assumed to be linear:
-
-$$\mu(\mathbf x_n) = \beta_0 + \mathbf{x}_n^\top \boldsymbol{\beta}_1 ,$$ 
-
-where ``\beta_0`` is called intercept and ``\boldsymbol{\beta}_1 \in R^D`` determine linear relationship between ``\mathbf{x}`` and ``y``. Since ``\mu`` is a linear function, the regression is called **linear regression**. 
 """
 
-# ╔═╡ 8f95b8c8-70a0-471a-be06-3b020db667b3
+# ╔═╡ 0d3d98c4-fed4-4f4b-be17-bd733e808256
+begin
+	X_housing = MLDatasets.BostonHousing.features()
+	df_house = DataFrame(X_housing', MLDatasets.BostonHousing.feature_names())
+	df_house[!, :target] = MLDatasets.BostonHousing.targets()[:]
+end;
+
+# ╔═╡ 94e5a7ed-6332-4f92-8b77-7e0ce7b88a84
 md"""
-**Probabilistic reformulation.**
-The Frequentist's model above can also be equivalently written as:
+
+Consider the relationship between `room` and `price`
+"""
+
+# ╔═╡ 215c4d7f-ef58-4682-893b-d41b7de75afa
+@df df_house scatter(:rm, :target, xlabel="room", ylabel="price", label="", title="House price prediction: regression")
+
+# ╔═╡ c6c3e3aa-fee6-418f-b304-8d5b353bd2d7
+md"""
+
+## Linear regression 
+
+
+!!! note "Linear regression assumption"
+	Linear regression: prediction function ``\mu(\cdot)`` is assumed linear 
+
+	```math
+	\mu(x_{\text{room}}) = \beta_0 + \beta_1 x_{\text{room}} 
+	```
+
+
+``\mu(x)`` is called **prediction** function or **regression function**
+* ``\beta_0, \beta_1``: model parameters
+* sometimes we write ``\mu(x; \beta_0, \beta_1)`` or ``\mu_{\beta_0, \beta_1}(x)`` to emphasise ``\mu`` is parameterised with ``\beta_0, \beta_1``
+"""
+
+# ╔═╡ ab53480e-a9f3-4a86-91cd-aa3168128696
+md"""
+
+## Multiple linear regression
+
+
+When the covariate ``\mathbf{x} \in R^m``
+
+* we have ``m=14`` predictors in our house data, *e.g.* crime, room, *etc*
+
+
+!!! note "Multiple linear regression "
+	Prediction function ``\mu(\mathbf{x})`` becomes a hyperplane
+
+	```math
+	\mu(\mathbf{x}) = \beta_0 + \beta_1 x_{1} + \beta_2 x_2 + \ldots + \beta_m x_m  = \boldsymbol{\beta}^\top \mathbf{x}
+	```
+
+	* for convenience, we add 1 dummy predictor one to ``\mathbf{x}``
+
+	```math
+		\mathbf{x} =\begin{bmatrix}1 & x_1 & x_2 & \ldots& x_m \end{bmatrix}^\top
+	```
+
+    * we sometimes write ``\mu(\mathbf{x}; \boldsymbol{\beta}) = \boldsymbol{\beta}^\top \mathbf{x}`` or ``\mu_{\boldsymbol{\beta}}(\mathbf{x})``
+
+"""
+
+# ╔═╡ a00eb60a-4e90-4002-a758-799fbceab48c
+md"""
+
+## Hyperplane ``\mu(\mathbf{x}) = \boldsymbol{\beta}^\top \mathbf{x}``
+
+
+Geometrically, ``\mu(\mathbf{x})`` forms a hyperplane 
+"""
+
+# ╔═╡ 41f6c4fa-89b9-492d-9276-b1651ba92236
+md"""
+## Frequentist's linear regression model
+
+
+In other words, 
+
+$$y^{(i)} = \boldsymbol{\beta}^\top \mathbf{x}^{(i)} + \epsilon^{(i)}, \;\; \epsilon^{(i)} \sim  \mathcal{N}(0, \sigma^2)$$
+
+which implies **a probability distribution** for ``y^{(i)}`` 
+
+$p(y^{(i)}|\mathbf{x}^{(i)}, \boldsymbol{\beta}, \sigma^2) = \mathcal{N}(y^{(i)};  \boldsymbol{\beta}^\top \mathbf{x}^{(i)} , \sigma^2)= \frac{1}{\sqrt{2\pi\sigma^2}}\text{exp}\left(-\frac{(y^{(i)}-{\boldsymbol{\beta}}^\top\mathbf{x}^{(i)})^2}{2\sigma^2}\right)$
+
+* ``y^{(i)}`` is a univariate Gaussian with mean $\boldsymbol{\beta}^\top \mathbf{x}^{(i)}$ and variance $\sigma^2$ 
+
+"""
+
+# ╔═╡ f6cb99dd-f25c-4770-bba2-8a2496016316
+md"``x_i`` $(@bind xᵢ0 Slider(-0.5:0.1:1, default=0.15));	``\sigma^2`` $(@bind σ²0 Slider(0.005:0.01:0.15, default=0.05))"
+
+# ╔═╡ 546e2142-41d2-4c4e-b997-adf8262c3345
+md"input $x^{(i)}=$ $(xᵢ0); and ``\sigma^2=`` $(σ²0)"
+
+# ╔═╡ b0008150-7aae-4310-bfa8-950ba7bc9092
+md"""
+
+## Likelihood ``p(\mathbf{y}|\boldsymbol{\beta}, \sigma, \mathbf{X})``
+
+
+
+For the linear regression model
+
+* the unknown are: ``\boldsymbol{\beta}, \sigma^2``
+
+* the data observations are: ``\mathcal{D} =\{y^{(1)}, y^{(2)}, \ldots, y^{(n)}\}``
+
+* note that ``\{\mathbf{x}^{(i)}\}`` are assumed fixed
+
+
+
+Therefore, the likelihood function is
 
 ```math
-p(y_n|\mathbf{x}_n, \boldsymbol{\beta}, \sigma^2) = \mathcal{N}(y_n; \beta_0+\mathbf{x}_n^\top \boldsymbol{\beta}_1, \sigma^2),
+p(\mathcal{D}|\boldsymbol{\beta}, \sigma^2, \{\mathbf{x}^{i}\}) = \prod_{i=1}^n p(y^{(i)}|\boldsymbol{\beta}, \sigma^2, \mathbf{x}^{(i)})
 ```
-where ``\boldsymbol{\beta}^\top = [\beta_0, \boldsymbol{\beta}_1]`` is used to denote the both the intercept and regression parameters. In other words, a **likelihood model** for the observed data ``\mathbf{y} = \{y_n\}`` for ``n=1,\ldots, N``. And each ``y_n`` is Gaussian distributed with mean $\beta_0+\mathbf{x}_n^\top \boldsymbol{\beta}_1$ and variance $\sigma^2$. The model also assumes the independent variables ``\mathbf{x}_n`` are fixed (i.e. non-random).
 
-By using matrix notation, the above model can be compactly written as:
-
-```math
-p(\mathbf{y}|\mathbf{X}, \boldsymbol{\beta}, \sigma^2) = \mathcal{N}_N(\mathbf{y}; \beta_0 \mathbf{1}_N + \mathbf{X} \boldsymbol{\beta}_1, \sigma^2\mathbf{I}_N),
-```
-where ``\mathbf{y} = [y_1, y_2,\ldots,y_N]^\top, \mathbf{X} = [\mathbf{x}_1, \mathbf{x}_2, \ldots, \mathbf{x}_n]^\top``, ``\mathbf{1}_N=[1, \ldots, 1]^\top`` is a ``N\times 1`` column vector of ones and ``\mathbf{I}_{N}`` is a ``N\times N`` identity matrix.
-
-The likelihood assumption is illustrated below for a simple linear regression model with a one-dimensional predictor, i.e. ``D=1``. Conditioning on where ``x_n`` is, ``y_n`` is Gaussian distributed with a mean determined by the regression line and an observation variance ``\sigma^2``.
-
+* conditional independence assumption (also i.i.d assumption)
 """
 
 # ╔═╡ 3a46c193-5a25-423f-bcb5-038f3756d7ba
 md"""
+## MLE and OLS
 
-**OLS (MLE) Estimation*.** Frequentists estimate the model by using maximum likelihood estimation (MLE). The idea is to find point estimators ``\hat{\beta_0}, \hat{\boldsymbol{\beta}}_1, \hat{\sigma^2}`` such that the likelihood function is maximised. 
+Frequentists estimate the model by using maximum likelihood estimation (MLE):
+
+
 ```math
 \hat{\beta_0}, \hat{\boldsymbol{\beta}}_1, \hat{\sigma^2} \leftarrow \arg\max p(\mathbf y|\mathbf X, \beta_0, \boldsymbol{\beta}_1, \sigma^2)
 ```
-It can be shown that the MLE are equivalent to the more widely known ordinary least square (OLS) estimators, in which we are minimising the sum of squared error
+It can be shown that the MLE are equivalent to the ordinary least square (OLS) estimators
 
 ```math
 \hat{\beta_0}, \hat{\boldsymbol{\beta}}_1 \leftarrow \arg\min \sum_{n=1}^N (y_n - \mathbf{x}_n^\top \boldsymbol{\beta}_1 -\beta_0)^2.
 ```
 
-By taking the derivative and setting it to zero, the closed-form OLS estimator is:
+The closed-form OLS estimator is:
 
 ```math
 \hat{\boldsymbol{\beta}} = (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\mathbf{y},
 ```
 
-where we have assumed ``\boldsymbol{\beta}^\top = [\beta_0, \boldsymbol{\beta}_1]``, and the design matrix ``\mathbf{X}`` is augmented with ``\mathbf{1}_N`` as the first column (*i.e.* dummy variable for intercept).
+* the design matrix ``\mathbf{X}`` is augmented with ``\mathbf{1}_N`` as the first column (*i.e.* dummy variable for intercept).
+"""
+
+# ╔═╡ c6938b7f-e6e5-4bea-a273-52ab3916d07c
+md"""
+
+## Example
+
+
+Consider a simple linear regression model with one predictor, i.e.
+```math
+y_n = \beta_0 + \beta_1 x_n + \varepsilon_n.
+```
+
+* we have simulated a dataset with the following parameters: ``\beta_0=3, \beta_1=3, \sigma^2=0.5``
 """
 
 # ╔═╡ effcd3d2-ba90-4ca8-a69c-f1ef1ad697ab
-md"We use `GLM.jl` to fit the OLS estimation based on the simulated data. The estimated model and true model is shown below."
+md"
+* use `GLM.jl` to fit the OLS estimation "
 
 # ╔═╡ af404db3-7397-4fd7-a5f4-0c812bd90c4a
 begin
@@ -110,53 +291,70 @@ begin
 	yy = μ + sqrt(σ²) * randn(N)
 end;
 
-# ╔═╡ c6938b7f-e6e5-4bea-a273-52ab3916d07c
-md"""
-
-**Example.** Consider a simple linear regression model with one predictor, i.e.
-```math
-y_n = \beta_0 + \beta_1 x_n + \varepsilon_n.
-```
-
-To better illustrate the idea, we have simulated a dataset with ``N``=$(N) observations and the regression is defined with the following parameters: ``\beta_0=3, \beta_1=3, \sigma^2=0.5``. The simulated dataset is plotted below.
-"""
-
 # ╔═╡ 3e98e9ff-b674-43f9-a3e0-1ca5d8614327
 begin
 	using GLM
 	ols_simulated = lm([ones(N) X], yy)
 end
 
-# ╔═╡ f8040fa0-fdff-42da-8b9f-785627f51ee1
+# ╔═╡ 06f941c1-53c8-4279-8214-0d3ef5c81c4b
+linear_reg_normal_eq(X, y) = lm(X, y) |> coef
+
+# ╔═╡ 75567e73-f48a-477c-bc9f-91ce1630468c
+begin
+	@df df_house scatter(:rm, :target, xlabel="room", ylabel="price", label="", title="House price prediction: regression")
+	x_room = df_house[:, :rm]
+	# x_room_sq = x_room.^2
+	X_train_room = [ones(length(x_room)) x_room]
+
+	c, b = linear_reg_normal_eq(X_train_room, df_house.target)
+
+	plot!(3.5:0.5:9, (x) -> b* x+ c, lw=3, label=L"\mu({x}) = \beta_0+ \beta_1 x", legend=:outerbottom)
+end
+
+# ╔═╡ 510cc569-08eb-4deb-b695-2f3044d758e5
 let
-	p_lr = plot(title="Frequentist's linear regression's probabilistic model", framestyle = :origin,legend=:bottomright)
-	β0, σ²0, N = [3, 3], 0.5, 250
-	Random.seed!(100)
-	X = rand(N)
-	μ = β0[1] .+ β0[2] * X 
-	yy = μ + sqrt(σ²0) * randn(N)
-	plot!(X, yy, st=:scatter, label="")
-	plot!([0,1], x->β0[1]+β0[2]*x, c= 1, linewidth=5, label=L"\mu(x) = \beta_0+\beta_1x")
-	xis = [0, 0.25, 0.5, 0.75, 0.99, 0.4]
+	gr()
+
+
+	n_obs = 100
+	# the input x is fixed; non-random
+	xs = range(-0.5, 1; length = n_obs)
+	true_w = [1.0, 1.0]
+	true_σ² = 0.05
+	ys = zeros(n_obs)
+	for (i, xⁱ) in enumerate(xs)
+		hⁱ = true_w' * [1, xⁱ]
+		ys[i] = hⁱ + rand(Normal(0, sqrt(true_σ²)))
+	end
+	
+	b_1 = 3.0
+	p_lr = plot(title="Linear regression's probabilistic model",legend=:bottomright)
+	β0 = true_w
+	n0 = n_obs
+	xx = [ones(n0) collect(xs)]
+	yy = xx * β0 + sqrt(σ²0) * randn(n0)
+	plot!(xs, yy, st=:scatter, ylim=[0, 3],framestyle=:origin, label="observations", legend=:topleft)
+	plot!(-0.5:0.1:1.0, x->β0[1]+β0[2]*x, c= 1, linewidth=5, label="",  ylim=[0, 3],framestyle=:origin)
+	# xis = [-0.35, -0.2, 0, 0.25, 0.5, 0.75, 0.99, xᵢ0]
+	xis = [range(-0.5, 1.0, 8)...]
+	push!(xis, xᵢ0)
 	for i in 1:length(xis)
 		x = xis[i]
 		μi = dot(β0, [1, x])
-		xs_ = μi-3:0.01:μi+3
+		σ = sqrt(σ²0)
+		xs_ = μi- 4*σ :0.01:μi+ 4 *σ
 		ys_ = pdf.(Normal(μi, sqrt(σ²0)), xs_)
 		ys_ = 0.1 *ys_ ./ maximum(ys_)
 		if i == length(xis)
-			plot!([x], [μi], st=:sticks, markerstrokewidth =1, markershape = :diamond, c=:black, label="", markersize=4)
-			plot!(ys_ .+x, xs_, c=:red, label=L"\mathcal{N}(\mu(x), \sigma^2)", linewidth=3)
+			scatter!([x],[μi], markerstrokewidth =2, markershape = :diamond, c=:red, label=L"\mu(x)", markersize=6)
+			plot!(ys_ .+x, xs_, c=:red, label="", linewidth=3)
 		else
 			plot!(ys_ .+x, xs_, c=:gray, label="", linewidth=1)
+			# scatter!([x],[μi], markerstrokewidth =2, markershape = :diamond, label="μ @ x="*string(x))
 		end
 		
 	end
-	old_xticks = xticks(p_lr[1])
-	new_xticks = ([xis[end]], ["\$x\$"])
-	keep_indices = findall(x -> all(x .≠ new_xticks[1]), old_xticks[1])
-	merged_xticks = (old_xticks[1][keep_indices] ∪ new_xticks[1], old_xticks[2][keep_indices] ∪ new_xticks[2])
-	xticks!(merged_xticks)
 	p_lr	
 end
 
@@ -188,13 +386,13 @@ where the model parameters are
 * ``\sigma^2\in R^+`` -- Gaussian noise's variance
 
 
-In addition, the Bayesian model also needs to impose a suitable prior for the unknowns
+**In addition**, the Bayesian model also imposes priors on the unknowns
 
 ```math
 p(\beta_0, \boldsymbol{\beta}_1, \sigma^2).
 ```
 
-In most cases, we further assume the joint prior is independent, *i.e.*
+* a simple independent prior 
 
 ```math
 p(\beta_0, \boldsymbol{\beta}_1, \sigma^2)= p(\beta_0)p(\boldsymbol{\beta}_1)p( \sigma^2).
@@ -204,30 +402,62 @@ p(\beta_0, \boldsymbol{\beta}_1, \sigma^2)= p(\beta_0)p(\boldsymbol{\beta}_1)p( 
 
 """
 
+# ╔═╡ bc597dc8-dbfe-4a75-81b5-ea37655f95eb
+md"""
+
+## Graphical model
+
+
+The frequentist model is on the **left** 
+
+* where the parameters are not assumed random
+
+```math
+p(\mathbf{y}|\beta_0, \boldsymbol{\beta}, \sigma^2,  \mathbf{X}) = \prod_i p(y^{(i)} |\mathbf{x}^{(i)}, \beta_0, \boldsymbol{\beta}, \sigma^2)
+```
+
+The Bayesian model is on the right
+
+* all parameters are assumed random (with priors)
+* and based on the factoring property
+
+```math
+p(\beta_0, \boldsymbol{\beta}, \sigma^2, \mathbf{y}, \mathbf{X}) = p(\beta_0) p(\boldsymbol{\beta})p(\sigma^2)\prod_i p(y^{(i)} |\mathbf{x}^{(i)}, \beta_0, \boldsymbol{\beta}, \sigma^2)
+```
+"""
+
+# ╔═╡ f240d7b7-4ea8-4836-81ae-ba1cd169b87d
+TwoColumn(Resource("https://leo.host.cs.st-andrews.ac.uk/figs/bayes/regression_freq.png", :height=>310, :align=>"left"), Resource("https://leo.host.cs.st-andrews.ac.uk/figs/bayes/regression_bayes.png", :height=>310, :align=>"right"))
+
 # ╔═╡ a1421ccb-2d6e-4406-b770-ad7dff007c69
 md"""
 
-Based on their value ranges, a commonly used set of prior choices is summarised below.
+## Prior choices
+
 
 **Prior for the intercept ``p(\beta_0)``** 
 
-Since ``\beta_0`` takes an unconstrained real value, a common choice is Gaussian 
+``\beta_0 \in R``, a common choice is Gaussian 
 
 $$p(\beta_0) = \mathcal N(m_0^{\beta_0}, v_0^{\beta_0});$$ 
 
-where the hyper-parameters ``m_0^{\beta_0}, v_0^{\beta_0}`` can be specified based on the data or independently.
+* where the hyper-parameters ``m_0^{\beta_0}, v_0^{\beta_0}`` can be specified based on the data or independently.
 
-*Data-dependent hyper-parameter:* e.g. ``\mathcal{N}(m_0^{\beta_0}={\bar{\mathbf{y}}}, v_0^{\beta_0}= 2.5^2 \sigma_{\mathbf{y}}^2 )``
 
-* the corresponding prior on ``\beta_0`` centres around the sample average ``\bar{\mathbf{y}}`` with variance 2.5 times the standard deviation of ``\bar{\mathbf{y}}``
+**Data-dependent hyper-parameter:** e.g. 
+
+$\mathcal{N}(m_0^{\beta_0}={\bar{\mathbf{y}}}, v_0^{\beta_0}= 2.5^2 \sigma_{\mathbf{y}}^2 )$
+
 * covering a wide range of possible values, the prior is a weakly informative prior
 
 
-*Data-independent hyper-parameter:* e.g. ``\mathcal{N}(m_0^{\beta_0}=0, v_0^{\beta_0}= 10^2)`` 
+**Data-independent hyper-parameter:** e.g. 
+
+$\mathcal{N}(m_0^{\beta_0}=0, v_0^{\beta_0}= 10^2)$
 
 
-* the prior guess centres around ``0`` but with a great amount of uncertainty (very large variance)
-* the zero prior mean here encourages the posterior shrinks towards 0 (but very weakly).
+* the prior guess centres around ``0`` but with a great amount of uncertainty (large variance)
+* zero mean here encourages the posterior shrinks towards 0 
 
 
 """
@@ -235,31 +465,42 @@ where the hyper-parameters ``m_0^{\beta_0}, v_0^{\beta_0}`` can be specified bas
 # ╔═╡ e1552414-e701-42b5-8eaf-21ae04a829a8
 md"""
 
+## Prior choice (cont.)
 
-**Prior for the coefficient ``p(\boldsymbol{\beta}_1)``** 
+**Prior for**  $$p(\boldsymbol{\beta}_1)$$: ``\boldsymbol{\beta}_1\in R^D`` is also unconstrained
 
+* a common prior choice is a D-dimensional multivariate Gaussian 
 
-Since ``\boldsymbol{\beta}_1\in R^D`` is an unconstrained real vector, a suitable prior choice is a D-dimensional multivariate Gaussian (or other similar distributions such as Student-``t``):
 
 $$p(\boldsymbol{\beta}_1) = \mathcal N_{D}(\mathbf m_0^{\boldsymbol{\beta}_1}, \mathbf V_0^{\boldsymbol{\beta}_1}),$$
 
+* or other similar location-scale distributions (such as Student-``t``, Cauchy)
 
-where the hyper-parameters are usually set data-independently:
+
+
+The hyper-parameters are usually set data-independently:
 
 * ``\mathbf{m}_0^{\boldsymbol{\beta}_1}=\mathbf{0}``, the prior encourages the posterior shrinks towards zeros, which has a regularisation effect
 * ``\mathbf{V}_0^{\boldsymbol{\beta}_1} = v_0 \mathbf{I}_D``, *i.e.* a diagonal matrix with a common variance ``v_0``; 
-    * the common variance ``v_0`` is often set to a large number, *e.g.``v_0=10^2``* to impose a vague prior. 
+    * the common variance ``v_0`` is often set to a large number, *e.g.``v_0=10^2``* to impose a vague non-informative prior 
+
+## Prior choice (cont.)
 
 
 **Prior for the observation variance ``p(\sigma)``**
 
 
-``\sigma^2 >0`` is a positive real number, a good choice is truncated real-valued distribution, where the negative part is truncated, such as ``\texttt{Half-Cauchy}`` (Some ``\texttt{Half-Cauchy}`` distributions are plotted below): 
+``\sigma^2 >0`` is a positive real number
+
+
+* a good choice is truncated real-valued distribution such as $\texttt{Half-Cauchy}$ 
 
 $$p(\sigma^2) = \texttt{HalfCauchy}(s_0^{\sigma^2});$$ 
 
-  * Cauchy distributions have heavy tails, making them suitable choices to express uncertain beliefs on the modelling parameter. And the hyperparameter ``s_0^{\sigma^2}`` controls the tail of a Cauchy. The larger the scale parameter ``s_0^{\sigma^2}`` is, the weaker the prior is. 
-  * ``s_0^{\sigma^2} > 2`` usually is good enough.
+  * Cauchy distributions have heavy tails, suitable choices to express uncertainty 
+
+* ``s_0^{\sigma^2}`` controls the tail of a Cauchy; the larger ``s_0^{\sigma^2}``, the weaker the prior
+* ``s_0^{\sigma^2} > 2`` usually is good enough.
 """
 
 # ╔═╡ 9387dcb4-3f4e-4ec7-8393-30a483e00c63
@@ -273,8 +514,16 @@ end
 # ╔═╡ d3f4ac7b-1482-4840-b24b-d08066d1d70c
 md"""
 
-To put everything together, a fully-specified (data independent) Bayesian model is summarised below.
+## The full model
 
+To put everything together, the model and the graphical model are
+
+"""
+
+# ╔═╡ 3a21c148-9538-4a0b-92df-67857c8099d7
+TwoColumn(
+	
+md"""
 
 !!! infor "Bayesian linear regression"
 	```math
@@ -287,53 +536,57 @@ To put everything together, a fully-specified (data independent) Bayesian model 
 	y_n &\sim \mathcal{N}(\mu_n, \sigma^2).
 	\end{align}
 	```
-"""
+""", 
+	
+	Resource("https://leo.host.cs.st-andrews.ac.uk/figs/bayes/linreg_bayes_priors.png", :height=>240, :align=>"right"))
 
 # ╔═╡ bab3a19c-deb0-4b1c-a8f9-f713d66d9199
 md"""
-### Connection to ridge regression 
+## Connection to ridge regression 
 
 """
 
 # ╔═╡ b433c147-f547-4234-9817-2b29e7d57219
 md"""
 
-Setting the prior's mean to zero, *i.e.* ``\mathbf{m}_0^{\beta_1}= \mathbf{0}``, seems an arbitrary choice. However, it can be justified from a regularisation perspective. For regression problems with many predictors, the regression model can be too flexible. In some extreme cases, the regression model can be under-determined, *i.e.* the number of predictors is greater than the number of observations. For problems like this, the ordinary OLS estimator is not stable or not even existed. 
+Note that 
+
+$$p(\boldsymbol{\beta}_1) = \mathcal N_{D}(\mathbf m_0^{\boldsymbol{\beta}_1}, \mathbf V_0^{\boldsymbol{\beta}_1}),$$
+
+* we usually set ``\mathbf{m}_0^{\beta_1}= \mathbf{0}``, 
+
+$$p(\boldsymbol{\beta}_1) = \mathcal N_{D}(\mathbf{0}, \mathbf V_0^{\boldsymbol{\beta}_1}),$$
+
+* it has a regularisation perspective (also shrinking to zero)
 
 
-By introducing a zero-mean Gaussian prior for ``\boldsymbol{\beta}``, the log posterior density becomes:
+The log posterior density becomes:
 
 $$\begin{align}
 \ln p(\boldsymbol{\beta}|\mathbf y, \mathbf{X}) &= \ln p(\boldsymbol{\beta}) +\ln p(\mathbf y|\boldsymbol{\beta}, \mathbf{X}) + C\\
 &= -\frac{1}{2v_0} \|\boldsymbol{\beta}\|^2 - \frac{1}{2\sigma^2}\sum_{n=1}^N( y_n-\mathbf{x}_n^\top \boldsymbol{\beta})^2 + C
 \end{align}$$
 
-If one minimises the negative log posterior by:
+maximising the log posterior is the same as the ridge regression:
 
 ```math
 \hat{\boldsymbol{\beta}}_{\text{ridge}} \leftarrow \arg\min_{\boldsymbol{\beta}}\frac{\lambda}{2} \|\boldsymbol{\beta}\|^2 + \frac{1}{2}\sum_{n=1}^N( y_n-\mathbf{x}_n^\top \boldsymbol{\beta})^2,
 
 ```
-where ``\lambda \triangleq \frac{\sigma^2}{v_0}``, and the estimator is called the **ridge estimator**. The corresponding regression model is Frequentist's **ridge regression**. Note that the first term serves as a penalty that regulates the estimation of ``\boldsymbol{\beta}`` such that large-magnitude estimators are discouraged. 
+* where ``\lambda \triangleq \frac{\sigma^2}{v_0}``, and the estimator is called the **ridge estimator**
 """
 
 # ╔═╡ 824aa830-c958-4063-9ef7-39eeb743fc06
 md"""
 
-### Posterior distribution in analytical form*
+## Posterior distribution in analytical form*
 """
 
 # ╔═╡ d825e29d-3e0b-4c25-852f-0c9a544aa916
 md"""
 
-After specifying the Bayesian model, what is left is to apply Bayes' rule to find the posterior distribution:
+If we assume ``\sigma^2`` is known, the posterior has a closed-form analytical form (conjugacy again)
 
-```math
-p(\boldsymbol{\beta}, \sigma^2|\mathcal{D}) \propto p(\boldsymbol{\beta}, \sigma^2) p(\mathbf{y}|\boldsymbol{\beta}, \sigma^2,\mathbf{X}),
-```
-where ``\mathcal{D}`` denotes all the observed data *i.e.* ``\mathcal{D} = \{\mathbf{X}, \mathbf{y}\}``, and ``\boldsymbol{\beta}^\top = [\beta_0, \boldsymbol{\beta}_1]`` denotes the concatenated regression parameter vector. Due to the independence assumption, the joint prior for ``\boldsymbol{\beta}`` can be formed as a ``D+1`` dimensional Gaussian with mean ``\mathbf{m}_0^\top = [m_0^{\beta_0}, \mathbf{m}_0^{\beta_1}]`` and variance ``\mathbf{V}_0 = \text{diag}\{v_0^{\beta_0}, \mathbf{V}_0^{\boldsymbol{\beta}_1}\}.``
-
-Unfortunately, the full joint posterior distribution has no closed-form analytical form, and an approximation method such as MCMC is required to do a full-scale analysis. However, if the observation variance ``\sigma^2`` is assumed known, the *conditional posterior* ``p(\boldsymbol{\beta}|\mathcal{D}, \sigma^2)`` can be computed exactly. And it can be shown that the posterior admits a multivariate Gaussian form:
 
 ```math
 p(\boldsymbol{\beta}|\mathcal{D}, \sigma^2) =\mathcal{N}_{D+1}(\mathbf{m}_N, \mathbf{V}_N),
@@ -343,45 +596,282 @@ where
 
 
 ```math
-\mathbf{m}_N = \mathbf{V}_N\left (\mathbf{V}_0^{-1}\mathbf{m}_0 +\frac{1}{\sigma^2}\mathbf{X}^\top\mathbf{y}\right ) ,\;\;\mathbf{V}_N =\left (\mathbf{V}_0^{-1} + \frac{1}{\sigma^2}\mathbf{X}^\top \mathbf{X}^\top\right )^{-1}.
+\mathbf{m}_N = \mathbf{V}_N\left (\mathbf{V}_0^{-1}\mathbf{m}_0 +\frac{1}{\sigma^2}\mathbf{X}^\top\mathbf{y}\right ) ,\;\;\mathbf{V}_N =\left (\mathbf{V}_0^{-1} + \frac{1}{\sigma^2}\mathbf{X}^\top \mathbf{X}\right )^{-1}.
 ```
 
-
-It is one of very few models that the posterior can be evaluated in closed form.
 """
 
 # ╔═╡ f6cedb98-0d29-40f0-b9f3-430dd283fa36
 md"""
 
-**Demonstration:**
-An animation is created below to demonstrate the posterior update equation. The toy dataset is reused here. Recall the true parameters are ``\beta_0=\beta_1=3``. A zero-mean vague Gaussian prior is placed on ``\boldsymbol{\beta}``:
+## Demonstration
+
+Recall the true parameters are ``\beta_0=\beta_1=3``
+
+A zero-mean vague Gaussian prior is placed on ``\boldsymbol{\beta}``:
 
 ```math
-p\left(\begin{bmatrix}\beta_0\\ \beta_1\end{bmatrix}\right) = \mathcal{N}\left (\begin{bmatrix}0\\ 0\end{bmatrix}, \begin{bmatrix}10^2& 0 \\ 0 & 10^2\end{bmatrix}\right).
+p\left(\begin{bmatrix}\beta_0\\ \beta_1\end{bmatrix}\right) = \mathcal{N}\left (\begin{bmatrix}0\\ 0\end{bmatrix}, \begin{bmatrix}5^2& 0 \\ 0 & 5^2\end{bmatrix}\right).
 ```
 
-The posterior distribution is then updated sequentially with the first 10 observations. As can be observed, initially the prior distribution is circular and covers a wide range of possible values. With more data observed, the posterior quickly converges to the posterior centre: ``[3,3]^\top``. Also, note the shrinking posterior variance (or increasing estimation precision) as more data is observed.
+* the posterior distribution is sequentially updated
+
+* the posterior converges to ``[3,3]^\top``
+
+* the posterior variance shrinks (or increasing estimation precision)
 """
+
+# ╔═╡ 323a6e91-4cf7-4554-ae6a-2e9bb6621114
+function seq_update(x, y, m0, V0, σ²)
+	xx = [1  x]
+	mn = m0 + V0 * xx'* (dot(xx, V0, xx') + σ²)^(-1)*(y - dot(xx, m0) )
+	Vn = inv(1/σ²* xx'* xx + inv(V0))
+	return mn[:], Symmetric(Vn)
+end
+
+# ╔═╡ 8c9b4743-140d-4806-9552-e117f9956f08
+md"""
+
+## Posterior update (Step 0)
+
+
+```math
+p\left(\begin{bmatrix}\beta_0\\ \beta_1\end{bmatrix}\right) = \mathcal{N}\left (\begin{bmatrix}0\\ 0\end{bmatrix}, \begin{bmatrix}5^2& 0 \\ 0 & 5^2\end{bmatrix}\right)
+```
+
+* the gray lines are 50 prior samples  
+
+```math
+\begin{bmatrix}\beta_0^{(i)}\\ \beta_1^{(i)}\end{bmatrix} \sim p\left(\begin{bmatrix}\beta_0\\ \beta_1\end{bmatrix}\right)= \mathcal{N}\left (\begin{bmatrix}0\\ 0\end{bmatrix}, \begin{bmatrix}5^2& 0 \\ 0 & 5^2\end{bmatrix}\right)
+```
+
+"""
+
+# ╔═╡ ac461dcd-9829-4d1d-912a-7a5b8c077ad6
+begin
+	pMvns = MvNormal[]
+	m₀, V₀ = zeros(2), 5^2 * Matrix(1.0I,2,2)
+	push!(pMvns, MvNormal(m₀, V₀))
+
+	for i in 1:10
+		m₀, V₀ = seq_update(X[i], yy[i], m₀, V₀, σ²)
+		push!(pMvns, MvNormal(m₀, V₀))
+	end
+	
+end
+
+# ╔═╡ 8945b750-915d-485b-8dd6-5c77594a17c6
+let
+	Random.seed!(123)
+	iter = 1
+	mm = 50
+	plt = scatter(X, yy, xlabel=L"x", ylabel=L"y", label="", xlim=[-0.5,1.5], ylim=extrema(yy) .+ (-0.5, 0.5), title="Samples after N=$(iter-1) data")
+	plot!(-0.5:0.1:1.5, (x) -> β₀ + β₁*x, lw=2, label="True model", legend=:topleft)
+	spls = rand(pMvns[iter], mm)
+	for i in 1:mm
+		b, k =  spls[:, i]
+		plot!(-0.5:0.1:1.5, (x) -> k*x+b,  lw=1, ls=:dash, lc=:gray, label="")
+	end
+	xs = range(-10, 10, 100)
+	ys = range(-10, 10, 100)
+	plt_ = heatmap(xs, ys, (x,y)-> pdf(pMvns[iter], [x,y]), levels=20, colorbar=false , fill=true, ratio=1, color= :jet1, xlim=[-10, 10], xlabel=L"\beta_0", ylabel=L"\beta_1", title="Update with N=$(iter-1) data")	
+	plot(plt, plt_, size=(800,400))
+end
+
+# ╔═╡ bc4ef6f5-c854-4d6f-9fff-9fcca968bea7
+md"""
+
+## Posterior update (Step 1)
+
+After observing the one observation ``\{x^{(1)}, y^{(1)}\}``
+
+```math
+\begin{bmatrix}\beta_0^{(i)}\\ \beta_1^{(i)}\end{bmatrix} \sim p\left(\begin{bmatrix}\beta_0\\ \beta_1\end{bmatrix}  \middle \vert \{x^{(1)}, y^{(1)}\} \right)
+```
+
+"""
+
+# ╔═╡ 893a9e0d-1dbf-488a-9dd0-32d1ceaaff87
+let
+	Random.seed!(123)
+	iter = 2
+	mm = 50
+	plt = scatter(X, yy, xlabel=L"x", ylabel=L"y", label="", xlim=[-0.5,1.5], ylim=extrema(yy) .+ (-0.5, 0.5), title="Samples after N=$(iter-1) data")
+	plot!(-0.5:0.1:1.5, (x) -> β₀ + β₁*x, lw=2, label="True model", legend=:topleft)
+	spls = rand(pMvns[iter], mm)
+	for i in 1:mm
+		b, k =  spls[:, i]
+		plot!(-0.5:0.1:1.5, (x) -> k*x+b,  lw=1, ls=:dash, lc=:gray, label="")
+	end
+	xs = range(-10, 10, 100)
+	ys = range(-10, 10, 100)
+	plt_ = heatmap(xs, ys, (x,y)-> pdf(pMvns[iter], [x,y]), levels=20, colorbar=false , fill=true, ratio=1, color= :jet1, xlim=[-10, 10], xlabel=L"\beta_0", ylabel=L"\beta_1", title="Update with N=$(iter-1) data")	
+	plot(plt, plt_, size=(800,400))
+end
+
+# ╔═╡ 7cb6b90f-17ff-445e-aa4e-158893f3cf3b
+md"""
+## Posterior update (Step 2)
+
+After observing the two observation ``\{x^{(1:2)}, y^{(1:2)}\}``
+
+```math
+\begin{bmatrix}\beta_0^{(i)}\\ \beta_1^{(i)}\end{bmatrix} \sim p\left(\begin{bmatrix}\beta_0\\ \beta_1\end{bmatrix}  \middle \vert \{x^{(1:2)}, y^{(1:2)}\} \right)
+```
+
+"""
+
+# ╔═╡ 4eea6db3-40c9-4dbe-87ef-7e1025de46de
+let
+	Random.seed!(123)
+	iter = 3
+	mm = 50
+	plt = scatter(X, yy, xlabel=L"x", ylabel=L"y", label="", xlim=[-0.5,1.5], ylim=extrema(yy) .+ (-0.5, 0.5), title="Samples after N=$(iter-1) data")
+	plot!(-0.5:0.1:1.5, (x) -> β₀ + β₁*x, lw=2, label="True model", legend=:topleft)
+	spls = rand(pMvns[iter], mm)
+	for i in 1:mm
+		b, k =  spls[:, i]
+		plot!(-0.5:0.1:1.5, (x) -> k*x+b,  lw=1, ls=:dash, lc=:gray, label="")
+	end
+	xs = range(-10, 10, 100)
+	ys = range(-10, 10, 100)
+	plt_ = heatmap(xs, ys, (x,y)-> pdf(pMvns[iter], [x,y]), levels=20, colorbar=false , fill=true, ratio=1, color= :jet1, xlim=[-10, 10], xlabel=L"\beta_0", ylabel=L"\beta_1", title="Update with N=$(iter-1) data")	
+	plot(plt, plt_, size=(800,400))
+end
+
+# ╔═╡ ff93d036-18b5-4afc-94b9-e4ea15c37711
+md"""
+
+After observing the two observation ``\{x^{(1:3)}, y^{(1:3)}\}``
+
+```math
+\begin{bmatrix}\beta_0^{(i)}\\ \beta_1^{(i)}\end{bmatrix} \sim p\left(\begin{bmatrix}\beta_0\\ \beta_1\end{bmatrix}  \middle \vert \{x^{(1:3)}, y^{(1:3)}\} \right)
+```
+
+"""
+
+# ╔═╡ 8b835a09-8e13-4927-93fd-dbcc16226956
+let
+	Random.seed!(123)
+	iter = 4
+	mm = 50
+	plt = scatter(X, yy, xlabel=L"x", ylabel=L"y", label="", xlim=[-0.5,1.5], ylim=extrema(yy) .+ (-0.5, 0.5), title="Samples after N=$(iter-1) data")
+	plot!(-0.5:0.1:1.5, (x) -> β₀ + β₁*x, lw=2, label="True model", legend=:topleft)
+	spls = rand(pMvns[iter], mm)
+	for i in 1:mm
+		b, k =  spls[:, i]
+		plot!(-0.5:0.1:1.5, (x) -> k*x+b,  lw=1, ls=:dash, lc=:gray, label="")
+	end
+	xs = range(-10, 10, 100)
+	ys = range(-10, 10, 100)
+	plt_ = heatmap(xs, ys, (x,y)-> pdf(pMvns[iter], [x,y]), levels=20, colorbar=false , fill=true, ratio=1, color= :jet1, xlim=[-10, 10], xlabel=L"\beta_0", ylabel=L"\beta_1", title="Update with N=$(iter-1) data")	
+	plot(plt, plt_, size=(800,400))
+end
+
+# ╔═╡ 691fe1c6-66a2-45e4-a3ac-8d586493a61f
+let
+	Random.seed!(123)
+	iter = 5
+	mm = 50
+	plt = scatter(X, yy, xlabel=L"x", ylabel=L"y", label="", xlim=[-0.5,1.5], ylim=extrema(yy) .+ (-0.5, 0.5), title="Samples after N=$(iter-1) data")
+	plot!(-0.5:0.1:1.5, (x) -> β₀ + β₁*x, lw=2, label="True model", legend=:topleft)
+	spls = rand(pMvns[iter], mm)
+	for i in 1:mm
+		b, k =  spls[:, i]
+		plot!(-0.5:0.1:1.5, (x) -> k*x+b,  lw=1, ls=:dash, lc=:gray, label="")
+	end
+	xs = range(-10, 10, 100)
+	ys = range(-10, 10, 100)
+	plt_ = heatmap(xs, ys, (x,y)-> pdf(pMvns[iter], [x,y]), levels=20, colorbar=false , fill=true, ratio=1, color= :jet1, xlim=[-10, 10], xlabel=L"\beta_0", ylabel=L"\beta_1", title="Update with N=$(iter-1) data")	
+	plot(plt, plt_, size=(800,400))
+end
+
+# ╔═╡ 01e91145-6738-4b49-831a-3934f37209fb
+let
+	Random.seed!(123)
+	iter = 6
+	mm = 50
+	plt = scatter(X, yy, xlabel=L"x", ylabel=L"y", label="", xlim=[-0.5,1.5], ylim=extrema(yy) .+ (-0.5, 0.5), title="Samples after N=$(iter-1) data")
+	plot!(-0.5:0.1:1.5, (x) -> β₀ + β₁*x, lw=2, label="True model", legend=:topleft)
+	spls = rand(pMvns[iter], mm)
+	for i in 1:mm
+		b, k =  spls[:, i]
+		plot!(-0.5:0.1:1.5, (x) -> k*x+b,  lw=1, ls=:dash, lc=:gray, label="")
+	end
+	xs = range(-10, 10, 100)
+	ys = range(-10, 10, 100)
+	plt_ = heatmap(xs, ys, (x,y)-> pdf(pMvns[iter], [x,y]), levels=20, colorbar=false , fill=true, ratio=1, color= :jet1, xlim=[-10, 10], xlabel=L"\beta_0", ylabel=L"\beta_1", title="Update with N=$(iter-1) data")	
+	plot(plt, plt_, size=(800,400))
+end
+
+# ╔═╡ dbaf2f13-c4a7-47ae-a4a3-fd183632cc23
+let
+	Random.seed!(123)
+	iter = 7
+	mm = 50
+	plt = scatter(X, yy, xlabel=L"x", ylabel=L"y", label="", xlim=[-0.5,1.5], ylim=extrema(yy) .+ (-0.5, 0.5), title="Samples after N=$(iter-1) data")
+	plot!(-0.5:0.1:1.5, (x) -> β₀ + β₁*x, lw=2, label="True model", legend=:topleft)
+	spls = rand(pMvns[iter], mm)
+	for i in 1:mm
+		b, k =  spls[:, i]
+		plot!(-0.5:0.1:1.5, (x) -> k*x+b,  lw=1, ls=:dash, lc=:gray, label="")
+	end
+	xs = range(-10, 10, 100)
+	ys = range(-10, 10, 100)
+	plt_ = heatmap(xs, ys, (x,y)-> pdf(pMvns[iter], [x,y]), levels=20, colorbar=false , fill=true, ratio=1, color= :jet1, xlim=[-10, 10], xlabel=L"\beta_0", ylabel=L"\beta_1", title="Update with N=$(iter-1) data")	
+	plot(plt, plt_, size=(800,400))
+end
+
+# ╔═╡ d1ee75e8-0797-4372-91e5-7d1021ece2f9
+let
+	Random.seed!(123)
+	iter = 11
+	mm = 50
+	plt = scatter(X, yy, xlabel=L"x", ylabel=L"y", label="", xlim=[-0.5,1.5], ylim=extrema(yy) .+ (-0.5, 0.5), title="Samples after N=$(iter-1) data")
+	plot!(-0.5:0.1:1.5, (x) -> β₀ + β₁*x, lw=2, label="True model", legend=:topleft)
+	spls = rand(pMvns[iter], mm)
+	for i in 1:mm
+		b, k =  spls[:, i]
+		plot!(-0.5:0.1:1.5, (x) -> k*x+b,  lw=1, ls=:dash, lc=:gray, label="")
+	end
+	xs = range(-10, 10, 150)
+	ys = range(-10, 10, 150)
+	plt_ = heatmap(xs, ys, (x,y)-> pdf(pMvns[iter], [x,y]), levels=20, colorbar=false , fill=true, ratio=1, color= :jet1, xlim=[-10, 10], xlabel=L"\beta_0", ylabel=L"\beta_1", title="Update with N=$(iter-1) data")	
+	plot(plt, plt_, size=(800,400))
+end
+
+# ╔═╡ 77817fdb-1b22-49ce-998a-a8de157bf8c4
+md"""
+
+## Animation
+"""
+
+# ╔═╡ fac530cc-8ad8-4319-a72e-b7c381d656ac
+let
+	# plts = [plt0, plt1, plt2, plt3, plt4, plt5, plt6, plt10]
+	anim = @animate for (iter, mvn) in enumerate(pMvns)
+		mm = 25
+		plt = scatter(X, yy, xlabel=L"x", ylabel=L"y", label="", xlim=[-0.5,1.5], ylim=extrema(yy) .+ (-0.5, 0.5), title="Samples after observing "*string(iter-1)*" data" , size=(500, 400))
+		plot!(-0.5:0.1:1.5, (x) -> β₀ + β₁*x, lw=2, label="True model", legend=:topleft)
+		spls = rand(mvn, mm)
+		for i in 1:mm
+			b, k =  spls[:, i]
+			plot!(-0.5:0.1:1.5, (x) -> k*x+b,  lw=1, ls=:dash, lc=:gray, label="")
+		end
+	end
+
+	gif(anim, fps=2)
+end
 
 # ╔═╡ 71bb2994-7fd2-4e11-b2f1-d88b407f86c1
 let
 	xs = range(-10, 10, 200)
 	ys = range(-10, 10, 200)
-	m₀, V₀ = zeros(2), 10^2 * Matrix(1.0I,2,2)
-	prior = heatmap(xs, ys, (x,y)-> pdf(MvNormal(m₀, V₀), [x,y]), levels=20, colorbar=false , fill=true, ratio=1, color= :jet1, xlim=[-10, 10], xlabel=L"\beta_0", ylabel=L"\beta_1")
-	# lik1 = heatmap(xs, ys, (x,y)-> pdf(Normal(x + y * X[1] , sqrt(σ²)), yy[1]), levels=10,  colorbar=false, ratio=1, color= :jet1, xlim=[-15, 15], xlabel=L"\beta_0", ylabel=L"\beta_1")
-	function seq_update(x, y, m0, V0, σ²)
-		xx = [1  x]
-		mn = m0 + V0 * xx'* (dot(xx, V0, xx') + σ²)^(-1)*(y - dot(xx, m0) )
-		Vn = inv(1/σ²* xx'* xx + inv(V0))
-		return mn[:], Symmetric(Vn)
-	end
-
-
-	posts = [prior]
+	# m₀, V₀ = zeros(2), 10^2 * Matrix(1.0I,2,2)
+	posts = []
 	anim = @animate for i in 1:10	
-		post = heatmap(xs, ys, (x,y)-> pdf(MvNormal(m₀, V₀), [x,y]), levels=20, colorbar=false , fill=true, ratio=1, color= :jet1, xlim=[-10, 10], xlabel=L"\beta_0", ylabel=L"\beta_1", title="Update with N=$(i-1) data")
-		m₀, V₀ = seq_update(X[i], yy[i], m₀, V₀, σ²)
+		post = heatmap(xs, ys, (x,y)-> pdf(pMvns[i], [x,y]), levels=20, colorbar=false , fill=true, ratio=1, color= :jet1, xlim=[-10, 10], xlabel=L"\beta_0", ylabel=L"\beta_1", title="Update with N=$(i-1) data")
+		# m₀, V₀ = seq_update(X[i], yy[i], m₀, V₀, σ²)
 		push!(posts, post)
 	end
 
@@ -391,8 +881,10 @@ end
 # ╔═╡ d02d5490-cf53-487d-a0c6-651725600f52
 md"""
 
-**Interpretation:**
-The posterior's parameter provides us with some insights into what Bayesian computation is doing. If we assume the matrix inverse ``(\mathbf{X}^\top\mathbf{X})^{-1}`` exists, 
+## Interpretation
+
+
+If we assume the matrix inverse ``(\mathbf{X}^\top\mathbf{X})^{-1}`` exists, 
 the posterior's mean can be rewritten as 
 
 
@@ -409,36 +901,117 @@ Defining ``\tilde{\mathbf{V}}^{-1} = \frac{1}{\sigma^2}\mathbf{X}^\top \mathbf{X
 \mathbf{m}_N = \left (\mathbf{V}_0^{-1} + \tilde{\mathbf{V}}^{-1}\right )^{-1}\left (\mathbf{V}_0^{-1}\mathbf{m}_0 +\tilde{\mathbf{V}}^{-1}\hat{\boldsymbol{\beta}}\right ) .
 
 ```
-Therefore, the posterior mean is a matrix-weighted average between the prior guess ``\mathbf{m}_0`` and the MLE estimator ``\hat{\boldsymbol{\beta}}``; and the weights are ``\mathbf{V}_0^{-1}``, the precision of the prior guess, and ``\tilde{\mathbf{V}}^{-1}`` the precision for the MLE. If the prior mean is zero, *i.e.* ``\mathbf{m}_0 =\mathbf{0}``, the posterior mean as an average will shrink towards ``\mathbf{0}``.
 
-This can be understood better to consider some de-generate examples. Assume ``D=1``, and both the intercept and observation noise's variance are known, say ``\beta_0=0, \sigma^2=1``. The posterior degenerates to 
 
+* the posterior mean is a **matrix-weighted average** between 
+  * the prior guess ``\mathbf{m}_0`` and 
+  * the MLE estimator ``\hat{\boldsymbol{\beta}}``; 
+
+* and the weights are ``\mathbf{V}_0^{-1}``, the precision of the prior guess, and ``\tilde{\mathbf{V}}^{-1}`` the precision for the MLE. 
+
+## Interpretation (cont.)
+
+Consider ``D=1`` (and ``\beta_0=0, \sigma^2=1`` are known)
+
+
+The posterior degenerates to 
+
+
+```math
+p(\beta_1|\mathcal{D}) = \mathcal{N}(m_N, v_N)
+```
+
+where
 
 ```math
 \begin{align}
 m_N &= \frac{v_0^{-1}}{v_0^{-1} + \tilde{v}^{-1}}m_0 + \frac{\tilde{v}^{-1} }{v_0^{-1} + \tilde{v}^{-1}}\hat{\beta}_1\\
-v_N &= \frac{1}{ v_0^{-1} + \tilde{v}^{-1}}
+v_N^{-1} &=  v_0^{-1} + \tilde{v}^{-1}
 \end{align}
 ```
-where ``\tilde{v}^{-1} = \sum_n x_n^2`` by definition. 
 
-Note that if we assume ``m_0=0``, and the prior precision ``v_0^{-1}`` gets large, say ``v_0^{-1} \rightarrow \infty`` (in other words, we strongly believe the slope is zero), the posterior mean ``m_N`` will get closer to zero: ``m_N\rightarrow m_0=0``.
-Also note the posterior variance ``v_N`` is reduced in comparison with the prior variance ``v_0``. It makes sense since the posterior update reduces the estimation uncertainty.
+* ``m_N``: the posterior mean is a weighted average
+* ``v_N^{-1}``: the posterior precision is the sum of the precisons
+
+
+**Shrinkage** given ``m_0``, and if the prior precision ``v_0^{-1}`` is large
+* ``m_N \rightarrow m_0``
+
 """
+
+# ╔═╡ 7dcf736f-958c-43bf-8c15-ec5b27a4650e
+md"""
+
+
+## Demon on the shrinkage effects
+
+If we impose a very strong prior on ``\boldsymbol{\beta}``:
+
+```math
+p\left(\begin{bmatrix}\beta_0\\ \beta_1\end{bmatrix}\right) = \mathcal{N}\left (\begin{bmatrix}0\\ 0\end{bmatrix}, \begin{bmatrix}0.1^2& 0 \\ 0 & 0.1^2\end{bmatrix}\right).
+```
+
+* the variance is now ``0.1^2``
+
+
+!!! question "Question"
+	What the posterior should look like?
+
+"""
+
+# ╔═╡ 49790b58-9f66-4dd2-bfbc-415c916ae2ab
+md"""
+
+
+The posterior
+
+
+```math
+p(\boldsymbol{\beta}|\mathcal{D}, \sigma^2) =\mathcal{N}(\mathbf{m}_N, \mathbf{V}_N),
+```
+
+"""
+
+# ╔═╡ 965faf88-1d33-4c1d-971c-6763cd737145
+σ²_prior = 10^2
+
+# ╔═╡ 5dee6633-3100-418c-af3a-d9843e093eab
+begin
+	σ²_ = σ²_prior
+	m₀_, V₀_ = zeros(2), σ²_ * Matrix(1.0I,2,2)
+	X_ = [ones(size(X)[1]) X] 
+	VN_ = (inv(V₀_) + (1/ σ²) * X_' * X_)^(-1)
+	mN_ = VN_ * (inv(V₀_) *  m₀_ + 1/σ² * X_' * yy)
+end;
+
+# ╔═╡ 378f8401-310f-4506-bd3b-f9e5e4dae124
+mN_
+
+# ╔═╡ 2fd3cddf-12be-40be-b793-142f8f22de39
+begin
+	plot(Normal(mN_[2], VN_[2, 2]), label=L"p(\beta_1|\mathcal{D})")
+	plot!(Normal(mN_[1], VN_[1, 1]), label=L"p(\beta_0|\mathcal{D})")
+end
+
+# ╔═╡ b3b1dc37-4ce9-4b3d-b59d-74412cd63c1e
+begin
+
+
+	plot(-5:0.05:5, -5:0.05:5, (x,y)-> pdf(MvNormal(mN_, VN_), [x,y]), seriestype=:contour, colorbar=false , fill=false, ratio=1,  xlim=[-5, 5], levels=10,  xlabel=L"\beta_0", ylabel=L"\beta_1")
+
+	
+	# plot!(-5:0.1:5, -5:0.1:5, (x,y)-> pdf(MvNormal(m₀_, V₀_), [x,y]) * 100, levels=3, seriestype=:contour, colorbar=false , fill=false, ratio=1)
+end
 
 # ╔═╡ 59dd8a13-89c6-4ae9-8546-877bb7992570
 md"""
-## Implementation in `Turing`
+# With `Turing.jl`
 
 
 
-Now we move on to show how to implement the modelling and inference in `Turing`. For simplicity, we consider simple linear regression, *i.e.* regression with one predictor, with simulated data first and move on to see a multiple regression example by using a real-world dataset.
+## Simple linear regression 
 
-
-
-### Simple linear regression
-
-The corresponding Bayesian simple linear regression model is a specific case of the general model in which ``D=1``. The model can be specified as:
+The model can be specified as:
 
 
 ```math
@@ -452,13 +1025,12 @@ y_n &\sim \mathcal{N}(\mu_n, \sigma^2).
 \end{align}
 ```
 
-Note that we have just replaced all the multivariate assumptions for ``\beta_1`` with its uni-variant equivalent.
 """
 
 # ╔═╡ 632575ce-a1ce-4a36-95dc-010229367446
 md"""
 
-The model can be "translated" to `Turing` literally. Note that ``\texttt{HalfCauchy}`` distribution is a Cauchy distribution truncated from zero onwards, which can be implemented in `Julia` by:
+* ``\texttt{HalfCauchy}`` distribution in `Julia`:
 
 ```julia
 truncated(Cauchy(0, s₀), lower=0)  # HalfCauchy distribution with mean 0 and scale s₀ 
@@ -468,9 +1040,9 @@ truncated(Cauchy(0, s₀), lower=0)  # HalfCauchy distribution with mean 0 and s
 # ╔═╡ c0f926f1-85e6-4d2c-8e9a-26cd099fd600
 md"""
 
-In terms of the prior parameters, we have set weak priors as default. For example, the ``\texttt{HalfCauchy}(s_0=5)`` prior for ``\sigma^2`` easily covers the true value, which is ``0.5``. 
+* ``\texttt{HalfCauchy}(s_0=5)`` has a reasonable coverage
 
-And the prior variances of the regression parameters are set to ``v_0^{\beta_0}= v_0^{\beta_1}=10^2``, leading to a very vague prior (and the true parameters are well covered within the prior's density area).
+* ``v_0^{\beta_0}= v_0^{\beta_1}=10^2``, leading to a very vague prior (and the true parameters are well covered within the prior's density area).
 
 """
 
@@ -496,7 +1068,7 @@ end
 # ╔═╡ 1ef001cc-fe70-42e5-8b97-690bb725a734
 md"""
 
-Next, we use the above Turing model to infer the simulated dataset. A Turing model is first instantiated with the simulated data and then MCMC sampling algorithms are used to draw posterior samples.
+## MCMC inference
 """
 
 # ╔═╡ 4ae89384-017d-4937-bcc9-3d8c63edaeb5
@@ -519,7 +1091,7 @@ md"""Based on the fact that `rhat < 1.01` and the `ess` count, the chain has con
 
 # ╔═╡ 391a1dc8-673a-47e9-aea3-ad79f366460d
 md"""
-**Result analysis** 
+## Analysis
 """
 
 # ╔═╡ d3d8fe25-e674-42de-ac49-b83aac402e2d
@@ -534,10 +1106,11 @@ b0, b1 = describe(chain_sim_data)[1][:, :mean][1:2];
 
 # ╔═╡ 08f7be6d-fda9-4013-88f5-92f1b5d26336
 md"""
-The posterior's means for the three unknowns are around $(round(b0; digits=2)) and $(round(b1; digits=2)), which are almost the same as the OLS estimators, which are expected since very weak-informative priors have been used.
 
-!!! information "Bayesian inference under weak priors"
-	As a rule thumb, when non-informative or weak-informative priors are used, the Bayesian inference's posterior mean should be similar to the Frequentist estimators.
+* the posterior's means for the three unknowns are around $(round(b0; digits=2)) and $(round(b1; digits=2)), which are almost the same as the OLS estimators
+
+* which are expected since very weak-informative priors have been used.
+
 """
 
 # ╔═╡ 40daa902-cb85-4cda-9b9f-7a32ee9cbf1c
@@ -548,9 +1121,13 @@ density(chain_sim_data)
 
 # ╔═╡ b1d7e28a-b802-4fa1-87ab-7df3369a468a
 md"""
-The above density plots show the posterior distributions. It can be observed the true parameters are all within good credible ranges. 
+## Further analysis
 
-The following diagram shows the model ``\mu = \beta_0 + \beta_1 x`` estimated by the Bayesian method:
+The following diagram shows the model 
+
+$\mu = \beta_0 + \beta_1 x$ 
+
+inferred by the Bayesian method
 * The thick red line shows the posterior mean of the Bayesian model
 * The lighter lines are some posterior samples, which also indicates the uncertainty about the posterior distribution (the true model is within the prediction)
   * the posterior mean is simply the average of all the posterior samples.
@@ -574,21 +1151,23 @@ end
 # ╔═╡ 860c4cf4-59b2-4036-8a30-7fbf44b18648
 md"""
 
-#### Predictive checks
+## Predictive checks
 
-To make sure our Bayesian model assumptions make sense, we should always carry out predictive checks. This is relatively straightforward to do the checks with `Turing`. Recall the procedure is to first simulate multiple pseudo samples ``\{\mathbf{y}_{pred}^{(r)}\}`` based on the posterior predictive distribution 
+Recall the procedure is to simulate pseudo samples ``\{\mathbf{y}_{pred}^{(r)}\}`` based on predictive distributions 
 
 ```math
 \mathbf{y}_{pred} \sim p(\mathbf{y}|\mathcal{D}, \mathbf{X}),
 ```
 
-and then the empirical distribution of the simulated data is compared against the observed. If the model assumptions are reasonable, we should expect the observed lies well within the possible region of the simulated.
+* and then the empirical distribution of the simulated data is compared against the observed
 """
 
 # ╔═╡ 74a9a678-60b9-4e3f-97a2-56c8fdc7094f
 md"""
 
-To simulate the pseudo data, we first create a dummy `Turing` with the targets filled with `missing` types. And then use `predict()` method to simulate the missing data.
+* to simulate the pseudo data, we first create a dummy `Turing` with the targets filled with `missing` types. 
+
+* and then use `predict()` method to simulate the missing data.
 """
 
 # ╔═╡ 435036f6-76fc-458b-b0eb-119de02eabb7
@@ -601,7 +1180,7 @@ end;
 
 # ╔═╡ 6eff54f2-d2e0-4c18-8eda-3be3124b16a0
 md"""
-**Kernel density estimation** check. One of the possible visual checks is to use Kernel density estimation (KDE), which is demonstrated below for our model. It can be seen the simulated data agree with the observed.
+**Kernel density estimation** check
 """
 
 # ╔═╡ f11a15c9-bb0b-43c1-83e6-dce55f2a772f
@@ -617,7 +1196,10 @@ end
 
 # ╔═╡ 03b571e6-9d35-4123-b7bb-5f3b31558c9e
 md"""
-**Summary statistics** check. Another common visual check is to plot the summary statistics of the simulated data, such as mean and standard deviation (std). Again, the simulated data is similar to the observed.
+**Summary statistics** check 
+
+* another common visual check is to plot the summary statistics 
+  * such as mean and standard deviation (std)
 
 
 """
@@ -634,9 +1216,12 @@ end
 
 # ╔═╡ 21aaa2db-6df0-4573-8951-bdfd9b6be6f9
 md"""
-### A multiple linear regression example
+## A multiple linear regression example
 
-Consider the *Advertising* dataset which is described in the book [Introduction to Statistical Learning](https://hastie.su.domains/ISLR2/ISLRv2_website.pdf). The dataset records how advertising on TV, radio, and newspaper affects sales of a product. 
+Consider the *Advertising* dataset which is described in the book [Introduction to Statistical Learning](https://hastie.su.domains/ISLR2/ISLRv2_website.pdf). 
+
+
+The dataset records how advertising on TV, radio, and in newspapers affects the **sales** of a product
 """
 
 # ╔═╡ b1401e7d-9207-4e31-b5ce-df82c8e9b069
@@ -647,7 +1232,9 @@ end
 
 # ╔═╡ 241faf68-49b2-404b-b5d5-99061d1dd2a7
 md"""
-First, we shall plot the data to get a feeling about the dataset. By checking the correlations, it seems both *TV, radio* are effective methods and the correlation between *newspaper* and *sales* seems not strong enough.
+
+## Exploratory data analysis 
+First, we shall plot the data 
 
 $(begin
 	@df Advertising cornerplot([:sales :TV :radio :newspaper], compact = true)
@@ -657,7 +1244,10 @@ end)
 
 # ╔═╡ 796ad911-9c95-454f-95f4-df5370b2496a
 md"""
-To understand the effects of the three different advertising methods, we can apply **multiple linear regression**. The multiple linear regression is formulated as:
+
+## Multiple linear model
+
+The multiple linear regression is formulated as:
 
 ```math
 \texttt{sales} = \beta_0 + \beta_1 \times \texttt{TV} + \beta_2 \times \texttt{radio} + \beta_3 \times \texttt{newspaper} + \varepsilon
@@ -672,9 +1262,9 @@ md"A Frequentist's model is fitted by using `GLM` as a reference first."
 ols_advertising = lm(@formula(sales ~ TV+radio+newspaper), Advertising)
 
 # ╔═╡ ab51e2c3-dbd4-43e1-95b5-a875954ac532
-md"According to the OLS fit, we can observe that the newspaper's effect is not statistically significant since its lower and upper 95% confidence interval encloses zero.
+md"
 
-We now move on to fit a Bayesian model. A `Turing` multiple linear regression model is specified below. Note that the model is almost the same as the simple regression model. The only difference is we allow the number of predictors to vary.
+## Bayesian model with `Turing.jl`
 "
 
 # ╔═╡ e1db0ee1-1d91-49c4-be6c-1ea276750bfc
@@ -713,7 +1303,11 @@ summarystats(chain_adv)
 describe(chain_adv)[2]
 
 # ╔═╡ 6a330f81-f581-4ccd-8868-8a5b22afe9b8
-md"As can be seen from the summary, the Bayesian results are very similar to the Frequentists again: the posterior means are close to the OLS estimators. By checking the posterior's 95% credible intervals, we can conclude again newspaper (with a 95% credible interval between -0.013 and 0.011) is not an effective method, which is in agreement with the frequentist's result. The trace and density plot of the posterior samples are listed below for reference."
+md"
+
+* By checking the posterior's 95% credible intervals, we can conclude again newspaper (with a 95% credible interval between -0.013 and 0.011) is not an effective method, 
+
+* which is in agreement with the frequentist's result. The trace and density plot of the posterior samples are listed below for reference."
 
 # ╔═╡ b1f6c262-1a2d-4973-bd1a-ba363bcc5c41
 plot(chain_adv)
@@ -721,14 +1315,14 @@ plot(chain_adv)
 # ╔═╡ 659a3760-0a18-4a95-8168-fc6ca237c4d5
 md"""
 
-## Extensions
-
-For both examples we have seen so far, the Bayesian method and the frequentist's method return very similar results. So the reader may wonder why to bother learning the Bayesian inference. The benefit of the Bayesian approach lies in its flexibility: by modifying the model as the modeller sees fit, everyone can do statistical inference like a statistician. With the help of `Turing`, the modeller only needs to do the modelling and leave the computation to the powerful MCMC inference engine.
+# Extensions
 
 
-### Heterogeneous observation σ
 
-To demonstrate the flexibility of the Bayesian approach, we are going to make improvements to the Advertising data's regression model. Here, we consider the effect of *TV* on *sales* only.
+## Heterogeneous observation σ
+
+The bayesian approach offers great flexibility
+
 """
 
 # ╔═╡ 9cb32dc0-8c0c-456e-bbcb-7ff6ae63da60
@@ -752,7 +1346,10 @@ let
 end
 
 # ╔═╡ 65d702d6-abec-43a1-89a8-95c30b3e748a
-md"It can be observed that the observation noise's scale ``\sigma^2`` is not constant across the horizontal axis. With a larger investment on TV, the sales are increasing but also the variance of the sales (check the two Gaussians' scales at two ends of the axis). Therefore, the old model which assumes a constant observation variance scale is not a good fit for the data. 
+md"It can be observed that the observation noise's scale ``\sigma^2`` is not constant across the horizontal axis. 
+
+* with a larger investment on TV, the sales are increasing 
+* but also the variance of the sales (check the two Gaussians' scales at two ends of the axis)
 "
 
 # ╔═╡ 611ad745-f92d-47ac-8d58-6f9baaf3077c
@@ -770,27 +1367,41 @@ let
         ribbon = (pred_.prediction .- pred_.lower, pred_.upper .- pred_.prediction), label=L"90\% "* " OLS prediction interval")
 end
 
-# ╔═╡ ddb0d87e-cf0a-4b09-9bb6-4ee267fcdb9d
-md"""
-
-The ordinary OLS estimated model with the old model assumption is plotted above. It can be observed that the prediction interval is too wide at the lower end of the input scale but too small on the upper side.
-
-"""
-
 # ╔═╡ 1954544c-48b4-4997-871f-50c9bfa402b7
 md"""
 
-**A better "story".**
-One possible approach to improve the model is to assume the observation scale ``\sigma`` itself is a function of the independent variable:
+## A better "story"
+
+
+Assume the observation scale ``\sigma`` itself is a function of the independent variable:
 
 ```math
 \sigma(x) = r_0 + r_1  x,
 ```
-If the slope ``r_1>0``, then the observation scale ``\sigma(x)`` will steadily increase over the input ``x``.
+* if the slope ``r_1>0``, then the observation scale ``\sigma(x)`` will steadily increase over the input ``x``
 
-However, note that ``\sigma`` is a constrained parameter, which needs to be strictly positive. To make the transformation valid across the input ``x``, we model ``\sigma``'s transformation ``\rho`` instead. 
+However, note that ``\sigma`` has to be positive 
 
-To be more specific, we define the following deterministic transformations between ``\rho`` and ``\sigma``:
+
+## Aside: soft-plus function
+
+
+``\ln(1+ \exp(\cdot))`` is called 
+$(begin
+plot(-10:.1:10, (x)-> log(1+exp(x)), label=L"\ln(1+\exp(x))", legend=:topleft, lw=2, size=(400,300))
+end)
+
+* ``\texttt{Softplus}``: ``R \rightarrow R^+`` transformation.
+"""
+
+# ╔═╡ 85f1d525-3822-47ed-81c0-723d312f8f3f
+md"""
+
+
+## A better "story"
+
+We model ``\sigma``'s transformation ``\rho`` instead, where 
+
 ```math
 \begin{align}
 &\rho(x) = \gamma_0 + \gamma_1  x,\\
@@ -798,21 +1409,19 @@ To be more specific, we define the following deterministic transformations betwe
 \end{align}
 ``` 
 
-The unconstrained observation scale ``\rho \in R`` is linearly dependent on the input ``x``; and a ``\texttt{softplus}`` transformation ``\ln(1+\exp(\cdot))`` is then applied to ``\rho`` such that the output is always positive.
 
-The second transformation ``\ln(1+ \exp(\cdot))`` is widely known as soft-plus method. The function is plotted below.
 
-$(begin
-plot(-10:.1:10, (x)-> log(1+exp(x)), label=L"\ln(1+\exp(x))", legend=:topleft, lw=2, size=(400,300))
-end)
+* the unconstrained observation scale ``\rho \in R`` is linearly dependent on the input ``x``; 
 
-``\texttt{Softplus}`` function takes any real-value as input and outputs a positive number, which satisfies our requirement. Note that one can also simply use ``\exp(\cdot)`` instead, which is also a ``R \rightarrow R^+`` transformation.
+* and a ``\texttt{softplus}`` transformation ``\ln(1+\exp(\cdot))`` is then applied to ``\rho`` such that the output is always positive
+
+
 """
 
 # ╔═╡ 85ae4791-6262-4f07-9796-749982e00fec
 md"""
 
-The full Bayesian model is specified below:
+## The new Bayesian model
 
 
 ```math
@@ -861,9 +1470,10 @@ plot(chain2)
 
 # ╔═╡ 05b90ddb-8479-4fbf-a469-d5b0bf4a91c8
 md"""
-#### Use `generated_quantities()`
+## `generated_quantities()`
 
-**Analyse internel hidden values.** ``\sigma, \mu`` are of importance in evaluating the model. They represent the observation noise scale and regression-line's expectation respectively. Recall that they depend on the independent variable *TV* and the unknown model parameters ``\gamma_0, \gamma_1, \beta_0, \beta_1`` via deterministic functions
+**Analyse internel hidden values.** ``\sigma, \mu`` are of importance in evaluating the model:
+
 ```math
 \sigma(\texttt{TV}) = \ln(1+ \exp(\gamma_0 +\gamma_1 \texttt{TV})).
 ```
@@ -874,29 +1484,15 @@ and
 \mu(\texttt{TV}) = \beta_0 +\beta_1 \texttt{TV}.
 ``` 
 
-To gain deeper insights into the inference results, we can analyse the posterior distributions of ``\mu`` and ``\sigma`` directly: i.e.
+we can analyse the posterior distributions of ``\mu`` and ``\sigma`` directly: i.e.
 ```math
 p(\sigma|\texttt{TV}, \mathcal{D}),\;\; p(\mu|\texttt{TV}, \mathcal{D}). 
 ```
 
-Based on the Monte Carlo principle, their posterior distributions can be empirically approximated based on their posterior samples, which can be subsequently computed based on the MCMC samples ``\{\gamma_0^{(r)}, \gamma_1^{(r)}\}_{r=1}^R``, and ``\{\beta_0^{(r)},\beta_0^{(r)}\}_{r=1}^R`` respectively.
+Their posterior distributions can be approximated based on posterior samples
 
-
-Take ``\sigma`` for example, its posterior can be approximated based on ``\{\gamma_0^{(r)}, \gamma_1^{(r)}\}_{r=1}^R`` by an empirical distribution:
-
-```math
-p(\sigma |\texttt{TV}, \mathcal{D}) \approx \frac{1}{R} \sum_{r=1}^R \delta_{\sigma^{(r)}_{\texttt{TV}}},
-```
-where 
-
-
-$$\sigma^{(r)}_{\texttt{TV}} =\ln(1+ \exp( \gamma_0^{(r)} +\gamma_1^{(r)} \texttt{TV})).$$ and ``\delta_{x}`` is a Dirac measured at ``x``. The posterior mean can then be approximated by the Monte Carlo average:
-
-```math
-\mathbb{E}[\sigma|\mathcal{D}, \texttt{TV}] \approx \frac{1}{R} \sum_{r=1}^R \sigma^{(r)}_{\texttt{TV}}.
-```
-
-To make the idea concrete, we manually implement and plot the posterior approximation below. 
+* ``\{\gamma_0^{(r)}, \gamma_1^{(r)}\}_{r=1}^R``, 
+* and ``\{\beta_0^{(r)},\beta_0^{(r)}\}_{r=1}^R`` respectively.
 
 
 """
@@ -928,11 +1524,13 @@ end
 
 # ╔═╡ 3c3f6378-ed20-4f40-a780-f9329ace34bc
 md"""
+## Use `generated_quantities()`
 
-It is not practical to implement the approximation for every single internal variable manually. Fortunately, `Turing` provides us with an easy-to-use method:
+`Turing` provides us with an easy-to-use method:
+
 ```
 generated_quantities(model, chain)
-```  The method takes a `Turing` model and a chain object as input arguments and it returns all internal variables' samples, which are returned at the end of the `Turing` model. For example, to obtain the posterior samples of the hidden variables ``\mu`` and ``\sigma``, simply issue commands:
+```  
 """
 
 # ╔═╡ a43189a3-a94f-4e69-85b1-3a586b2cc0eb
@@ -945,7 +1543,12 @@ end;
 # ╔═╡ 4bf4c216-fefb-40fc-9d36-eaa82ff5454b
 md"""
 
-And we can plot the posterior samples to visually interpret the results. It is worth noting that the observation's scale ``\sigma`` increases as investment on *TV* increases, which is exactly what we want to model. And also note the uncertainty about the observation scale is not uniform over the scale of the input *TV*. The uncertainty about ``\sigma`` also increases as *TV* gets larger (check the gray lines' spread)."""
+And we can plot the posterior samples to visually interpret the results
+
+
+* the observation's scale ``\sigma`` now increases as investment on *TV* increases
+
+"""
 
 # ╔═╡ 5a507f39-a6be-43aa-a909-4c87005ad1d2
 begin
@@ -971,11 +1574,21 @@ end
 
 # ╔═╡ fc324c67-85be-4c50-b315-9d00ad1dc2be
 md"""
-**Predictions.**
-Lastly, we show how to make predictions with `Turing`. To make predictions on new testing input ``x``, we will use `Turing`'s `predict()` method. Similar to prior and posterior predictive checks, we first feed in an array of missing values to the Turing model and use `predict` to draw posterior inference on the unknown targets ``y``.
+## Predictions
+
+We can use `Turing`'s `predict()` method. 
+
+* which is very similar to prior and posterior predictive checks
+
+* we first feed in an array of `missing` values to the Turing model 
+
+* and use `predict` to draw posterior inference on the unknown targets ``y``.
 
 
-Take the extended Advertising for example, the code below predicts at testing input at ``\texttt{TV} = 0, 1, \ldots, 300``.
+Take the extended Advertising for example, 
+
+* the code below predicts at testing input at 
+$\texttt{TV} = 0, 1, \ldots, 300$
 
 """
 
@@ -988,7 +1601,7 @@ end;
 
 # ╔═╡ 7e992f3e-0337-4b5f-8f4d-c20bdb3b6b66
 md"""
-After making predictions on the inputs, we can summarise the prediction by calculating the mean and standard deviation. The code below calculates the posterior predictive's mean and standard deviations and then the summary statistics are plotted together with the original dataset. Note how the prediction's variance increases when the input increases.
+**Visualisation**
 """
 
 # ╔═╡ ddc0f5b3-385a-4ceb-82e1-f218299b26d9
@@ -1008,9 +1621,9 @@ end
 
 # ╔═╡ 1d5835ad-4e04-48f0-90e6-aa1776d9406f
 md"""
-### Handle outlier -- Bayesian robust linear regression
+## Handle outlier -- Bayesian robust linear regression
 
-A handful of outliers might skew the final OLS estimation. For example, some outliers were added to the simulated dataset we consider earlier. The new dataset is plotted together with the estimated OLS estimated model. The model now deviates a lot from the ground true model.
+
 """
 
 # ╔═╡ ee37602c-229c-4709-8b29-627d32a25823
@@ -1036,10 +1649,10 @@ end
 
 # ╔═╡ 9348f3e5-4224-46f5-bc07-dee20b47a8d3
 md"""
-To deal with outliers, classic frequentist's methods might either suggest identifying and removing the outliers or deriving a new estimator to accommodate the outlier. Bayesian's approach is more consistent: modify the modelling assumption.
+**Robust Bayesian regression** is 
 
 
-One way to achieve **robust Bayesian regression** is to assume the dependent observation is generated with Cauchy noise rather than Gaussian. As demonstrated below, a Cauchy distribution has heavier tails than its Gaussian equivalence, which makes Cauchy more resilient to outliers.
+* assume the dependent observation is generated with Cauchy noise rather than Gaussian
 """
 
 # ╔═╡ 36fb8291-fea9-4f9f-ac52-a0eb61c2c8a8
@@ -1049,7 +1662,10 @@ begin
 end
 
 # ╔═╡ f67d1d47-1e25-4c05-befd-c958dce45168
-md"""The robust Bayesian regression model can be specified by replacing the Gaussian likelihood with its Cauchy equivalent. 
+md"""
+## Bayesian robust regression
+
+The robust Bayesian regression model can be specified by replacing the Gaussian likelihood with its Cauchy equivalent. 
 
 
 
@@ -1093,7 +1709,7 @@ end;
 
 # ╔═╡ c65e9c09-52c5-4647-9414-ad53841e8ff3
 md"""
-To compare the results, we plot both ordinary Bayesian model with Gaussian likelihood and the proposed robust Bayesian inference results. It can be seen the ordinary model's posterior (left) has much larger prediction variance due to the influence of the outliers and the prediction mean (the red line) deviates from the true model significantly. On the other hand, the robust model (right) still provides very consistent result.
+## Comparison
 """
 
 # ╔═╡ 40f528f0-acca-43ff-a500-16aeb97898c8
@@ -1113,6 +1729,26 @@ md"""
 
 """
 
+# ╔═╡ c5ff903e-d220-4e0a-901b-acdece61e465
+begin
+	Random.seed!(111)
+	num_features = 2
+	num_data = 25
+	true_w = rand(num_features+1) * 10
+	# simulate the design matrix or input features
+	X_train = [ones(num_data) rand(num_data, num_features)]
+	# generate the noisy observations
+	y_train = X_train * true_w + randn(num_data)
+end;
+
+# ╔═╡ c3b2732f-b9f1-4747-bce3-703a2f03f7d2
+let
+	plotly()
+	# plot(X_train[:,2], y_train, st=:scatter, label="Observations")
+	scatter(X_train[:, 2], X_train[:,3], y_train, markersize=1.5, label="observations", title="Linear regression assumption", xlabel="x₁", ylabel="x₂", zlabel="y")
+	surface!(0:0.5:1, 0:0.5:1.0, (x1, x2) -> dot([1, x1, x2], true_w),  colorbar=false, xlabel="x₁", ylabel="x₂", zlabel="y", alpha=0.5, label="h(x)")
+end
+
 # ╔═╡ d8dae6b8-00fb-4519-ae45-36d36a9c90bb
 begin
 	struct Foldable{C}
@@ -1126,51 +1762,6 @@ begin
 		write(io,"</p></details>")
 	end
 end
-
-# ╔═╡ 1cae04d1-82ca-47c8-b1fa-7fa5a754d4b1
-Foldable("Derivation details about the MLE.", md"
-Due to the independence assumption,
-
-```math
-p(\mathbf{y}|\mathbf{X}, \boldsymbol{\beta}, \sigma^2) = \prod_{n=1}^N p({y}_n|\mathbf{x}_n, \boldsymbol{\beta}, \sigma^2)= \prod_{n=1}^N \mathcal{N}(y_n; \mathbf{x}_n^\top \boldsymbol{\beta}, \sigma^2)
-```
-Since the logarithm function is a monotonically increasing function, the maximum is invariant under the transformation. We therefore can maximise the log-likelihood function instead. And the log-likelihood function is
-
-$$\begin{align}\mathcal{L}(\beta_0, \boldsymbol{\beta}, \sigma^2) &= \ln \prod_{n} \mathcal{N}(y_n; \mathbf{x}_n^\top \boldsymbol{\beta}, \sigma^2)\\
-&= \sum_{n=1}^N \ln  \left\{ (2\pi)^{-\frac{1}{2}}({\sigma^2})^{-\frac{1}{2}} \exp\left ( -\frac{1}{2 \sigma^2} (y_n - \beta_0 - \mathbf{x}_n^\top \boldsymbol{\beta})^2\right )\right \} \\
-&= {-\frac{N}{2}}\cdot 2\pi -\frac{N}{2}{\sigma^2} -\frac{1}{2 \sigma^2} \sum_{n=1}^N   (y_n - \beta_0 - \mathbf{x}_n^\top \boldsymbol{\beta})^2\end{align}$$
-
-Maximising the above log-likelihood is the same as minimising its negation, which leads to the least squared error estimation:
-
-```math
-\begin{align}
-\hat{\beta_0}, \hat{\boldsymbol{\beta}} &\leftarrow \arg\min -\mathcal{L}(\beta_0, \boldsymbol{\beta}, \sigma^2)  \\
-&= \arg\min  \sum_{n=1}^N   (y_n - \beta_0 - \mathbf{x}_n^\top \boldsymbol{\beta})^2,
-\end{align}
-```
-where we have assumed ``\sigma^2`` is known.
-
-")
-
-# ╔═╡ 89414966-5447-4133-80cb-0933c8b0d5d0
-Foldable("Derivation details.", md"
-
-The prior is 
-
-$$p(\boldsymbol{\beta}) = \mathcal{N}(\mathbf{0}, v_0 \mathbf{I}) = \frac{1}{\sqrt{(2\pi)^d |v_0 \mathbf{I}|}} \text{exp}\left (-\frac{1}{2v_0 }\boldsymbol{\beta}^\top \boldsymbol{\beta} \right ).$$ 
-
-Take the log and add the log-likelihood function, we have
-
-```math
-\begin{align}
-\ln p(\boldsymbol{\beta}|\mathbf y, \mathbf{X}) &= \ln p(\boldsymbol{\beta}) +\ln p(\mathbf y|\boldsymbol{\beta}, \mathbf{X}) + C\\
-&= -\frac{1}{2v_0}\boldsymbol{\beta}^\top \boldsymbol{\beta} - \frac{1}{2\sigma^2}(\mathbf y-\mathbf{X} \boldsymbol{\beta})^\top (\mathbf y-\mathbf{X} \boldsymbol{\beta}) + C\\
-&=-\frac{1}{2v_0} \|\boldsymbol{\beta}\|^2 - \frac{1}{2\sigma^2}\sum_{n=1}^N( y_n-\mathbf{x}_n^\top \boldsymbol{\beta})^2.
-\end{align}
-```
-
-
-")
 
 # ╔═╡ 969df742-bc8a-4e89-9e5e-62cb9e7c2215
 begin
@@ -1214,6 +1805,8 @@ LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 Latexify = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
+MLDatasets = "eb30cadb-4394-5ae3-aed4-317e484a6458"
+PlutoTeachingTools = "661c6b06-c737-4d37-b85c-46df65de6f69"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
@@ -1225,6 +1818,8 @@ DataFrames = "~1.3.4"
 GLM = "~1.8.0"
 LaTeXStrings = "~1.3.0"
 Latexify = "~0.15.16"
+MLDatasets = "~0.7.9"
+PlutoTeachingTools = "~0.2.8"
 PlutoUI = "~0.7.39"
 StatsPlots = "~0.15.1"
 Turing = "~0.21.9"
@@ -1236,7 +1831,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.5"
 manifest_format = "2.0"
-project_hash = "8d2af6f085a0ecd672124f45c5d4ae9bb678b37a"
+project_hash = "54822bd69db92b2dbb3484e4d78ead5bfa3c4125"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
@@ -1266,6 +1861,12 @@ version = "1.1.4"
 git-tree-sha1 = "03e0550477d86222521d254b741d470ba17ea0b5"
 uuid = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
 version = "0.3.4"
+
+[[deps.Accessors]]
+deps = ["Compat", "CompositionsBase", "ConstructionBase", "Dates", "InverseFunctions", "LinearAlgebra", "MacroTools", "Requires", "StaticArrays", "Test"]
+git-tree-sha1 = "4a98a9491dd44348664c371998a75074a6938145"
+uuid = "7d9f7c33-5ae7-4f3b-8dc6-eff91059b697"
+version = "0.1.27"
 
 [[deps.Adapt]]
 deps = ["LinearAlgebra"]
@@ -1365,6 +1966,11 @@ git-tree-sha1 = "875f3845e1256ee1d9e0c8ca3993e709b32c0ed1"
 uuid = "76274a88-744f-5084-9051-94815aaf08c4"
 version = "0.10.3"
 
+[[deps.BufferedStreams]]
+git-tree-sha1 = "bb065b14d7f941b8617bc323063dbe79f55d16ea"
+uuid = "e1450e63-4bb3-523b-b2a4-4ffa8c0fd77d"
+version = "1.1.0"
+
 [[deps.Bzip2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "19a35467a82e236ff51bc17a3a44b69ef35185a2"
@@ -1407,11 +2013,29 @@ git-tree-sha1 = "38f7a08f19d8810338d4f5085211c7dfa5d5bdd8"
 uuid = "9e997f8a-9a97-42d5-a9f1-ce6bfc15e2c0"
 version = "0.1.4"
 
+[[deps.Chemfiles]]
+deps = ["Chemfiles_jll", "DocStringExtensions"]
+git-tree-sha1 = "9126d0271c337ca5ed02ba92f2dec087c4260d4a"
+uuid = "46823bd8-5fb3-5f92-9aa0-96921f3dd015"
+version = "0.10.31"
+
+[[deps.Chemfiles_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "d4e54b053fc584e7a0f37e9d3a5c4500927b343a"
+uuid = "78a364fa-1a3c-552a-b4bb-8fa0f9c1fcca"
+version = "0.10.3+0"
+
 [[deps.Clustering]]
 deps = ["Distances", "LinearAlgebra", "NearestNeighbors", "Printf", "SparseArrays", "Statistics", "StatsBase"]
 git-tree-sha1 = "75479b7df4167267d75294d14b58244695beb2ac"
 uuid = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
 version = "0.14.2"
+
+[[deps.CodeTracking]]
+deps = ["InteractiveUtils", "UUIDs"]
+git-tree-sha1 = "0683f086e2ef8e2fdacd3f246b35c59e7088b283"
+uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
+version = "1.3.0"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -1487,6 +2111,12 @@ git-tree-sha1 = "59d00b3139a9de4eb961057eabb65ac6522be954"
 uuid = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
 version = "1.4.0"
 
+[[deps.ContextVariablesX]]
+deps = ["Compat", "Logging", "UUIDs"]
+git-tree-sha1 = "25cc3803f1030ab855e383129dcd3dc294e322cc"
+uuid = "6add18c4-b38d-439d-96f6-d6bc489c04c5"
+version = "0.1.3"
+
 [[deps.Contour]]
 git-tree-sha1 = "d05d9e7b7aedff4e5b51a029dced05cfb6125781"
 uuid = "d38c429a-6771-53c6-b99e-75d170b6e991"
@@ -1501,6 +2131,12 @@ version = "4.1.1"
 git-tree-sha1 = "fb5f5316dd3fd4c5e7c30a24d50643b73e37cd40"
 uuid = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
 version = "1.10.0"
+
+[[deps.DataDeps]]
+deps = ["HTTP", "Libdl", "Reexport", "SHA", "p7zip_jll"]
+git-tree-sha1 = "bc0a264d3e7b3eeb0b6fc9f6481f970697f29805"
+uuid = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
+version = "0.7.10"
 
 [[deps.DataFrames]]
 deps = ["Compat", "DataAPI", "Future", "InvertedIndices", "IteratorInterfaceExtensions", "LinearAlgebra", "Markdown", "Missings", "PooledArrays", "PrettyTables", "Printf", "REPL", "Reexport", "SortingAlgorithms", "Statistics", "TableTraits", "Tables", "Unicode"]
@@ -1648,6 +2284,24 @@ git-tree-sha1 = "c6033cc3892d0ef5bb9cd29b7f2f0331ea5184ea"
 uuid = "f5851436-0d7a-5f13-b9de-f02708fd171a"
 version = "3.3.10+0"
 
+[[deps.FLoops]]
+deps = ["BangBang", "Compat", "FLoopsBase", "InitialValues", "JuliaVariables", "MLStyle", "Serialization", "Setfield", "Transducers"]
+git-tree-sha1 = "ffb97765602e3cbe59a0589d237bf07f245a8576"
+uuid = "cc61a311-1640-44b5-9fba-1b764f453329"
+version = "0.2.1"
+
+[[deps.FLoopsBase]]
+deps = ["ContextVariablesX"]
+git-tree-sha1 = "656f7a6859be8673bf1f35da5670246b923964f7"
+uuid = "b9860ae5-e623-471e-878b-f6a53c775ea6"
+version = "0.1.1"
+
+[[deps.FileIO]]
+deps = ["Pkg", "Requires", "UUIDs"]
+git-tree-sha1 = "7be5f99f7d15578798f338f5433b6c432ea8037b"
+uuid = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
+version = "1.16.0"
+
 [[deps.FilePathsBase]]
 deps = ["Compat", "Dates", "Mmap", "Printf", "Test", "UUIDs"]
 git-tree-sha1 = "129b104185df66e408edd6625d480b7f9e9823a0"
@@ -1668,6 +2322,12 @@ deps = ["Statistics"]
 git-tree-sha1 = "335bfdceacc84c5cdf16aadc768aa5ddfc5383cc"
 uuid = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
 version = "0.8.4"
+
+[[deps.FoldsThreads]]
+deps = ["Accessors", "FunctionWrappers", "InitialValues", "SplittablesBase", "Transducers"]
+git-tree-sha1 = "eb8e1989b9028f7e0985b4268dabe94682249025"
+uuid = "9c68100b-dfe1-47cf-94c8-95104e173443"
+version = "0.1.1"
 
 [[deps.Fontconfig_jll]]
 deps = ["Artifacts", "Bzip2_jll", "Expat_jll", "FreeType2_jll", "JLLWrappers", "Libdl", "Libuuid_jll", "Pkg", "Zlib_jll"]
@@ -1743,6 +2403,12 @@ git-tree-sha1 = "c8ab731c9127cd931c93221f65d6a1008dad7256"
 uuid = "d2c73de3-f751-5644-a686-071e5b155ba9"
 version = "0.66.0+0"
 
+[[deps.GZip]]
+deps = ["Libdl"]
+git-tree-sha1 = "039be665faf0b8ae36e089cd694233f5dee3f7d6"
+uuid = "92fee26a-97fe-5a0c-ad85-20a5f3185b63"
+version = "0.5.1"
+
 [[deps.GeoInterface]]
 deps = ["Extents"]
 git-tree-sha1 = "fb28b5dc239d0174d7297310ef7b84a11804dfab"
@@ -1767,6 +2433,17 @@ git-tree-sha1 = "a32d672ac2c967f3deb8a81d828afc739c838a06"
 uuid = "7746bdde-850d-59dc-9ae8-88ece973131d"
 version = "2.68.3+2"
 
+[[deps.Glob]]
+git-tree-sha1 = "97285bbd5230dd766e9ef6749b80fc617126d496"
+uuid = "c27321d9-0574-5035-807b-f59d2c89b15c"
+version = "1.3.1"
+
+[[deps.Graphics]]
+deps = ["Colors", "LinearAlgebra", "NaNMath"]
+git-tree-sha1 = "d61890399bc535850c4bf08e4e0d3a7ad0f21cbd"
+uuid = "a2bd30eb-e257-5431-a919-1863eab51364"
+version = "1.1.2"
+
 [[deps.Graphite2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "344bf40dcab1073aca04aa0df4fb092f920e4011"
@@ -1777,6 +2454,18 @@ version = "1.3.14+0"
 git-tree-sha1 = "53bb909d1151e57e2484c3d1b53e19552b887fb2"
 uuid = "42e2da0e-8278-4e71-bc24-59509adca0fe"
 version = "1.0.2"
+
+[[deps.HDF5]]
+deps = ["Compat", "HDF5_jll", "Libdl", "Mmap", "Random", "Requires", "UUIDs"]
+git-tree-sha1 = "3dab31542b3da9f25a6a1d11159d4af8fdce7d67"
+uuid = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
+version = "0.16.14"
+
+[[deps.HDF5_jll]]
+deps = ["Artifacts", "JLLWrappers", "LibCURL_jll", "Libdl", "OpenSSL_jll", "Pkg", "Zlib_jll"]
+git-tree-sha1 = "4cc2bb72df6ff40b055295fdef6d92955f9dede8"
+uuid = "0234f1f7-429e-5d53-9886-15a909be8d59"
+version = "1.12.2+2"
 
 [[deps.HTTP]]
 deps = ["Base64", "CodecZlib", "Dates", "IniFile", "Logging", "LoggingExtras", "MbedTLS", "NetworkOptions", "Random", "SimpleBufferStream", "Sockets", "URIs", "UUIDs"]
@@ -1814,6 +2503,24 @@ git-tree-sha1 = "f7be53659ab06ddc986428d3a9dcc95f6fa6705a"
 uuid = "b5f81e59-6552-4d32-b1f0-c071b021bf89"
 version = "0.2.2"
 
+[[deps.ImageBase]]
+deps = ["ImageCore", "Reexport"]
+git-tree-sha1 = "b51bb8cae22c66d0f6357e3bcb6363145ef20835"
+uuid = "c817782e-172a-44cc-b673-b171935fbb9e"
+version = "0.1.5"
+
+[[deps.ImageCore]]
+deps = ["AbstractFFTs", "ColorVectorSpace", "Colors", "FixedPointNumbers", "Graphics", "MappedArrays", "MosaicViews", "OffsetArrays", "PaddedViews", "Reexport"]
+git-tree-sha1 = "acf614720ef026d38400b3817614c45882d75500"
+uuid = "a09fc81d-aa75-5fe9-8630-4744c3626534"
+version = "0.9.4"
+
+[[deps.ImageShow]]
+deps = ["Base64", "ColorSchemes", "FileIO", "ImageBase", "ImageCore", "OffsetArrays", "StackViews"]
+git-tree-sha1 = "ce28c68c900eed3cdbfa418be66ed053e54d4f56"
+uuid = "4e3cecfd-b093-5904-9786-8bbb286a6a31"
+version = "0.3.7"
+
 [[deps.IniFile]]
 git-tree-sha1 = "f550e6e32074c939295eb5ea6de31849ac2c9625"
 uuid = "83e8ac13-25f8-5344-8a64-a9f2b223428f"
@@ -1845,6 +2552,12 @@ version = "2018.0.3+2"
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
+
+[[deps.InternedStrings]]
+deps = ["Random", "Test"]
+git-tree-sha1 = "eb05b5625bc5d821b8075a77e4c421933e20c76b"
+uuid = "7d512f48-7fb1-5a58-b986-67e6dc259f01"
+version = "0.7.0"
 
 [[deps.Interpolations]]
 deps = ["Adapt", "AxisAlgorithms", "ChainRulesCore", "LinearAlgebra", "OffsetArrays", "Random", "Ratios", "Requires", "SharedArrays", "SparseArrays", "StaticArrays", "WoodburyMatrices"]
@@ -1884,6 +2597,12 @@ git-tree-sha1 = "a3f24677c21f5bbe9d2a714f95dcd58337fb2856"
 uuid = "82899510-4779-5014-852e-03e436cf321d"
 version = "1.0.0"
 
+[[deps.JLD2]]
+deps = ["FileIO", "MacroTools", "Mmap", "OrderedCollections", "Pkg", "Printf", "Reexport", "Requires", "TranscodingStreams", "UUIDs"]
+git-tree-sha1 = "42c17b18ced77ff0be65957a591d34f4ed57c631"
+uuid = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+version = "0.4.31"
+
 [[deps.JLLWrappers]]
 deps = ["Preferences"]
 git-tree-sha1 = "abc9885a7ca2052a736a600f7fa66209f96506e1"
@@ -1896,11 +2615,29 @@ git-tree-sha1 = "3c837543ddb02250ef42f4738347454f95079d4e"
 uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.21.3"
 
+[[deps.JSON3]]
+deps = ["Dates", "Mmap", "Parsers", "SnoopPrecompile", "StructTypes", "UUIDs"]
+git-tree-sha1 = "84b10656a41ef564c39d2d477d7236966d2b5683"
+uuid = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
+version = "1.12.0"
+
 [[deps.JpegTurbo_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "b53380851c6e6664204efb2e62cd24fa5c47e4ba"
 uuid = "aacddb02-875f-59d6-b918-886e6ef4fbf8"
 version = "2.1.2+0"
+
+[[deps.JuliaInterpreter]]
+deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
+git-tree-sha1 = "6a125e6a4cb391e0b9adbd1afa9e771c2179f8ef"
+uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
+version = "0.9.23"
+
+[[deps.JuliaVariables]]
+deps = ["MLStyle", "NameResolution"]
+git-tree-sha1 = "49fb3cb53362ddadb4415e9b73926d6b40709e70"
+uuid = "b14d175d-62b4-44ba-8fb7-3064adc8c3ec"
+version = "0.2.4"
 
 [[deps.KernelDensity]]
 deps = ["Distributions", "DocStringExtensions", "FFTW", "Interpolations", "StatsBase"]
@@ -1945,6 +2682,11 @@ version = "0.15.16"
 [[deps.LazyArtifacts]]
 deps = ["Artifacts", "Pkg"]
 uuid = "4af54fe1-eca0-43a8-85a7-787d91b784e3"
+
+[[deps.LazyModules]]
+git-tree-sha1 = "a560dd966b386ac9ae60bdd3a3d3a326062d3c3e"
+uuid = "8cdb02fc-e678-4876-92c5-9defec4f444e"
+version = "0.3.1"
 
 [[deps.LeftChildRightSiblingTrees]]
 deps = ["AbstractTrees"]
@@ -2047,6 +2789,18 @@ git-tree-sha1 = "5d4d2d9904227b8bd66386c1138cf4d5ffa826bf"
 uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
 version = "0.4.9"
 
+[[deps.LoweredCodeUtils]]
+deps = ["JuliaInterpreter"]
+git-tree-sha1 = "60168780555f3e663c536500aa790b6368adc02a"
+uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
+version = "2.3.0"
+
+[[deps.MAT]]
+deps = ["BufferedStreams", "CodecZlib", "HDF5", "SparseArrays"]
+git-tree-sha1 = "6eff5740c8ab02c90065719579c7aa0eb40c9f69"
+uuid = "23992714-dd62-5051-b70f-ba57cb901cac"
+version = "0.10.4"
+
 [[deps.MCMCChains]]
 deps = ["AbstractMCMC", "AxisArrays", "Compat", "Dates", "Distributions", "Formatting", "IteratorInterfaceExtensions", "KernelDensity", "LinearAlgebra", "MCMCDiagnosticTools", "MLJModelInterface", "NaturalSort", "OrderedCollections", "PrettyTables", "Random", "RecipesBase", "Serialization", "Statistics", "StatsBase", "StatsFuns", "TableTraits", "Tables"]
 git-tree-sha1 = "8cb9b8fb081afd7728f5de25b9025bff97cb5c7a"
@@ -2065,11 +2819,28 @@ git-tree-sha1 = "e595b205efd49508358f7dc670a940c790204629"
 uuid = "856f044c-d86e-5d09-b602-aeab76dc8ba7"
 version = "2022.0.0+0"
 
+[[deps.MLDatasets]]
+deps = ["CSV", "Chemfiles", "DataDeps", "DataFrames", "DelimitedFiles", "FileIO", "FixedPointNumbers", "GZip", "Glob", "HDF5", "ImageShow", "JLD2", "JSON3", "LazyModules", "MAT", "MLUtils", "NPZ", "Pickle", "Printf", "Requires", "SparseArrays", "Tables"]
+git-tree-sha1 = "498b37aa3ebb4407adea36df1b244fa4e397de5e"
+uuid = "eb30cadb-4394-5ae3-aed4-317e484a6458"
+version = "0.7.9"
+
 [[deps.MLJModelInterface]]
 deps = ["Random", "ScientificTypesBase", "StatisticalTraits"]
 git-tree-sha1 = "16fa7c2e14aa5b3854bc77ab5f1dbe2cdc488903"
 uuid = "e80e1ace-859a-464e-9ed9-23947d8ae3ea"
 version = "1.6.0"
+
+[[deps.MLStyle]]
+git-tree-sha1 = "bc38dff0548128765760c79eb7388a4b37fae2c8"
+uuid = "d8e11817-5142-5d16-987a-aa16d5891078"
+version = "0.4.17"
+
+[[deps.MLUtils]]
+deps = ["ChainRulesCore", "DelimitedFiles", "FLoops", "FoldsThreads", "Random", "ShowCases", "Statistics", "StatsBase", "Transducers"]
+git-tree-sha1 = "824e9dfc7509cab1ec73ba77b55a916bb2905e26"
+uuid = "f1d291b0-491e-4a28-83b9-f70985020b54"
+version = "0.2.11"
 
 [[deps.MacroTools]]
 deps = ["Markdown", "Random"]
@@ -2117,6 +2888,12 @@ version = "1.0.2"
 [[deps.Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
+[[deps.MosaicViews]]
+deps = ["MappedArrays", "OffsetArrays", "PaddedViews", "StackViews"]
+git-tree-sha1 = "7b86a5d4d70a9f5cdf2dacb3cbe6d251d1a61dbe"
+uuid = "e94cdb99-869f-56ef-bcf0-1ae2bcbe0389"
+version = "0.3.4"
+
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
 version = "2022.2.1"
@@ -2133,11 +2910,23 @@ git-tree-sha1 = "415108fd88d6f55cedf7ee940c7d4b01fad85421"
 uuid = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 version = "0.8.9"
 
+[[deps.NPZ]]
+deps = ["FileIO", "ZipFile"]
+git-tree-sha1 = "60a8e272fe0c5079363b28b0953831e2dd7b7e6f"
+uuid = "15e1cf62-19b3-5cfa-8e77-841668bca605"
+version = "0.4.3"
+
 [[deps.NaNMath]]
 deps = ["OpenLibm_jll"]
 git-tree-sha1 = "a7c3d1da1189a1c2fe843a3bfa04d18d20eb3211"
 uuid = "77ba4419-2d1f-58cd-9bb1-8ffee604a2e3"
 version = "1.0.1"
+
+[[deps.NameResolution]]
+deps = ["PrettyPrint"]
+git-tree-sha1 = "1a0fa0e9613f46c9b8c11eee38ebb4f590013c5e"
+uuid = "71a1bf82-56d0-4bbc-8a3c-48b961074391"
+version = "0.1.5"
 
 [[deps.NamedArrays]]
 deps = ["Combinatorics", "DataStructures", "DelimitedFiles", "InvertedIndices", "LinearAlgebra", "Random", "Requires", "SparseArrays", "Statistics"]
@@ -2227,11 +3016,23 @@ git-tree-sha1 = "cf494dca75a69712a72b80bc48f59dcf3dea63ec"
 uuid = "90014a1f-27ba-587c-ab20-58faa44d9150"
 version = "0.11.16"
 
+[[deps.PaddedViews]]
+deps = ["OffsetArrays"]
+git-tree-sha1 = "03a7a85b76381a3d04c7a1656039197e70eda03d"
+uuid = "5432bcbf-9aad-5242-b902-cca2824c8663"
+version = "0.5.11"
+
 [[deps.Parsers]]
 deps = ["Dates"]
 git-tree-sha1 = "0044b23da09b5608b4ecacb4e5e6c6332f833a7e"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
 version = "2.3.2"
+
+[[deps.Pickle]]
+deps = ["DataStructures", "InternedStrings", "Serialization", "SparseArrays", "Strided", "StringEncodings", "ZipFile"]
+git-tree-sha1 = "e6a34eb1dc0c498f0774bbfbbbeff2de101f4235"
+uuid = "fbb45041-c46e-462f-888f-7c521cafbc2c"
+version = "0.3.2"
 
 [[deps.Pixman_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -2262,6 +3063,24 @@ git-tree-sha1 = "79830c17fe30f234931767238c584b3a75b3329d"
 uuid = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 version = "1.31.6"
 
+[[deps.PlutoHooks]]
+deps = ["InteractiveUtils", "Markdown", "UUIDs"]
+git-tree-sha1 = "072cdf20c9b0507fdd977d7d246d90030609674b"
+uuid = "0ff47ea0-7a50-410d-8455-4348d5de0774"
+version = "0.0.5"
+
+[[deps.PlutoLinks]]
+deps = ["FileWatching", "InteractiveUtils", "Markdown", "PlutoHooks", "Revise", "UUIDs"]
+git-tree-sha1 = "8f5fa7056e6dcfb23ac5211de38e6c03f6367794"
+uuid = "0ff47ea0-7a50-410d-8455-4348d5de0420"
+version = "0.1.6"
+
+[[deps.PlutoTeachingTools]]
+deps = ["Downloads", "HypertextLiteral", "LaTeXStrings", "Latexify", "Markdown", "PlutoLinks", "PlutoUI", "Random"]
+git-tree-sha1 = "b970826468465da71f839cdacc403e99842c18ea"
+uuid = "661c6b06-c737-4d37-b85c-46df65de6f69"
+version = "0.2.8"
+
 [[deps.PlutoUI]]
 deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "Markdown", "Random", "Reexport", "UUIDs"]
 git-tree-sha1 = "8d1f54886b9037091edf146b517989fc4a09efec"
@@ -2279,6 +3098,11 @@ deps = ["TOML"]
 git-tree-sha1 = "47e5f437cc0e7ef2ce8406ce1e7e24d44915f88d"
 uuid = "21216c6a-2e73-6563-6e65-726566657250"
 version = "1.3.0"
+
+[[deps.PrettyPrint]]
+git-tree-sha1 = "632eb4abab3449ab30c5e1afaa874f0b98b586e4"
+uuid = "8162dcfd-2161-5ef2-ae6c-7681170c5f98"
+version = "0.2.0"
 
 [[deps.PrettyTables]]
 deps = ["Crayons", "Formatting", "Markdown", "Reexport", "Tables"]
@@ -2373,6 +3197,12 @@ git-tree-sha1 = "838a3a4188e2ded87a4f9f184b4b0d78a1e91cb7"
 uuid = "ae029012-a4dd-5104-9daa-d747884805df"
 version = "1.3.0"
 
+[[deps.Revise]]
+deps = ["CodeTracking", "Distributed", "FileWatching", "JuliaInterpreter", "LibGit2", "LoweredCodeUtils", "OrderedCollections", "Pkg", "REPL", "Requires", "UUIDs", "Unicode"]
+git-tree-sha1 = "feafdc70b2e6684314e188d95fe66d116de834a7"
+uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
+version = "3.5.2"
+
 [[deps.Rmath]]
 deps = ["Random", "Rmath_jll"]
 git-tree-sha1 = "bf3188feca147ce108c76ad82c2792c57abe7b1f"
@@ -2436,6 +3266,11 @@ git-tree-sha1 = "22395afdcf37d6709a5a0766cc4a5ca52cb85ea0"
 uuid = "1277b4bf-5013-50f5-be3d-901d8477a67a"
 version = "1.0.0"
 
+[[deps.ShowCases]]
+git-tree-sha1 = "7f534ad62ab2bd48591bdeac81994ea8c445e4a5"
+uuid = "605ecd9f-84a6-4c9e-81e2-4798472b76a3"
+version = "0.1.0"
+
 [[deps.Showoff]]
 deps = ["Dates", "Grisu"]
 git-tree-sha1 = "91eddf657aca81df9ae6ceb20b959ae5653ad1de"
@@ -2446,6 +3281,12 @@ version = "1.0.3"
 git-tree-sha1 = "874e8867b33a00e784c8a7e4b60afe9e037b74e1"
 uuid = "777ac1f9-54b0-4bf8-805c-2214025038e7"
 version = "1.1.0"
+
+[[deps.SnoopPrecompile]]
+deps = ["Preferences"]
+git-tree-sha1 = "e760a70afdcd461cf01a575947738d359234665c"
+uuid = "66db9d55-30c0-4569-8b51-7e840670fc0c"
+version = "1.0.3"
 
 [[deps.Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
@@ -2471,6 +3312,12 @@ deps = ["Setfield", "Test"]
 git-tree-sha1 = "39c9f91521de844bad65049efd4f9223e7ed43f9"
 uuid = "171d559e-b47b-412a-8079-5efa626c420e"
 version = "0.1.14"
+
+[[deps.StackViews]]
+deps = ["OffsetArrays"]
+git-tree-sha1 = "46e589465204cd0c08b4bd97385e4fa79a0c770c"
+uuid = "cae243ae-269e-4f55-b966-ac2d0dc13c15"
+version = "0.1.1"
 
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "Random", "StaticArraysCore", "Statistics"]
@@ -2523,11 +3370,29 @@ git-tree-sha1 = "2b35ba790f1f823872dcf378a6d3c3b520092eac"
 uuid = "f3b207a7-027a-5e70-b257-86293d7955fd"
 version = "0.15.1"
 
+[[deps.Strided]]
+deps = ["LinearAlgebra", "TupleTools"]
+git-tree-sha1 = "a7a664c91104329c88222aa20264e1a05b6ad138"
+uuid = "5e0ebb24-38b0-5f93-81fe-25c709ecae67"
+version = "1.2.3"
+
+[[deps.StringEncodings]]
+deps = ["Libiconv_jll"]
+git-tree-sha1 = "33c0da881af3248dafefb939a21694b97cfece76"
+uuid = "69024149-9ee7-55f6-a4c4-859efe599b68"
+version = "0.3.6"
+
 [[deps.StructArrays]]
 deps = ["Adapt", "DataAPI", "StaticArrays", "Tables"]
 git-tree-sha1 = "ec47fb6069c57f1cee2f67541bf8f23415146de7"
 uuid = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
 version = "0.6.11"
+
+[[deps.StructTypes]]
+deps = ["Dates", "UUIDs"]
+git-tree-sha1 = "ca4bccb03acf9faaf4137a9abc1881ed1841aa70"
+uuid = "856f2bd8-1eba-4b0a-8007-ebc267875bd4"
+version = "1.10.0"
 
 [[deps.SuiteSparse]]
 deps = ["Libdl", "LinearAlgebra", "Serialization", "SparseArrays"]
@@ -2599,6 +3464,11 @@ version = "0.4.73"
 git-tree-sha1 = "6bac775f2d42a611cdfcd1fb217ee719630c4175"
 uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
 version = "0.1.6"
+
+[[deps.TupleTools]]
+git-tree-sha1 = "3c712976c47707ff893cf6ba4354aa14db1d8938"
+uuid = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
+version = "1.3.0"
 
 [[deps.Turing]]
 deps = ["AbstractMCMC", "AdvancedHMC", "AdvancedMH", "AdvancedPS", "AdvancedVI", "BangBang", "Bijectors", "DataStructures", "DiffResults", "Distributions", "DistributionsAD", "DocStringExtensions", "DynamicPPL", "EllipticalSliceSampling", "ForwardDiff", "Libtask", "LinearAlgebra", "MCMCChains", "NamedArrays", "Printf", "Random", "Reexport", "Requires", "SciMLBase", "SpecialFunctions", "Statistics", "StatsBase", "StatsFuns", "Tracker", "ZygoteRules"]
@@ -2802,6 +3672,12 @@ git-tree-sha1 = "79c31e7844f6ecf779705fbc12146eb190b7d845"
 uuid = "c5fb5394-a638-5e4d-96e5-b29de1b5cf10"
 version = "1.4.0+3"
 
+[[deps.ZipFile]]
+deps = ["Libdl", "Printf", "Zlib_jll"]
+git-tree-sha1 = "f492b7fe1698e623024e873244f10d89c95c340a"
+uuid = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
+version = "0.10.1"
+
 [[deps.Zlib_jll]]
 deps = ["Libdl"]
 uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
@@ -2886,12 +3762,26 @@ version = "0.9.1+5"
 # ╔═╡ Cell order:
 # ╟─da388a86-19cb-11ed-0c64-95c301c27153
 # ╟─c1026d6b-4e2e-4045-923e-eb5886b45604
+# ╟─96708550-225d-4312-bf74-737ab8fe0b4d
+# ╟─684f63ec-1e2f-4384-8ddd-f18d2469ebc3
+# ╟─b94583a3-7a04-4b30-ba7b-4ff5a72baf5f
 # ╟─4ed16d76-2815-4f8c-8ab0-3819a03a1acc
-# ╟─c8547607-92be-4700-9468-863798c2ddce
-# ╟─8f95b8c8-70a0-471a-be06-3b020db667b3
+# ╟─c21f64bb-a934-4ec0-b1eb-e3fd6695d116
+# ╟─0d3d98c4-fed4-4f4b-be17-bd733e808256
+# ╟─94e5a7ed-6332-4f92-8b77-7e0ce7b88a84
+# ╟─215c4d7f-ef58-4682-893b-d41b7de75afa
+# ╟─c6c3e3aa-fee6-418f-b304-8d5b353bd2d7
+# ╟─75567e73-f48a-477c-bc9f-91ce1630468c
+# ╟─06f941c1-53c8-4279-8214-0d3ef5c81c4b
+# ╟─ab53480e-a9f3-4a86-91cd-aa3168128696
+# ╟─a00eb60a-4e90-4002-a758-799fbceab48c
+# ╟─c3b2732f-b9f1-4747-bce3-703a2f03f7d2
+# ╟─41f6c4fa-89b9-492d-9276-b1651ba92236
+# ╟─546e2142-41d2-4c4e-b997-adf8262c3345
+# ╟─f6cb99dd-f25c-4770-bba2-8a2496016316
+# ╟─510cc569-08eb-4deb-b695-2f3044d758e5
+# ╟─b0008150-7aae-4310-bfa8-950ba7bc9092
 # ╟─3a46c193-5a25-423f-bcb5-038f3756d7ba
-# ╟─1cae04d1-82ca-47c8-b1fa-7fa5a754d4b1
-# ╟─f8040fa0-fdff-42da-8b9f-785627f51ee1
 # ╟─c6938b7f-e6e5-4bea-a273-52ab3916d07c
 # ╟─effcd3d2-ba90-4ca8-a69c-f1ef1ad697ab
 # ╠═3e98e9ff-b674-43f9-a3e0-1ca5d8614327
@@ -2899,18 +3789,43 @@ version = "0.9.1+5"
 # ╟─af2e55f3-08b8-48d4-ae95-e65168a23eeb
 # ╟─43191a7a-f1a2-41df-910d-cf85907e8f7a
 # ╟─98ef1cca-de03-44c2-bcf4-6e79da139e11
+# ╟─bc597dc8-dbfe-4a75-81b5-ea37655f95eb
+# ╟─f240d7b7-4ea8-4836-81ae-ba1cd169b87d
 # ╟─a1421ccb-2d6e-4406-b770-ad7dff007c69
 # ╟─e1552414-e701-42b5-8eaf-21ae04a829a8
 # ╟─9387dcb4-3f4e-4ec7-8393-30a483e00c63
 # ╟─d3f4ac7b-1482-4840-b24b-d08066d1d70c
+# ╟─3a21c148-9538-4a0b-92df-67857c8099d7
 # ╟─bab3a19c-deb0-4b1c-a8f9-f713d66d9199
 # ╟─b433c147-f547-4234-9817-2b29e7d57219
-# ╟─89414966-5447-4133-80cb-0933c8b0d5d0
 # ╟─824aa830-c958-4063-9ef7-39eeb743fc06
 # ╟─d825e29d-3e0b-4c25-852f-0c9a544aa916
 # ╟─f6cedb98-0d29-40f0-b9f3-430dd283fa36
+# ╟─323a6e91-4cf7-4554-ae6a-2e9bb6621114
+# ╟─8c9b4743-140d-4806-9552-e117f9956f08
+# ╟─8945b750-915d-485b-8dd6-5c77594a17c6
+# ╟─ac461dcd-9829-4d1d-912a-7a5b8c077ad6
+# ╟─bc4ef6f5-c854-4d6f-9fff-9fcca968bea7
+# ╟─893a9e0d-1dbf-488a-9dd0-32d1ceaaff87
+# ╟─7cb6b90f-17ff-445e-aa4e-158893f3cf3b
+# ╟─4eea6db3-40c9-4dbe-87ef-7e1025de46de
+# ╟─ff93d036-18b5-4afc-94b9-e4ea15c37711
+# ╟─8b835a09-8e13-4927-93fd-dbcc16226956
+# ╟─691fe1c6-66a2-45e4-a3ac-8d586493a61f
+# ╟─01e91145-6738-4b49-831a-3934f37209fb
+# ╟─dbaf2f13-c4a7-47ae-a4a3-fd183632cc23
+# ╟─d1ee75e8-0797-4372-91e5-7d1021ece2f9
+# ╟─77817fdb-1b22-49ce-998a-a8de157bf8c4
+# ╟─fac530cc-8ad8-4319-a72e-b7c381d656ac
 # ╟─71bb2994-7fd2-4e11-b2f1-d88b407f86c1
 # ╟─d02d5490-cf53-487d-a0c6-651725600f52
+# ╟─7dcf736f-958c-43bf-8c15-ec5b27a4650e
+# ╟─49790b58-9f66-4dd2-bfbc-415c916ae2ab
+# ╠═965faf88-1d33-4c1d-971c-6763cd737145
+# ╠═378f8401-310f-4506-bd3b-f9e5e4dae124
+# ╟─5dee6633-3100-418c-af3a-d9843e093eab
+# ╟─2fd3cddf-12be-40be-b793-142f8f22de39
+# ╟─b3b1dc37-4ce9-4b3d-b59d-74412cd63c1e
 # ╟─59dd8a13-89c6-4ae9-8546-877bb7992570
 # ╟─632575ce-a1ce-4a36-95dc-010229367446
 # ╟─c0f926f1-85e6-4d2c-8e9a-26cd099fd600
@@ -2955,13 +3870,13 @@ version = "0.9.1+5"
 # ╟─2e7f780e-8850-446e-97f8-51ec26f5e36a
 # ╟─65d702d6-abec-43a1-89a8-95c30b3e748a
 # ╟─611ad745-f92d-47ac-8d58-6f9baaf3077c
-# ╟─ddb0d87e-cf0a-4b09-9bb6-4ee267fcdb9d
 # ╟─1954544c-48b4-4997-871f-50c9bfa402b7
+# ╟─85f1d525-3822-47ed-81c0-723d312f8f3f
 # ╟─85ae4791-6262-4f07-9796-749982e00fec
 # ╠═08c52bf6-0920-43e7-92a9-275ed298c9ac
 # ╠═11021fb7-b072-46ac-8c23-f92825182c8c
 # ╠═cece17c2-bacb-4b4a-897c-4116688812c6
-# ╠═29175b82-f208-4fcf-9704-4a1996cc6e3c
+# ╟─29175b82-f208-4fcf-9704-4a1996cc6e3c
 # ╟─05b90ddb-8479-4fbf-a469-d5b0bf4a91c8
 # ╠═2d7f773e-9fa1-475d-9f74-c13908209aeb
 # ╟─8a0692db-6b85-42f6-8893-4219d58b1032
@@ -2989,6 +3904,7 @@ version = "0.9.1+5"
 # ╠═9fdaefb8-28b4-4b70-8412-1275dc1ed224
 # ╠═559660b8-1e69-41fe-9139-d031eb26e31c
 # ╟─139b5acb-c938-4fc9-84a5-fdcbd697b9da
+# ╠═c5ff903e-d220-4e0a-901b-acdece61e465
 # ╟─d8dae6b8-00fb-4519-ae45-36d36a9c90bb
 # ╠═969df742-bc8a-4e89-9e5e-62cb9e7c2215
 # ╟─00000000-0000-0000-0000-000000000001

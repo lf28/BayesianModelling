@@ -640,7 +640,7 @@ md"""
 !!! hint "Solution"
 	Simulate posterior predictive data
 	```julia
-		D_missing_scientist = Vector{Union{Missing, Bool}}(undef, 7)
+		D_missing_scientist = Vector{Union{Missing, Float64}}(undef, 7)
 		seven_sci_pred_model = seven_scientist(D_missing_scientist)
 		D_pred_seven_sci = predict(seven_sci_pred_model, seven_sci_chain)
 	```
@@ -728,7 +728,7 @@ Foldable("Julia code explanation.", md"`sum(Array(post_pred_chain), dims=2)[:]`
 
 # ╔═╡ 5202ef8d-dcd5-4882-a18e-b1d2d4769387
 begin
-	D_missing_scientist = Vector{Union{Missing, Bool}}(undef, 7)
+	D_missing_scientist = Vector{Union{Missing, Float64}}(undef, 7)
 	seven_sci_pred_model = seven_scientist(D_missing_scientist)
 	D_pred_seven_sci = predict(seven_sci_pred_model, seven_sci_chain)
 end;
