@@ -45,6 +45,14 @@ md"""
 md"---
 "
 
+# ╔═╡ cc77c63a-d625-4ef6-84e3-048dd24f38f6
+md"""
+
+#### Lecture slides
+
+* [Lecture 1](./lectures/lecture_intro.html)
+"""
+
 # ╔═╡ 0edb7166-5be6-49e7-8ccb-9e36bd1e3c0a
 html"""
 <a href="https://github.com/lf28/BayesianModelling"> <font size=\"3\">Link to the project's Github repository</font></a>
@@ -303,6 +311,7 @@ version = "17.4.0+0"
 # ╟─4393c278-23f4-11ed-13f8-0d5e1856794f
 # ╟─3defd8e1-b7eb-4bfe-ba8b-f01ff34de41d
 # ╟─7708f15d-d3b2-4f17-a9f9-a54939bee183
+# ╟─cc77c63a-d625-4ef6-84e3-048dd24f38f6
 # ╟─0edb7166-5be6-49e7-8ccb-9e36bd1e3c0a
 # ╟─ee9e219f-d7ab-466e-afff-765fef2d0bf8
 # ╟─00000000-0000-0000-0000-000000000001
