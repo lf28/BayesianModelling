@@ -33,6 +33,12 @@ end
 # ╔═╡ fe7f2df3-8c27-4e80-a633-386e8643e6e1
 TableOfContents()
 
+# ╔═╡ 35d6a20a-6ab1-4d46-be79-c84d664a6119
+md"[**↩ Home**](./index.jl.html) 
+
+
+[**↪ Next Chapter**](./section1_introduction.html)"
+
 # ╔═╡ baf83ba6-2079-11ed-1505-cb44aea4377e
 md"""# A quick introduction to Julia $(Resource("https://julialang.org/assets/infra/logo.svg", :height=>40, :align=>:right))
 """
@@ -776,6 +782,12 @@ where `func` can be
 
 Check the code below for an example. Note you can replace `Gamma` with any distribution of your choice.
 """
+
+# ╔═╡ b21fdb08-0aff-42a4-9d85-26e8fed4ed61
+md"[**↩ Home**](./index.jl.html) 
+
+
+[**↪ Next Chapter**](./section1_introduction.html)"
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -2024,6 +2036,7 @@ version = "1.4.1+0"
 # ╔═╡ Cell order:
 # ╟─f3770e42-edff-4c9f-9a13-47edaf8a8cae
 # ╟─fe7f2df3-8c27-4e80-a633-386e8643e6e1
+# ╟─35d6a20a-6ab1-4d46-be79-c84d664a6119
 # ╟─baf83ba6-2079-11ed-1505-cb44aea4377e
 # ╟─c85214aa-83b1-41f0-b856-f85435db6e1d
 # ╟─e6c8aca8-1907-49b0-ba11-62fda98418fc
@@ -2128,5 +2141,6 @@ version = "1.4.1+0"
 # ╠═de16ea53-0391-41b5-950f-0c60654d0cd7
 # ╟─fcdfed67-380d-4b11-8881-2575df2008b0
 # ╠═0ee0e688-9bc7-489b-a4ae-a4f09477fd33
+# ╟─b21fdb08-0aff-42a4-9d85-26e8fed4ed61
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
