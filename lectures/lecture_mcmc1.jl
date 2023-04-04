@@ -26,11 +26,11 @@ begin
 	using LaTeXStrings, Latexify
 end
 
-# ╔═╡ b5e1f496-02e1-4352-9912-ff7bf4ea622c
-present_button()
-
 # ╔═╡ 89f53893-93f1-49d3-b643-2aee7e6f4610
 TableOfContents()
+
+# ╔═╡ b5e1f496-02e1-4352-9912-ff7bf4ea622c
+present_button()
 
 # ╔═╡ d1b809fb-e381-49ac-bfa4-77c12f3ccf17
 md"""
@@ -444,7 +444,7 @@ md"""
 # ╔═╡ 159c2632-e820-4a0d-8729-c1907796e8aa
 md"""
 
-Discard the initial samples are burn-in
+Finally, discard some initial samples as **burn-in**
 
 """
 
@@ -2514,8 +2514,8 @@ version = "1.4.1+0"
 
 # ╔═╡ Cell order:
 # ╟─dbdb0950-4a33-11ed-39a0-6b2ea3d774e6
-# ╟─b5e1f496-02e1-4352-9912-ff7bf4ea622c
 # ╟─89f53893-93f1-49d3-b643-2aee7e6f4610
+# ╟─b5e1f496-02e1-4352-9912-ff7bf4ea622c
 # ╟─d1b809fb-e381-49ac-bfa4-77c12f3ccf17
 # ╟─2f5f8005-fda3-4a07-9c39-969ca4417f2c
 # ╟─0688cb0f-422a-413f-87d6-aaecc04f1914

@@ -32,6 +32,9 @@ begin
 	using PlutoUI
 end
 
+# ╔═╡ 338cd4ff-eb4b-41fa-96f9-3354c1186733
+present_button()
+
 # ╔═╡ 77535564-648a-4e17-83a0-c562cc5318ec
 md"""
 
@@ -187,7 +190,7 @@ To be more specific, ``\mathcal{D} =\{1,0,0,1,1,1,1,1,1,0\}``
 
 
 ```math
-P(\mathcal{D}|\theta) = \theta (1-\theta)(1-\theta) \theta \ldots \theta = \theta^{7}(1-\theta)^{3}
+P(\mathcal{D}|\theta) = \theta (1-\theta)(1-\theta) \theta \ldots (1-\theta) = \theta^{7}(1-\theta)^{3}
 ```
 
 More generally,
@@ -235,8 +238,8 @@ md"""
 
 # ╔═╡ 9308405d-36d0-41a1-8c73-e93b8d699320
 begin
-	𝒟 = [1, 0, 0, 1, 1, 1, 1, 1, 1, 0]
-	# 𝒟 = [0, 0]
+	# 𝒟 = [1, 0, 0, 1, 1, 1, 1, 1, 1, 0]
+	𝒟 = [0, 0]
 end
 
 # ╔═╡ 0da00057-6bf1-407d-a15f-af24ee549182
@@ -291,14 +294,6 @@ The MLE is
 
 $$\hat{\theta}_{\text{ML}} = \frac{0}{2} =0$$
 
-If you treat $$\hat{\theta}_{\text{ML}} = 0$$ as gospel for future prediction: *i.e.*
-
-$$P(Y_{N+1}|\theta = \hat{\theta}_{\text{ML}})=\begin{cases} 0 & Y_{N+1} =1 \\ 1 & Y_{N+1} =0\end{cases}$$
-* you predict you will **never** see a `Head`/1 again: **Overfitting**
-
-
-* the frequentist MLE is pathologically bad when 
-  * there is not enough data
 """
 
 # ╔═╡ 70c00cf9-65ac-44d7-b25c-153614d24240
@@ -530,6 +525,8 @@ end
 let
 	gr()
 	l = @layout [a b; c]
+	N⁺ = sum(𝒟)
+	Nᴬ = length(𝒟)
 	likes = ℓ_binom.(N⁺, θs, Nᴬ; logprob=false)
 	posterior_dis = likes/ sum(likes)
 	post_plt = plot(θs, posterior_dis, seriestype=:sticks, markershape=:circle, label="", color=2, title="Posterior", xlabel=L"θ", ylabel=L"p(θ|𝒟)", legend=:outerright, size=(600,500))
@@ -731,8 +728,8 @@ L"p(\theta_A > \theta_B|\mathcal{D}) \approx %$(round(post_AmoreB, digits=2))"
 
 # ╔═╡ da59ebaa-e366-4753-8329-27119be19d9a
 md"""
-* it is only about 42% chance that seller A is truely better than seller B
-* 58% chance seller B is better!
+* it is only about 37% chance that seller A is truly better than seller B
+* 63% chance seller B is better!
 """
 
 # ╔═╡ 3caf8d96-7cdd-45f4-a54e-08b7a1bc2251
@@ -762,50 +759,6 @@ md"""
 
 # ╔═╡ a30ed481-a09a-4d9c-a960-2ca3b4898e30
 @bind k Slider(0.1:0.05:3; default =1, show_value=true)
-
-# ╔═╡ f7456b7a-3d05-468a-a7ee-50a83affba72
-md"""
-
-## Frequentist method ?
-
-
-One may choose a test say χ²-test with testing hypothesis
-
-> ``\mathcal{H}_0:`` A and B have the same positive review rate
->
->  and 
->
-> ``\mathcal{H}_1:``  A and B have different positive review rate
-
-* one then proceeds to compute the required statistic (with no obvious reasons why)
-
-* and the result might be reported like
-
-> the two sellers offer **significantly different** levels of service (``p=0.05``)
-
-
-How to interpret the statement?
-
-
-It **does not** tell you
-
-!!! danger ""
-	there is a 95% chance that the sellers differ in positive ratings
-
-
-but rather 
-
-
-!!! correct ""
-	if we did this experiment many times, and the two resellers had equal ratings, then 5% of the time you would find a value of χ2 more extreme than the one that calculated above.
-
-
-And the response or interpretation does not really directly answer the original question we are interested in, *i.e.*
-
-!!! warning ""
-	Is A better B?
-
-"""
 
 # ╔═╡ d6550d70-a1c1-48fd-b99d-c041b40efad2
 post_AmoreKB = let
@@ -861,7 +814,7 @@ begin
 	θs_refined = 0:0.01:1.0
 	likes = ℓ_binom.(N⁺, θs_refined, Nᴬ; logprob=false)
 	posterior_dis_refined = likes/ sum(likes)
-	post_plt3 = Plots.plot(θs_refined, posterior_dis_refined, seriestype=:sticks, markershape=:circle, markersize=2, label="", title=L"\mathrm{Posterior}\, \, p(\theta|\mathcal{D}) \mathrm{\; of\; seller\; A}", xlabel=L"θ", ylabel=L"p(θ|𝒟)")
+	post_plt3 = Plots.plot(θs_refined, posterior_dis_refined, seriestype=:sticks, markershape=:circle, markersize=2, label="", title=L"\mathrm{Posterior}\, \, p(\theta|\mathcal{D})", xlabel=L"θ", ylabel=L"p(θ|𝒟)")
 	l2, u2, _ = find_hpdi(posterior_dis_refined, 0.9)
 	Plots.plot!(post_plt3, θs_refined[l2:u2], posterior_dis_refined[l2:u2], seriestype=:sticks, markershape=:circle, markersize=2, label="", legend=:topleft)
 	Plots.plot!(post_plt3, θs_refined[l2:u2], posterior_dis_refined[l2:u2], seriestype=:path, fill=true, alpha=0.3, color=2, label="90% credible interval", legend=:topleft)
@@ -889,6 +842,50 @@ $$p(l \leq \theta \leq u|\mathcal D) = 90 \%.$$
 
 * however, the wide tail suggests it is not very certain; we only have observed 10 tosses after all
   * the 90% region for ``\theta`` is ($(θs_refined[l2]), $(θs_refined[u2]))
+"""
+
+# ╔═╡ f7456b7a-3d05-468a-a7ee-50a83affba72
+md"""
+
+## Frequentist method ?
+
+
+One may choose a test say χ²-test with testing hypothesis
+
+> ``\mathcal{H}_0:`` A and B have the same positive review rate
+>
+>  and 
+>
+> ``\mathcal{H}_1:``  A and B have different positive review rate
+
+* one then proceeds to compute the required statistic (with no obvious reasons why)
+
+* and the result might be reported like
+
+> the two sellers offer **significantly different** levels of service (``p``), say 0.05
+
+
+How to interpret the statement?
+
+
+It **does not** tell you
+
+!!! danger ""
+	there is a ``(1-p)`` chance that the sellers differ in positive ratings
+
+
+but rather 
+
+
+!!! correct ""
+	if we did this experiment many times, and the two resellers had equal ratings, then p of the time you would find a value of χ2 more extreme than the one that calculated above.
+
+
+And the response or interpretation does not really directly answer the original question we are interested in, *i.e.*
+
+!!! warning ""
+	Is A better B?
+
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -2188,6 +2185,7 @@ version = "1.4.1+0"
 
 # ╔═╡ Cell order:
 # ╟─c9cfb450-3e8b-11ed-39c2-cd1b7df7ca01
+# ╟─338cd4ff-eb4b-41fa-96f9-3354c1186733
 # ╟─77535564-648a-4e17-83a0-c562cc5318ec
 # ╟─2057c799-18b5-4a0f-b2c7-66537a3fbe79
 # ╟─43cedf4c-65c4-4b2b-afb3-21f5827f2af6

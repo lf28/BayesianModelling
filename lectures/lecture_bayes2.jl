@@ -22,11 +22,11 @@ begin
 	using PlutoUI
 end
 
-# ╔═╡ 45f045d9-cdb7-4ade-a8e6-1f1a984cc58a
-present_button()
-
 # ╔═╡ be719382-bf1f-4442-8419-bddcda782525
 TableOfContents()
+
+# ╔═╡ 45f045d9-cdb7-4ade-a8e6-1f1a984cc58a
+present_button()
 
 # ╔═╡ 77535564-648a-4e17-83a0-c562cc5318ec
 md"""
@@ -120,21 +120,18 @@ md"""
 
 
 
-The question is how one should choose priors for the unknown parameters
-
-
 The first and foremost principle is 
 
 !!! note ""
 	**Priors with matching support**
 
-* that is, the prior distribution has the correct *support* (or domain) of the unknown parameters. 
+* that is, the prior distribution has the correct domain of the unknown parameters. 
 
 **Example** For the coin-flipping example
 
-* the unknown bias ``\theta`` has a support: ``\theta \in [0,1].`` 
+* the unknown bias: ``\theta \in [0,1].`` 
 
-* therefore, a standard Gaussian distribution is not suitable
+* therefore, a Gaussian distribution is not suitable
 
 
 ## Suitable priors for ``\theta \in [0,1]``
@@ -200,7 +197,7 @@ md"""
 ## Conjugate prior
 
 
-Conjugate priors are priors 
+Conjugate priors are
 
 * such that posterior distribution is of the functional form
   * we will see an example soon
@@ -2593,8 +2590,8 @@ version = "1.4.1+0"
 
 # ╔═╡ Cell order:
 # ╟─c9cfb450-3e8b-11ed-39c2-cd1b7df7ca01
-# ╟─45f045d9-cdb7-4ade-a8e6-1f1a984cc58a
 # ╟─be719382-bf1f-4442-8419-bddcda782525
+# ╟─45f045d9-cdb7-4ade-a8e6-1f1a984cc58a
 # ╟─77535564-648a-4e17-83a0-c562cc5318ec
 # ╟─2057c799-18b5-4a0f-b2c7-66537a3fbe79
 # ╟─c677a2d2-f4be-483a-a53b-7b76efb1b80f
@@ -2626,7 +2623,7 @@ version = "1.4.1+0"
 # ╟─78bd6dea-8bcb-408f-9dc3-8a34907a4566
 # ╠═42603c08-01de-4036-928a-d6a9c2dffbb3
 # ╟─83586a99-02e5-42e3-83b2-2d90d3d3e396
-# ╟─644cbe41-2027-4e3f-a31f-c656a1158466
+# ╠═644cbe41-2027-4e3f-a31f-c656a1158466
 # ╟─1a483bed-1639-41b4-ad7f-40b009bd45a9
 # ╟─6b460036-890d-4364-aac2-2c61dc44ed75
 # ╟─df3c6bd8-e81f-4ccb-b0d1-98832e41537f

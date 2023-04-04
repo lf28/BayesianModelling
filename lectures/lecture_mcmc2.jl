@@ -1305,6 +1305,7 @@ end;
 
 # ╔═╡ 3bf64dd1-c44e-4499-9c15-3c4725554ef1
 begin
+	gr()
 	anim_mh_mixture = demo_mh_gif(ℓ;xlim= [-9,9], ylim=[-6,6], qΣ= 0.1* Matrix(I,2,2))
 	anim_hmc_mixture = demo_hmc_gif(ℓ, ∇ℓ; xlim= [-9,9], ylim=[-6,6], ϵ= 0.1, Trange=[10, 50])
 end;
@@ -1365,6 +1366,7 @@ end
 
 # ╔═╡ 858cbf82-14a5-4605-a9ba-61e1084c2c8c
 let
+	gr()
 	hmc_anim_plt = plot(-9:0.1:9, -6:0.1:6, (x,y) -> -pdf(d, [x,y]), st=:contour, legend=false, title="HMC's proposal animation", xlabel=L"\theta_1", ylabel=L"\theta_2")
 
 	scatter!(hmc_anim_plt, [x0[1]], [x0[2]], color= traj_n+1)
@@ -1380,6 +1382,7 @@ end
 
 # ╔═╡ 331710c1-0fc7-4228-b26c-1d170c505205
 let
+	gr()
 	hmc_plt = plot(-9:0.1:9, -6:0.1:6, (x,y) -> -pdf(d, [x,y]), st=:contour, legend=false, title="HMC's proposals end snapshot", xlabel=L"\theta_1", ylabel=L"\theta_2")
 	
 	scatter!([x0[1]], [x0[2]], color= traj_n+1)
@@ -1608,7 +1611,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.5"
 manifest_format = "2.0"
-project_hash = "73be2d98213d11bff0a0a89d1c0047d273ab564a"
+project_hash = "ee94161e3fe6cfce804d854d43af5b44e8b3f76c"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]

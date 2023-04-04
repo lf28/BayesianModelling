@@ -241,6 +241,9 @@ md"""
 
 """
 
+# ╔═╡ 6ebd4400-23dc-4b94-b637-d82f174a2c6d
+# gif(anim_logis2, fps=5)
+
 # ╔═╡ 74b9b15d-a8ab-42b9-a5c3-74e78994e4e6
 md"""
 
@@ -354,23 +357,16 @@ p(y_{test} =1 |\hat{\mathbf{w}}_{\text{ML}}, \mathbf{x}_{test}) =\sigma(\hat{\ma
 md"""
 
 
-## Ridge regularisation -- overfitting
+## Ridge regularisation or MAP estimator
 
 
 
-!!! note "Solution: regularised or MAP"
+!!! note "Frequentist solution: regularisation or MAP"
 	Solution: add a penalty term or MAP estimator
 	```math
 		\hat{\mathbf{w}}_{\text{MAP}}\leftarrow \arg\min_{\mathbf{w}} \underbrace{L(\mathbf{w}) + \frac{\lambda }{2} \mathbf{w}^\top \mathbf{w}}_{\text{regularised loss}}
 	```
 
-
-The new gradient becomes
-
-```math
-\nabla_{\mathbf{w}}L(\mathbf{w})  + \lambda \cdot \mathbf{w}
-```
-* apply gradient descent with the new gradient
 """
 
 # ╔═╡ cf104a92-22e8-4995-96d1-869b1ea1c4a2
@@ -766,9 +762,6 @@ losses, wws=let
 	losses, wws
 end;
 
-# ╔═╡ 7101c997-d26a-491c-82c3-ab5a27721578
-plot(losses[1:100], label="loss", xlabel="Iteration")
-
 # ╔═╡ 4476bdd5-e16d-4130-a157-25c39d46cf71
 anim_logis=let
 
@@ -790,6 +783,9 @@ anim_logis=let
 	# plot!(-6:1:6, (x) -> - w_d₃[1]/w_d₃[3] - w_d₃[2]/w_d₃[3] * x, lw=4, lc=:gray, label="Decision boundary: "*L"h(\mathbf{x}) =0", title="Least square classifier fails")
 end;
 
+# ╔═╡ 19d40f67-02b2-4f84-8def-1f278fb44ea5
+gif(anim_logis, fps=5)
+
 # ╔═╡ 037ad762-08f1-4b7e-9582-5b1b094afeb4
 anim_logis2=let
 
@@ -805,9 +801,6 @@ anim_logis2=let
 	anim
 
 end;
-
-# ╔═╡ 6ebd4400-23dc-4b94-b637-d82f174a2c6d
-gif(anim_logis2, fps=5)
 
 # ╔═╡ 60237e6f-a695-461c-b27a-c0e461d29227
 md"""
@@ -3257,13 +3250,13 @@ version = "1.4.1+0"
 # ╟─9c844e0d-6396-46e6-8de2-4c7bb18254c2
 # ╟─4c0fc54b-9184-4f0b-8224-bf0774d844f1
 # ╟─1d87e445-984a-4544-88e3-780c681fb737
-# ╟─7101c997-d26a-491c-82c3-ab5a27721578
-# ╠═6ebd4400-23dc-4b94-b637-d82f174a2c6d
+# ╟─6ebd4400-23dc-4b94-b637-d82f174a2c6d
 # ╟─9e00e2b5-4c8f-41f6-b433-934edfc742ef
 # ╟─4476bdd5-e16d-4130-a157-25c39d46cf71
+# ╟─19d40f67-02b2-4f84-8def-1f278fb44ea5
 # ╟─037ad762-08f1-4b7e-9582-5b1b094afeb4
 # ╟─74b9b15d-a8ab-42b9-a5c3-74e78994e4e6
-# ╟─10d0b2bd-222c-46f7-abc3-b70b8425add7
+# ╠═10d0b2bd-222c-46f7-abc3-b70b8425add7
 # ╟─9f8d8b7c-cb34-4ca4-ad0f-01aa2826d29f
 # ╟─9579c682-835c-4155-84cc-a9227f793432
 # ╟─2c37c0da-31f3-4730-a5d7-6bdef1393b96
