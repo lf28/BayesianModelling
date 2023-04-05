@@ -988,14 +988,14 @@ md"""
 """
 
 # ╔═╡ 2ca2d909-7499-45fc-864e-cf22486896dc
-𝒟₂ = [0,1,1,0,1,0,0]
+𝒟₂ = [0,1,1,0,1,0,0,0,0,0,0,0]
 
 # ╔═╡ 9d9e9537-8194-4716-8f1f-fd1013c7e040
 begin
 	
 	plot(findall(𝒟₂ .== 0), 𝒟₂[𝒟₂ .== 0], seriestype=:scatter, label=L"\texttt{tail}", legend=:outerbottom, xlabel="time")
 	plot!(findall(𝒟₂ .== 1), 𝒟₂[𝒟₂ .== 1], seriestype=:scatter, label=L"\texttt{head}")
-end
+end;
 
 # ╔═╡ facc40e6-87cd-4884-b20e-28d84e4337c6
 begin
@@ -1052,7 +1052,7 @@ $$\forall x,y,z: P(x|z, y) = P(x|z)$$
 
 * intuition: knowing ``z``, ``x`` is no longer influenced by ``y`` (therefore independence): ``p(x|z, \cancel{y})``
 
-Denoted as ``X, Y\perp Z``
+Denoted as ``X\perp Y\vert Z``
 
 
 
@@ -1061,7 +1061,7 @@ Denoted as ``X, Y\perp Z``
 ## Conditional and Unconditional independence
 
 Note that (*marginal or unconditional independence*) is a specific case of conditional independence (the condition is an empty set)
-* *i.e.* ``X, Y\perp \emptyset``
+* *i.e.* ``X\perp Y \vert \emptyset``
 * the independence relationship is unconditional
 
 
