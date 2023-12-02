@@ -431,27 +431,15 @@ vline!([mean(Beta(3+7, 3+3))], color=3, ls=:dash, lw=2, label="")
 end)
 """
 
-# ╔═╡ 9638d082-5b61-4051-912b-fc263abeb239
-begin
-	# simulate 200 tosses of a fair coin
-	N_tosses = 200
-	true_θ = 0.5
-	Random.seed!(100)
-	coin_flipping_data = rand(N_tosses) .< true_θ
-	Nh = sum(coin_flipping_data)
-	Nt = N_tosses- Nh
-end;
-
 # ╔═╡ 30ece808-4852-4cbd-84c5-7e8087753ad5
 md"""
-## Sequential update.
+## Sequential update
 
 
 Conjugate prior also provides us with a simple procedure to do **sequential** inference
 
 
 * *sequential online learning:* update the posterior incrementally as data arrives
-* based on the conditional independence assumption
 
 ```math
 \begin{align}
@@ -463,6 +451,7 @@ p(\theta|\{d_1, d_2, \ldots, d_N\})&\propto  p(\theta) \prod_{n=1}^N p(d_n|\thet
 
 * *yesterday's posterior becomes today's prior*
 
+## Sequential update*
 
 To be more specific, the sequential update algorithm is:
 
@@ -477,11 +466,20 @@ $$a_n = a_{n-1} + \mathbf{1}(d_n=\texttt{head}), \;\; b_n = b_{n-1} +  \mathbf{1
 
 Note that the function ``\mathbf{1}(\cdot)`` returns 1 if the test result of the argument is true and 0 otherwise. 
 
-## Demonstration
+## Demonstration: 200 coin tosses
 
-A demon with $(N_tosses) tosses of 
-* a fair coin 
 """
+
+# ╔═╡ 9638d082-5b61-4051-912b-fc263abeb239
+begin
+	# simulate 200 tosses of a fair coin
+	N_tosses = 200
+	true_θ = 0.5
+	Random.seed!(100)
+	coin_flipping_data = rand(N_tosses) .< true_θ
+	Nh = sum(coin_flipping_data)
+	Nt = N_tosses- Nh
+end;
 
 # ╔═╡ 997d45bf-cdbf-4881-b823-ebb7d9ec19db
 let
@@ -716,6 +714,12 @@ let
 	# vline!([1/σ²], label="true "*L"λ", lw=2)
 	# end
 end
+
+# ╔═╡ 29a49584-3a52-410e-8f15-1d9293955826
+md"""
+
+# Bayesian predictive checks
+"""
 
 # ╔═╡ 6b460036-890d-4364-aac2-2c61dc44ed75
 md"""
@@ -2805,6 +2809,7 @@ version = "1.4.1+1"
 # ╟─83586a99-02e5-42e3-83b2-2d90d3d3e396
 # ╠═644cbe41-2027-4e3f-a31f-c656a1158466
 # ╟─1a483bed-1639-41b4-ad7f-40b009bd45a9
+# ╟─29a49584-3a52-410e-8f15-1d9293955826
 # ╟─6b460036-890d-4364-aac2-2c61dc44ed75
 # ╟─df3c6bd8-e81f-4ccb-b0d1-98832e41537f
 # ╟─5440ceb3-b791-4935-8b59-339010546090

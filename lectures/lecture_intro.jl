@@ -164,26 +164,24 @@ md"""
   * Model checking: predictive analysis
   * Beyond i.i.d. model
 
+
 * **Lecture 3** MCMC 
   * Metropolis-Hastings (MH) and Gibbs sampler
   * Hamiltonian and NUTS sampler
+
 
 * **Lecture 4** Practical Bayesian inference with Turing.jl
   * Quick introduction to Julia and *Turing.jl*
 
 #### Second day:
 
-* **Lecture 5** Linear regression and Logistic regression
+* **Lecture 5** Bayesian linear regression 
   * and their extensions and variants
 
-* **Lecture 6** Non-linear models
+* **Lecture 6** Bayesian logistic regression
   * Bayesian fixed basis models (sparsity)
-  * Bayesian neural network
 
-* **Lecture 7** More topics (if time allowed)
-  * Bayesian unsupervised learning
-    * Bayesian finite mixture models
-    * Probabilistic PCA
+
 
 
 
@@ -247,21 +245,30 @@ $Y = f(X) + \varepsilon$
 
 """
 
-# ╔═╡ 93b5c93c-682a-49b4-8191-a82a22804a0d
+# ╔═╡ e7242619-19fc-461b-a5e0-fc50361d2565
+TwoColumnWideRight(
 md"""
+\
+\
+\
+
 For example, **linear regression**
 
 ```math
 f(X) = \beta_0 + \beta_1 X 
 ```
 """
-
-# ╔═╡ 8a8eabbd-a0cd-47f1-a2b7-1e6c10f29c2b
-html"""<center><img src="https://otexts.com/fpp3/fpp_files/figure-html/SLRpop1-1.png" width = "500"/></center>
+	, 
+	html"""<center><img src="https://otexts.com/fpp3/fpp_files/figure-html/SLRpop1-1.png" width = "700"/></center>
 """
+
+	
+)
 
 # ╔═╡ 63b92973-1031-439c-aa68-60f00552ab18
 md"""
+##
+
 
 Now consider a non-linear dataset:
 * the relationship is non-linear
@@ -280,29 +287,31 @@ md"""
 
 $P(Y = \text{class 1} | X=x) = \sigma(x)$
 
-* what is the probability that an instance belongs to class 1/2
+* what is the probability that an instance belongs to class 1 or  2
 """
 
-# ╔═╡ 24f06a6c-f64f-488b-9fd0-dbbf24007212
+# ╔═╡ 9066781d-b542-4c95-8a5b-d244df217650
+TwoColumnWideRight(
 md"""
+\
+
 
 !!! note "Question"
-	How would you classify data at the following input locations?
+	##### How would you classify data at the following input locations?
 
-	```math
-	\sigma(x) = ?
-	```
-"""
+""",
 
-# ╔═╡ 4f0a3ee7-d2e9-4945-9491-e48475421574
-Resource(bayes_figure_url * "logis_data.png", :width=>600)
+	Resource(bayes_figure_url * "logis_data.png", :width=>600)
+
+	
+)
 
 # ╔═╡ c9b2fa82-841d-47cf-b7b4-23f8a86e60a7
 md"""
 
 ## Some motivating examples - 4 (cont.)
 
-> Which one do you prefer?
+> ##### _Which one do you prefer?_
 """
 
 # ╔═╡ 2bc778d0-6974-4a97-8769-3cb66100fd80
@@ -340,15 +349,27 @@ md"""
 ## Random variable 
 
 
+Let's consider ``\cancel{\textbf{random}} \textbf{variable}``  first, 
 
-**Random Variables**: variables' value is *random* rather than *certain*
+> e.g. a variable ``\large X= 5``
 
-* *e.g.* $X$: rolling of a fair 6-faced die 🎲
-  * ``X`` can take 1,2,3,...,6 possible values 
-  *  with probability **distribution**
+* ``X``: a _deterministic_ variable
+* *with ``100\%`` certainty*, ``X`` takes the value of 5
 
+
+##
+
+
+``{\textbf{Random}}\; \textbf{variable}``: the value is _**random**_ rather than _**certain**_
+
+
+
+*For example*: $X$ is the rolling realisation of a 6--faced die 🎲
+* ``X \in \{1,2,3,4,5,6 \}``
+
+* and ``X`` has a *probability distribution* ``P(X)``
 ```math
-
+\large
 \begin{equation}  \begin{array}{c|cccccc} 
  & X = 1 & X = 2 & X = 3 & X = 4 & X = 5 & X = 6 \\
 \hline
@@ -359,14 +380,49 @@ P(X) & 1/6 & 1/6 & 1/6 & 1/6 & 1/6 & 1/6
 ```
 """
 
+# ╔═╡ 0cc7386d-4584-4a34-bbf7-546bf9ac1134
+md"""
+## Probability distributions
+
+
+Random variables' uncertainties is quantified by **probability distributions**
+
+$$\large P(X=x) \geq 0, \forall x\;\; \text{and}\;\; \sum_x{P(X=x)}=1$$
+* non-negative and sum to one
+
+
+**Temperature** $T: P(T)$
+
+```math
+
+\begin{equation}  \begin{array}{c|c} 
+T & P(T)\\
+\hline
+hot & 0.5 \\
+cold & 0.5
+\end{array} \end{equation} 
+```
+
+
+**Weather** $W: P(W)$
+
+```math
+
+\begin{equation}  \begin{array}{c|c} 
+W & P(W)\\
+\hline
+sun & 0.6 \\
+rain & 0.1 \\
+fog & 0.2 \\
+snow & 0.1
+\end{array} \end{equation} 
+```
+"""
+
 # ╔═╡ b52911ff-886a-4113-85a5-af508dc0cb8e
 md"""
 ## Discrete *vs* continuous r.v.s
 
-
-
-
-Depending on ``\mathcal A``, there are two kinds of random variables
 
 
 **Discrete random variable**: ``\mathcal A`` is discrete, *e.g.* ``\mathcal A=\{\texttt{true},\texttt{false}\}, \mathcal A=\{1,2,3,\ldots, \infty\}``
@@ -403,9 +459,7 @@ md"""
 ## 	Examples: discrete r.v. -- Bernoulli
 
 
-``X``: a random variable taking binary values
-
-* the domain ``\mathcal{A} = \{1, 0\}`` (for example, coin tossing or court case)
+``X``: a random variable taking binary values, the domain ``\mathcal{A} = \{1, 0\}``
 
 * the probability distribution (probability mass function) is 
 
@@ -501,27 +555,35 @@ md"""
 
 
 
-Gaussian random variable $X$ has a distribution 
-
-$$p(X=x) = \mathcal{N}(x; \mu, \sigma^2) = \frac{1}{\sigma \sqrt{2\pi}} e^{-\frac{1}{2} \left(\frac{x-\mu}{\sigma} \right)^2}$$
-
-* ``\mu``: mean parameter
-* ``\sigma^2``: variance
-
 """
 
-# ╔═╡ 16754b05-44c5-47b2-9b2e-89f74d5f59ea
-let
+# ╔═╡ 7750287e-96e3-4920-9e3e-0dd461e2f2ea
+TwoColumn(md"""
+\
+
+Gaussian random variable $X$
+
+
+$(Resource("https://leo.host.cs.st-andrews.ac.uk/figs/CS5914/gaussian_eq_1d.png", :width=>450, :align=>"middle"))
+
+\
+
+* ``\mu``: mean or location
+* ``\sigma^2``: variance or scale, controls the spread
+
+
+
+""", let
 
 	μs = [-3, 0, 3]
 	σ²s = [1 , 2 , 5]
-	plt_gaussian = Plots.plot(title="Gaussian distributions", xlabel=L"X", ylabel=L"p(X)")
+	plt_gaussian = Plots.plot(title="Gaussian distributions", xlabel=L"X", ylabel=L"p(X)", size=(300,300))
 	for i in 1:3 
 		plot!(plt_gaussian, Normal(μs[i], sqrt(σ²s[i])), fill=true, alpha=0.5, label=L"\mathcal{N}(μ=%$(μs[i]), σ^2=%$(σ²s[i]))")
 		vline!([μs[i]], color=i, label="", linewidth=2)
 	end
 	plt_gaussian
-end
+end)
 
 # ╔═╡ 7416236c-5ff0-4eb8-b448-e50acb0c016b
 md"""
@@ -540,6 +602,7 @@ A **joint distribution** over a set of random variables: ``X_1, X_2, \ldots, X_n
 
 $P(x_1, x_2, \ldots, x_n) \geq 0\;\; \text{and}\;\;  \sum_{x_1, x_2, \ldots, x_n} P(x_1, x_2, \ldots, x_n) =1$ 
 
+##
 
 Example: joint distribution of temperature (``T``) and weather (``W``): ``P(T,W)``
 ```math
@@ -557,6 +620,25 @@ cold & rain & 0.3\end{array} \end{equation}
 
 """
 
+# ╔═╡ c2f8d8e7-16d5-46c5-a66d-664dbaeb4c91
+md"""
+
+## Conditional probability
+
+Conditional probability is defined as
+
+$$P(A=a|B=b) = \frac{P(A=a, B=b)}{P(B=b)}$$
+
+* read: *probability of ``A`` given ``B``*
+* the probability of $A=a$ given $B=b$ is true
+
+
+
+"""
+
+# ╔═╡ be70c96c-685d-4136-8828-c8a35a5cbe0b
+Resource(figure_url * "figs4CS5010/condiprob.png", :width=>800, :align=>"left")
+
 # ╔═╡ 48484810-1d47-473d-beb3-972ca8b934d5
 md"""
 ## Two probability rules
@@ -564,9 +646,9 @@ md"""
 
 There are only two probability rules 
 
-* **sum rule** 
+* #### *sum rule*
 
-* **product rule** 
+* #### *product rule*
 
 
 
@@ -596,10 +678,10 @@ Resource(figure_url * "/figs4CS5010/sumrule_.png", :width=>800, :align=>"left")
 
 # ╔═╡ 05e3c6d0-f59b-4e1e-b631-11eb8f8b0945
 md"""
-## Probability rule 2: chain rule
+## Probability rule 2: product rule
 
 
-Chain rule (*a.k.a* **product rule**)
+Product rule (*a.k.a* **chain rule**)
 
 $$P(X, Y) = P(X)P(Y|X);\;\; P(X, Y) = P(Y)P(X|Y)$$
 
@@ -624,7 +706,6 @@ $P(x_1, x_2, x_3) = P(x_1)P(x_2|x_1)P(x_3|x_1, x_2)$
 
 $P(x_1, x_2, \ldots, x_n) = P(x_1)P(x_2|x_1)P(x_3|x_1,x_2) \ldots=\prod_i P(x_i|x_1, \ldots, x_{i-1})$
 
-**Chain rule**: chain distributions together
 """
 
 # ╔═╡ e12f0e44-2b7d-4075-9986-6322fb1498c4
@@ -634,57 +715,75 @@ md"""
 
 
 
-**Bayes' rule** is a direct result of the two rules (based on two r.v.s)
+"""
 
-* ``H``: hypothesis 
-* ``\mathcal{D}``: observation
+# ╔═╡ 01140639-6cda-49e0-a9c9-8b7d9169a52d
+html"<center><img src='https://leo.host.cs.st-andrews.ac.uk/figs/CS5914/bayes.png' height = '200' /></center>"
+
+# ╔═╡ f60b1407-df78-41b5-959c-742910364fa6
+md"""
+
+* **Bayes' rule** provides us a way to find out the posterior;
+* given the prior and likelihood
 
 
-Recall the definition of conditional probability
+
+
+## Bayes' theorem -- the evidence term
+
+
+"""
+
+# ╔═╡ 058f1e9b-6e77-4cbc-9338-3de93bc6e5c3
+html"<center><img src='https://leo.host.cs.st-andrews.ac.uk/figs/CS5914/bayes4.png' height = '150' /></center>"
+
+# ╔═╡ 01231683-61fc-4f36-b004-c005723c53e0
+md"""
+
+
+* note the **Evidence** is the sum of the numerator 
+
+* it serves the purpose of **normalising constant** such that the posterior sum to 1
 
 ```math
-p(H| \mathcal{D}) =\frac{p(H, \mathcal{D})}{p(\mathcal{D})}=\frac{p(H)p(\mathcal{D}|H)}{\sum_{h'} p(H=h', \mathcal{D})}
+\large
+\sum_h p(h|\mathcal{D}) = 1
 ```
 
+##
 
-
+##### Since the *Evidence* ``p(\mathcal{D})`` is a constant 
+* it does **not** depend on ``h``
 """
 
-# ╔═╡ 2229e882-e2b6-4de3-897f-7a75d69c24ec
+# ╔═╡ 8b8ac80b-daa5-4dea-b847-e0e660c1c0c6
+html"<center><img src='https://leo.host.cs.st-andrews.ac.uk/figs/CS5914/bayes2.png' height = '200' /></center>"
+
+# ╔═╡ cf969c4c-909d-4dc7-ad95-74352f987c1f
 md"""
-
-## Bayes' theorem
-
-
-!!! infor "Bayes' rule"
-	$$p(H|\mathcal D) =\frac{\overbrace{p(H)}^{\text{prior}} \overbrace{p(\mathcal D|H)}^{\text{likelihood}}}{\underbrace{p(\mathcal D)}_{\text{evidence}}}$$
-
-
-
-
-	* ``p(h)`` **prior**: prior belief of ``\theta`` before we observe the data 
-	* ``p(\mathcal D|h)`` **likelihood**: conditional probability of observing the data given a particular $\theta$
-	* ``p(\mathcal D)`` **evidence** (also known as *marginal likelihood*)
-"""
-
-# ╔═╡ a602e848-8438-4a41-ab76-ec3f6497de3e
-md"""
-
 ## Why chain rule (or Bayes' rule) is useful
 
+"""
 
-Easier for us to specify the joint distribution forwardly via **chain rule** 
+# ╔═╡ 571a31d9-77fe-4457-827a-6a746a529a4a
+TwoColumn(md"""It is always easier for us to think generatively or causally
 
 $$H \xRightarrow[\text{probability}]{\text{forward}} \mathcal{D}$$ 
-$$\text{or}$$
-$$P(H,\mathcal{D}) = P(H)P(\mathcal{D}|H)$$
+
 
    * ``h`` is the possible hypothesis (which is usually unknown), with some prior 
 
 $$\text{prior: }P(H)$$
-* ``\mathcal{D}`` is the observation; given the cause, how likely you observe the data: 
+* ``\mathcal{D}`` the observation, or `cough`; given the hidden `h`, how likely you observe the data: 
   
 $$P(\mathcal D|H):\;\; \text{likelihood function}.$$
+
+""", html"""<center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/cough_bn.png" width = "100"/></center>
+""")
+
+# ╔═╡ a602e848-8438-4a41-ab76-ec3f6497de3e
+md"""
+
 
 
 ## Example: Cough example
@@ -837,8 +936,6 @@ Bayesian inference is a belief update procedure
 \text{prior } P(H) \Rightarrow \text{posterior } P(H|\mathcal{D})
 ```
 
-It **update** *prior* to *posterior* based on the observed ``\mathcal{D}``
-
 """
 
 # ╔═╡ 9c2086db-b108-4b15-87c8-8f38e53767fb
@@ -859,7 +956,7 @@ plot(post_plt)
 # ╔═╡ 65d9e2ed-1702-43aa-aafd-e2b38d0b403a
 md"""
 
-## Another example -- change point detection
+## Another example -- change point detection*
 
 
 > Your friend has two coins: 
@@ -873,7 +970,7 @@ md"""
 
 # ╔═╡ 5920cd07-30b9-44a7-8f5c-999c1f8ef043
 md"""
-## Forward generative modelling
+## Forward generative modelling*
 
 Let's identify the random variables first
 
@@ -898,7 +995,7 @@ S \Rightarrow {d_1, d_2, \ldots, d_n}
 
 # ╔═╡ 5acefb1f-209e-489f-afb9-dce517ad6225
 md"""
-## Forward generative modelling (cont.)
+## Forward generative modelling (cont.)*
 
 
 $$P(\mathcal D|S) = \underbrace{\prod_{i=1}^S P(d_i|p_1 =0.5)}_{\text{fair coin}} \underbrace{\prod_{j=S+1}^N P(d_j|p_2 = 0.2)}_{\text{bent coin}};$$ 
@@ -922,7 +1019,7 @@ $$P(\{0,1,1,0,1,0,0\}|S=2) = \underbrace{0.5\cdot 0.5}_{\text{before switch: }\{
 
 # ╔═╡ 6593bd28-f483-4168-ac69-eae469fbcb27
 md"""
-## Forward generative modelling: Prior for P(S)
+## Forward generative modelling: Prior for P(S)*
 
 
 To reflect our ignorance, we use a uniform flat prior
@@ -958,7 +1055,7 @@ end
 
 # ╔═╡ 72fb8fa0-8263-4729-af19-ff6047865a61
 md"""
-## Make the inference 
+## Make the inference*
 The rest is very routine: **apply Bayes' rule** mechanically
 
 $$P(S|\mathcal D) \propto P(S) P(\mathcal D|S)$$
@@ -986,7 +1083,7 @@ end
 md"""
 
 
-## Another dataset ?
+## Another dataset ?*
 
 """
 
@@ -1026,17 +1123,124 @@ md"""
 
 ## Independence
 
-Random variable $X,Y$ are independent, if 
+Random variable $X,Y$ are **independent**, if 
 
-$$\forall x,y : P(x,y) = P(x)P(y)$$
+$$\large \forall x,y : P(x,y) = P(x)P(y)$$
 
-* the joint is formed by the product of the marginals
+*Alternatively*
 
-Another equivalent definition
-
-$$\forall x,y: P(x|y) = P(x)$$
+$$\large \forall x,y: P(x|y) = P(x)$$
   * intuition: knowing (conditional on $Y=y$) does not change the probability of ``X``
+  
 
+##
+
+For _multiple_ independent random variables,
+
+```math
+P(X_1, X_2, \ldots, X_n) = \prod_{i=1}^n P(X_i)
+```
+"""
+
+# ╔═╡ 776649a0-d8ef-4fcb-a9ea-69e956dbd637
+md"""
+## Independence: genuine coin toss
+
+> Two sequences of 300 “coin flips” (H for heads, T for tails). 
+> 
+> * which one is the genuine **independent** coin tosses?
+
+**Sequence 1**
+
+>	TTHHTHTTHTTTHTTTHTTTHTTHTHHTHHTHTHHTTTHHTHTHTTHTHHTTHTHHTHTTTHHTTHHTTHHHTHHTHTTHTHTTHHTHHHTTHTHTTTHHTTHTHTHTHTHTTHTHTHHHTTHTHTHHTHHHTHTHTTHTTHHTHTHTHTTHHTTHTHTTHHHTHTHTHTTHTTHHTTHTHHTHHHTTHHTHTTHTHTHTHTHTHTHHHTHTHTHTHHTHHTHTHTTHTTTHHTHTTTHTHHTHHHHTTTHHTHTHTHTHHHTTHHTHTTTHTHHTHTHTHHTHTTHTTHTHHTHTHTTT
+
+**Sequence 2**
+
+>	HTHHHTHTTHHTTTTTTTTHHHTTTHHTTTTHHTTHHHTTHTHTTTTTTHTHTTTTHHHHTHTHTTHTTTHTTHTTTTHTHHTHHHHTTTTTHHHHTHHHTTTTHTHTTHHHHTHHHHHHHHTTHHTHHTHHHHHHHTTHTHTTTHHTTTTHTHHTTHTTHTHTHTTHHHHHTTHTTTHTHTHHTTTTHTTTTTHHTHTHHHHTTTTHTHHHTHHTHTHTHTHHHTHTTHHHTHHHHHHTHHHTHTTTHHHTTTHHTHTTHHTHHHTHTTHTTHTTTHHTHTHTTTTHTHTHTTHTHTHT
+
+* both of them have ``N_h = 148`` and ``N_t= 152``
+"""
+
+# ╔═╡ 0c78067b-e2cc-4866-b12e-abebe09cf564
+md"""
+
+## Independence: genuine coin toss (cont.)
+
+
+Recall **independence**'s definition
+
+```math
+\large
+P(X_{t+1}|X_{t}) = P(X_{t+1})
+```
+
+* ``X_{t}``: current toss at ``t``
+* ``X_{t+1}``: next toss
+
+
+Therefore, if **independent**, then
+
+```math
+\large
+P(X_{t+1}=\texttt{h}|X_{t}=\texttt{h}) = P(X_{t+1}=\texttt{h}|X_{t}=\texttt{t}) =P(X_{t+1}=\texttt{h}) = 0.5
+```
+
+"""
+
+# ╔═╡ ef748d34-071b-4e59-a96c-2d606d483ee9
+md"""
+
+##
+
+
+**Sequence 1**
+
+>	TTHHTHTTHTTTHTTTHTTTHTTHTHHTHHTHTHHTTTHHTHTHTTHTHHTTHTHHTHTTTHHTTHHTTHHHTHHTHTTHTHTTHHTHHHTTHTHTTTHHTTHTHTHTHTHTTHTHTHHHTTHTHTHHTHHHTHTHTTHTTHHTHTHTHTTHHTTHTHTTHHHTHTHTHTTHTTHHTTHTHHTHHHTTHHTHTTHTHTHTHTHTHTHHHTHTHTHTHHTHHTHTHTTHTTTHHTHTTTHTHHTHHHHTTTHHTHTHTHTHHHTTHHTHTTTHTHHTHTHTHHTHTTHTTHTHHTHTHTTT
+
+The joint frequency table is
+
+```math
+
+\begin{equation}  \begin{array}{c|cc} 
+n(X_{t}, X_{t+1}) & X_{t+1} = \texttt h & X_{t+1} =\texttt t \\
+\hline
+X_t =\texttt h & 46 & 102 \\ 
+
+X_t= \texttt t & 102 & 49 \\ 
+
+\end{array} \end{equation} 
+
+```
+
+* ``P(X_{t+1}=\texttt h|X_t=\texttt h) =\frac{46}{46+102} \approx 0.311 \ll 0.5``
+* ``P(X_{t+1}=\texttt h|X_t=\texttt t) =\frac{102}{102+49} \approx 0.675 \gg 0.5``
+
+"""
+
+# ╔═╡ 3caf5284-3c82-4fc9-a705-1215b9881df9
+md"""
+
+##
+
+**Sequence 2**
+
+>	HTHHHTHTTHHTTTTTTTTHHHTTTHHTTTTHHTTHHHTTHTHTTTTTTHTHTTTTHHHHTHTHTTHTTTHTTHTTTTHTHHTHHHHTTTTTHHHHTHHHTTTTHTHTTHHHHTHHHHHHHHTTHHTHHTHHHHHHHTTHTHTTTHHTTTTHTHHTTHTTHTHTHTTHHHHHTTHTTTHTHTHHTTTTHTTTTTHHTHTHHHHTTTTHTHHHTHHTHTHTHTHHHTHTTHHHTHHHHHHTHHHTHTTTHHHTTTHHTHTTHHTHHHTHTTHTTHTTTHHTHTHTTTTHTHTHTTHTHTHT
+
+```math
+
+\begin{equation}  \begin{array}{c|cc} 
+n(X_{t}, X_{t+1}) & X_{t+1} = \texttt h & X_{t+1} =\texttt t \\
+\hline
+X_t =\texttt h & 71 & 77 \\ 
+
+X_t= \texttt t & 76 & 75 \\ 
+
+\end{array} \end{equation} 
+
+```
+
+* ``\hat P(X_{t+1}=\texttt h|X_t=\texttt h) =\frac{71}{71+77} \approx 0.48 \approx 0.5``
+* ``\hat P(X_{t+1}=\texttt h|X_t=\texttt t) =\frac{76}{76+75} \approx 0.503 \approx 0.5``
 """
 
 # ╔═╡ 8afac55e-44f9-4127-b16a-969560307f90
@@ -1047,11 +1251,11 @@ md"""
 ``X`` is conditionally independent of ``Y`` given ``Z``, if and only if 
 
 
-$$\forall x,y,z: P(x,y|z) = P(x|z)p(y|z)$$
+$$\Large \forall x,y,z: P(x,y|z) = P(x|z)p(y|z)$$
 
 or equivalently (**more useful**), if and only if 
 
-$$\forall x,y,z: P(x|z, y) = P(x|z)$$
+$$\Large\forall x,y,z: P(x|z, y) = P(x|z)$$
 
 * intuition: knowing ``z``, ``x`` is no longer influenced by ``y`` (therefore independence): ``p(x|z, \cancel{y})``
 
@@ -1112,48 +1316,74 @@ $$P(\text{Umbrella}|\cancel{\text{Traffic}}, {\text{Rain}}) = P(\text{Umbrella}|
 """
 
 # ╔═╡ 12751639-7cdc-4e39-ba72-30ee2fe2cd49
+# md"""
+
+# ## Example
+
+# Consider the coin switching problem
+
+
+# Based on *chain rule* (or product rule)
+
+# $$P(\text{S},\mathcal{D}) = P(S)  P(\mathcal{D}|S)$$
+
+# * ``\mathcal{D} = [d_1, d_2, \ldots, d_n]``
+# Then applies **conditional independence assumption**
+
+# $$P(\mathcal{D}|S) = P(d_1|S)P(d_2|S) \ldots P(d_n|S)$$
+
+# * conditioned on the switching time ``S``, the tosses are independent 
+
+
+# Conditional independence greatly simplies probability models
+# * we only need to spell out ``P(S)`` and ``P(d_i|S)`` rather than the conditional joint ``P(d_1, d_2, \ldots, d_n|S)``
+# * also note that ``P(d_i|S)`` are the same for all ``i``
+
+# """
+
+# ╔═╡ 7ac35147-4c3d-421e-ba42-6e6e1325584f
 md"""
 
-## Example
+## More example -- coin guess
+"""
 
-Consider the coin switching problem
-
-
-Based on *chain rule* (or product rule)
-
-$$P(\text{S},\mathcal{D}) = P(S)  P(\mathcal{D}|S)$$
-
-* ``\mathcal{D} = [d_1, d_2, \ldots, d_n]``
-Then applies **conditional independence assumption**
-
-$$P(\mathcal{D}|S) = P(d_1|S)P(d_2|S) \ldots P(d_n|S)$$
-
-* conditioned on the switching time ``S``, the tosses are independent 
+# ╔═╡ c31706a2-cb86-4fe2-9d64-a1d09490792c
+md"""
 
 
-Conditional independence greatly simplies probability models
-* we only need to spell out ``P(S)`` and ``P(d_i|S)`` rather than the conditional joint ``P(d_1, d_2, \ldots, d_n|S)``
-* also note that ``P(d_i|S)`` are the same for all ``i``
+> ##### Two coins (with biases ``0.5`` and ``0.99`` respectively) in an urn
+> * ######  randomly pick one and toss it 3 times 
 
+
+
+"""
+
+# ╔═╡ 393e9b36-d85e-440b-a113-2d748c3ac03b
+md"""
+
+The tossing results $\{Y_1, Y_2, Y_3\}$ are conditionally independent given coin choice $C$
+
+
+```math
+\Large
+P(Y_1, Y_2, Y_3|C) = P(Y_1|C)P(Y_2|C)P(Y_3|C)
+```
 """
 
 # ╔═╡ 532a9f66-b04a-446a-becf-d74759bcf750
 md"""
 ## Probabilistic graphical models
 
+#### What is Probabilistic graphical models (PGMs)
+> ##### Graphical representation of a probabilistic model
 
-Probabilistic graphical models are very useful probabilistic modelling tool
-* to model conditional independence graphically
+* or joint distribution
 
+###### For example, the cough example, the PGM represents
 
-We consider a specific kind: **directed graphical model** 
-* also known as Bayes' network
-* a directed acyclic graph (DAG)
-  * **node**: random variables 
-  * **edges**: relationship between random variable
-
-
-For example, the cough example
+```math
+	P(H, \texttt{Cough}) = P(H)P(\texttt{Cough}|H)
+```
 
 """
 
@@ -1237,9 +1467,8 @@ md"""
 ## Directed graphical model: a DAG with local distributions 
 
 
-A Directed graphical model is 
 
-> **Directed Acyclic Graph (DAG)** + local prob. distributions, $P(X_i|\text{parents}(X_i))$
+> **Directed Acyclic Graph (DAG)** + **local prob. distributions** $P(X_i|\text{parents}(X_i))$
   
 * **DAG**, ``G``:
     * ``V=\{X_1, X_2, \ldots, X_n\}``, one random variable per vertex (also called node) 
@@ -1251,18 +1480,19 @@ A Directed graphical model is
 
 """
 
-# ╔═╡ eda02250-b88d-45a1-9430-114e3d60f72a
-md"""
+# ╔═╡ 6699af84-5adb-44ce-89c3-03cde2fac07b
+TwoColumn(md"""
+\
+\
 
 For example, cough example
 
 * ``H`` is with ``P(H)``
 * ``\texttt{Cough}``: ``P(\texttt{Cough}|H=h)``
-"""
-
-# ╔═╡ 7aea40a5-be9f-4ac0-94e7-b692985ea35d
+""", 
 html"""<center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/cough_bn.png" width = "100"/></center>
 """
+)
 
 # ╔═╡ be4b66ed-dc94-4450-97dd-a57175913b20
 md"""
@@ -1284,12 +1514,11 @@ md"""
 
 ## Example - Traffic, Rain, Umbrella
 
-Recall the **Traffic, Umbrella, Raining** example
 
 
 The full joint (based on the **conditional independence assumption**) becomes 
 
-$$P(\text{Rain},\text{Umbrella}, \text{Traffic}) = P(\text{Rain})  P(\text{Traffic}|\text{Rain}) P(\text{Umbrella}|\text{Rain})$$
+$$\large P(\text{Rain},\text{Umbrella}, \text{Traffic}) = P(\text{Rain})  P(\text{Traffic}|\text{Rain}) P(\text{Umbrella}|\text{Rain})$$
 
 The corresponding graphical model is
 
@@ -1305,32 +1534,30 @@ md"""
 
 ## Example -- coin guess
 
+"""
 
-> Two coins (with biases ``0.5`` and ``0.99`` respectively) in an urn
-> * you randomly pick one and toss it 3 times 
+# ╔═╡ 01794f0a-0c40-43fc-9621-32b46099d6cf
+md"""
+
+
+> ##### Two coins (with biases ``0.5`` and ``0.99`` respectively) in an urn
+> * ######  randomly pick one and toss it 3 times 
 
 
 
 """
 
-# ╔═╡ 10ad19a7-f1ba-4f3c-ada7-8ce1391ef151
-html"""<center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/coin_choice.png" width = "400"/></center>"""
+# ╔═╡ 15f2ebfd-cced-48a3-a13c-5ed166111022
+TwoColumn(html"""<br/><br/><center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/coin_choice.png" width = "400"/></center>""", md"""
 
-# ╔═╡ 884b5699-08fb-4aba-abf8-2628d71818ce
-md"""
-
-For node Coin Choice: $P(C)$:
+Coin Choice: $P(C)$
 
 |``C``   | ``P(C=c)`` |
 | --- | ---  | 
 | 1   | 0.5 | 
 | 2   | 0.5 | 
 
-"""
-
-# ╔═╡ 71cdf6a5-90bc-4a4d-80f7-214406f22019
-md"""
-For node $Y_i$, the local conditional distributions $P(Y_i|C)$:
+Observation ``Y_i``: $P(Y_i|C)$
 
 |``C``   | ``\texttt{head}`` | ``\texttt{tail}`` |
 | ---| ---   | ---     |
@@ -1339,7 +1566,8 @@ For node $Y_i$, the local conditional distributions $P(Y_i|C)$:
 
 * each row is a valid conditional distributions 
 
-"""
+
+""")
 
 # ╔═╡ b96cc13e-5fd9-4fa1-a9bc-4ea7b22c07a3
 md"""
@@ -1354,34 +1582,45 @@ Note that $P(Y_i|C)$ for $i =1,2,3$ are repeated
 # ╔═╡ a94dac61-af9b-4820-bc2a-812a282a5603
 html"""<center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/bayes/plate_coin.png" width = "300"/></center>"""
 
-# ╔═╡ 8044aa77-b299-4874-b90b-ee36fb8d374e
+# ╔═╡ 17c47cc4-63ab-40ec-86af-b17d0b2d6b5f
 md"""
 
 ## Some graphical model patterns
 
 There are three patterns in graphical models
 
-* common cause pattern
-* chain pattern
-* collider pattern
+* #####  common cause pattern
+* ##### chain pattern
+* ##### collider pattern
 
-All other general graphical models are **composition** of the three patterns
+> All graphical models are **composition** of the three patterns
 
 
 
 ## Common cause pattern (*a.k.a.* tail to tail)
+
+"""
+
+# ╔═╡ fb5bd9c6-6e5c-49d9-9118-9c6de78fa6f7
+TwoColumn(md"""
+
+\
 
 ``Y`` is the common cause of ``X`` and ``Z``
 
 
 * also known as tail to tail (from ``Y``'s perspective)
 * *e.g.* the unknown bias is the common cause of the two tossing realisations
+
+""",  html"""<center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/figs4CS5010/dag_common.png" width = "500"/></center>""")
+
+# ╔═╡ 2bb41562-6011-46a8-a753-b91315911577
+md"""
+## Common cause pattern (*a.k.a.* tail to tail)
 """
 
-# ╔═╡ 63c2da6b-4f7a-40dd-95fe-17aead4134a6
-html"""<center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/figs4CS5010/dag_common.png" width = "500"/></center>"""
-
-# ╔═╡ cc8e87da-216c-40bf-9fc1-0e8c929ad7a1
+# ╔═╡ 6f4acf7a-4978-465f-a50f-25476cacd54b
+TwoColumn(
 md"""
 
 It can be shown that 
@@ -1391,36 +1630,55 @@ X \perp Z |Y\;\; \text{or}\;\;P(X,Z|Y) =P(X|Y)P(Z|Y)
 ```
 
 
-But not **marginally** independent 
+But **marginally** not independent 
 
 ```math
-X \not\perp Z\;\; \text{or}\;\;P(X,Z) \neq P(X)P(Z)
+X \not\perp Z|\emptyset\;\; \text{or}\;\;P(X,Z) \neq P(X)P(Z)
 ```
 
-"""
+""",
 
-# ╔═╡ 15cf6021-b172-41ae-9392-0838c39d551b
+html"""<center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/figs4CS5010/dag_common.png" width = "500"/></center>"""
+
+	
+)
+
+# ╔═╡ 49a22f7e-b7a2-45dd-a44b-c176da48fd28
+TwoColumn(
 md"""
+\
 
 **Example**: "Vaccine" effectiveness 
 * common cause: whether a vaccine is effective (**Y**)
-* child nodes: two independent patients' treatment outcome after receiving the vaccine (**X**, **Z**)
-"""
+* ``X, Z`` nodes: two patients' treatment outcomes after receiving the vaccine (**X**, **Z**)
+""",
 
-# ╔═╡ 588eec3d-fc0b-4384-ac9b-bb8d8816b184
+html"""<center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/CS5914/vaccine.svg" width = "250"/></center>"""
+
+	
+)
+
+# ╔═╡ 7f201df4-9ddb-4565-8b22-aa34ef8a9950
 md"""
 ## Chain pattern (*a.k.a.* tip to tail)
 
-``X`` impacts ``Z`` via ``Y``
-
-* indirect impact 
+> ##### ``X`` impacts ``Z`` _via_ ``Y``
+> * models **indirect** influence 
 
 """
 
-# ╔═╡ 450de0ac-e2a9-4e0a-b542-72534c751fa2
-html"""<center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/figs4CS5010/dag_seq.png" width = "500"/></center>"""
+# ╔═╡ 7c27ad55-a49e-4b56-b41e-1a64b99f3688
+html"""<center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/figs4CS5010/dag_seq.png" width = "400"/></center>"""
 
-# ╔═╡ b96539d8-5ca9-4a04-84bf-660db2a4f609
+# ╔═╡ 108d0def-f048-4010-aba9-3f4385875540
+md"""
+
+## Chain pattern (*a.k.a.* tip to tail)
+"""
+
+# ╔═╡ e7f3feae-9c29-4e9f-81b9-28895f562d59
+TwoColumn(
+
 md"""
 
 It can be shown 
@@ -1431,19 +1689,24 @@ X \perp Z|Y \;\; \text{or}\;\;P(X,Z|Y) = P(X|Y)P(Z|Y)
 
 ```
 
-but not marginally independent 
+but marginally **not** independent 
 
 ```math
-X \perp Z \;\; \text{or}\;\;P(X,Z) \neq P(X)P(Z)
+X \not\perp Z|\emptyset \;\; \text{or}\;\;P(X,Z) \neq P(X)P(Z)
 
 ```
 
-"""
+""",
 
-# ╔═╡ c6653de5-1542-44a6-9fcb-2e9bd091f2bb
+	
+html"""<br/><br/><center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/figs4CS5010/dag_seq.png" width = "500"/></center>"""
+	
+)
+
+# ╔═╡ e5f08691-e099-4cee-9bbb-b893b512f4bc
 md"""
 
-**Example**: Rain, Floor is Wet, Slip
+**Example**: `Rain`, `Floor_is_Wet`, `Slip`
 
 
 ```math
@@ -1453,35 +1716,18 @@ md"""
 ```
 
 * add *Injured* ?
-
-* explain the CI assumptions for this case
 """
 
-# ╔═╡ 9fafd041-2d42-4bf1-a17a-c31deb23d97d
+# ╔═╡ c5b2a9f7-9261-444c-812a-64efa3c500ef
 md"""
 
 ## A classic example -- chain case
 
-**Voting for Trump** does not **directly** make you **die**!
+##### *Voting for Trump* does not *directly* make you more likely to *die*!
+* but there is a hidden intermediate cause, *i.e.* vaccination rate
 """
 
-# ╔═╡ 615b57fb-0ad5-4175-bc71-000aaae89b65
-html"""<center><img src="https://static01.nyt.com/images/2021/09/27/multimedia/27-MORNING-sub3-STATE-DEATH-VOTE-PLOT/27-MORNING-sub3-STATE-DEATH-VOTE-PLOT-superJumbo.png?quality=75&auto=webp" width = "400"/></center>
-"""
-
-# ╔═╡ 83e1f7fa-c711-4db6-a2be-6914a4e7e8a2
-md"""
-
-
-But via **Vaccination**, everything makes sense
-
-"""
-
-# ╔═╡ d0868210-baa4-4bdc-8d99-f318b6b8f6df
-html"""<center><img src="https://static01.nyt.com/images/2021/09/27/multimedia/27-MORNING-sub2-STATE-VAX-VOTE-PLOT/27-MORNING-sub2-STATE-VAX-VOTE-PLOT-superJumbo-v2.png?quality=75&auto=webp" width = "400"/></center>
-"""
-
-# ╔═╡ 3db2f0f1-d8b1-4483-af5e-71889be766d9
+# ╔═╡ a3fe5cfe-6f41-432f-bb60-f08446231fbf
 md"""
 
 A suitable model
@@ -1493,19 +1739,40 @@ A suitable model
 
 """
 
-# ╔═╡ 94767935-df48-4466-9454-aa000217ddda
+# ╔═╡ 95319916-264a-4893-854a-4d02543fc6c1
+TwoColumn(html"""<center><img src="https://static01.nyt.com/images/2021/09/27/multimedia/27-MORNING-sub3-STATE-DEATH-VOTE-PLOT/27-MORNING-sub3-STATE-DEATH-VOTE-PLOT-superJumbo.png?quality=75&auto=webp" width = "320"/></center>
+""", html"""<center><img src="https://static01.nyt.com/images/2021/09/27/multimedia/27-MORNING-sub2-STATE-VAX-VOTE-PLOT/27-MORNING-sub2-STATE-VAX-VOTE-PLOT-superJumbo-v2.png?quality=75&auto=webp" width = "320"/></center>
+""")
+
+# ╔═╡ 4f90a063-7aaf-4287-8616-301a7636665d
 md"""
 ## Common effect (*a.k.a.*  collider, or tip to tip)
 
-``Y`` is the effect of some joint causes of ``X`` and ``Z``
-* also known as point to point (from ``Y``'s perspective)
 """
 
-# ╔═╡ 41f94bdc-5a92-4bc7-accb-f927b02e4032
-html"""<center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/figs4CS5010/dag_collider.png" width = "500"/></center>"""
+# ╔═╡ 7f30f317-82b9-45f2-a6a7-6bcd785b825b
+TwoColumn(md"""
 
-# ╔═╡ fbe1bc73-f1c8-484a-8c5f-02781b3f871f
+
+
+\
+\
+\
+
+``Y`` is the joint **effect** of some combination of *independent* causes ``X`` and ``Z``
+
+""", 
+	
+html"""<center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/figs4CS5010/dag_collider.png" width = "500"/></center>""")
+
+# ╔═╡ 67117028-356f-4ccb-86cd-25b791e76722
 md"""
+## Common effect (*a.k.a.*  collider, or tip to tip)
+
+"""
+
+# ╔═╡ b67b29a9-aa19-4bc2-ae60-26ca2453a905
+TwoColumn(md"""
 
 **Quite the opposite** to the previous two cases, 
 * ``X, Z`` are marginally independent 
@@ -1520,58 +1787,105 @@ X\perp Z|\emptyset\;\; \text{or} \;\; P(X, Z)= P(X)P(Z)
 ```math
 X\not \perp Z|Y\;\; \text{or} \;\; P(X, Z|Y)\neq P(X|Y)P(Z|Y)
 ```
+```math
+\text{or } P(X|Z, Y)\neq P(X|Y) 
+```
 
-"""
+""", 
+	
+html"""<center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/figs4CS5010/dag_collider.png" width = "500"/></center>""")
 
-# ╔═╡ 99b465f0-63d6-4daf-bcfd-4704888d9e72
-md"""
+# ╔═╡ 82bd4b52-34a6-44ea-8a18-2e4186cf2210
+TwoColumn(md"""
+\
 
 **Example**: Exam performance
 * ``X``: your knowledge of the subject
 * ``Z``: exam's difficulty 
 * ``Y``: exam grade 
+
+*Marginally,* `Knowledge` ``\perp`` `Exam_Difficulty` 
+
+
+
+""", html"""<center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/CS5914/examdiff.svg" width = "300"/></center>""")
+
+# ╔═╡ dd5a7d7b-e59a-4899-8517-d8168a4639ca
+md"""
+*Conditional* on the effect `Grade`, they become dependent 
+
+```math
+\begin{align}
+P(\texttt{Knowledge}=good|\texttt{Grade}=fail,\; \texttt{Exam\_diff}=easy)\; {\Large\neq}\; \\ P(\texttt{Knowledge}=good|\texttt{Grade}=fail, \texttt{Exam\_diff}=hard)
+\end{align}
+```
+
+
+* exam is easy ``\Rightarrow`` `knowledge` is bad
+* exam is difficult ``\Rightarrow`` `knowledge` is probably not that bad
 """
 
-# ╔═╡ 583812b3-7517-4177-b1c7-7cd5b2f1908b
+# ╔═╡ 608eac2e-544b-44e0-8162-c777123d3e04
 md"""
 
-## Exercise & discussion
+## More collider examples
 
 
 
-!!! exercise "Coin swicth's graphical model"
-	Recall the coin switching problem
-	* construct the corresponding graphical model representation
-	* which pattern the model involves
-    * consider the three node types: observed, unobserved, fixed
-	  * which type of nodes are used 
-	  * how to add *fixed* nodes?
-"""
-
-# ╔═╡ 2e2f0b68-b8b1-41fc-981d-46e43037ac3a
-html"<center><img src='https://leo.host.cs.st-andrews.ac.uk/figs/notations.png' width = '200' /></center>"
-
-# ╔═╡ 7d48dff8-9b53-462a-bbf4-4a9cd4d51be9
-md"""
-
-## Summary
+##### Colliders are very common and they help explain a lot 
+\
 
 
-* Two probability rules: sum and chain rule
 
+!!! example "Example (location vs food)"
+	Why food served at restaurants at **touristy locations** are usually **bad**?
 
-* To form a probabilistic model, it is easier to think generatively via chain rule
-
-$$P(H,\mathcal{D}) = P(H) P(\mathcal{D}|H)$$
-
-
-* Bayes' rule provides a way to do reverse inference 
-
-
-* Probabilistic graphical model is a useful modelling tool
 
 
 """
+
+# ╔═╡ c8c61f65-49f3-489d-aff8-b58f498335ca
+Foldable("", md"""
+
+Restaurants' **Success** depends on *Good Food* and/or *Good Location*
+
+```math
+\large
+\text{Good Location}\, \longrightarrow \text{Restaurant's Survival} \longleftarrow \text{Good Food}
+```
+
+
+* both good food and good location are desired but relatively rare; even rarer to have both
+
+* one **explains away** the other
+""")
+
+# ╔═╡ 0b374958-5ee4-4c34-b653-28a115f07e6a
+TwoColumn(md"""
+
+\
+
+!!! example "Example (skills vs attractiveness)"
+	Why **attractive** actors/actress are usually **not very skilled** ?
+
+	or the opposite: **skilled** actors/actress usually not necessarily **attractive**
+""", html"""<center><img src="https://64.media.tumblr.com/3cd8403e2a6de029e2fdc36aafb1abb5/d40ea27e49d8dcd9-ee/s400x600/a6131fa863fa20887f4c1c2282737020ab2d64d7.gif" width = "300"/></center>""")
+
+# ╔═╡ 3b488fba-d5df-4c8e-9d68-03c958a8244c
+Foldable("", md"""
+
+An actor's **Success** depends on *Good Looking* and/or *Good Skills*
+
+```math
+\large
+\text{Good Looking}\, \longrightarrow \text{Actor's Success} \longleftarrow \text{Good Skills}
+```
+
+
+* both attractiveness and good skills are desired but relatively rare; even rarer to have both
+
+* one **explains away** the other
+""")
 
 # ╔═╡ 61e3f627-5752-48e3-9100-3c96575f1805
 md"""
@@ -1643,6 +1957,7 @@ plt=plot(plt1, plt2, layout=(1,2), size=(600,300));
 
 # ╔═╡ 8eec2a38-c5fb-48c7-8801-81d6d4afb796
 md"""
+##
 
 
 !!! note "Question"
@@ -3169,19 +3484,18 @@ version = "1.4.1+1"
 # ╟─8bf95702-90ac-4b3c-a027-e1b673359a60
 # ╟─3a80d31d-9f32-48b1-b5fd-788b588d96cb
 # ╟─dede5ea1-c67d-4344-b6d0-c4a9b8d8dbeb
-# ╟─93b5c93c-682a-49b4-8191-a82a22804a0d
-# ╟─8a8eabbd-a0cd-47f1-a2b7-1e6c10f29c2b
+# ╟─e7242619-19fc-461b-a5e0-fc50361d2565
 # ╟─63b92973-1031-439c-aa68-60f00552ab18
 # ╟─8f2452a3-79cc-4f22-90dc-82f88adc46be
 # ╟─8eec2a38-c5fb-48c7-8801-81d6d4afb796
 # ╟─926be45c-84a4-4bb5-8cc0-56bdf74bc581
-# ╟─24f06a6c-f64f-488b-9fd0-dbbf24007212
-# ╟─4f0a3ee7-d2e9-4945-9491-e48475421574
+# ╟─9066781d-b542-4c95-8a5b-d244df217650
 # ╟─c9b2fa82-841d-47cf-b7b4-23f8a86e60a7
 # ╟─2bc778d0-6974-4a97-8769-3cb66100fd80
 # ╟─2fba13a9-a0ab-44a6-ba4d-b828ebe96274
 # ╟─db1f6632-f894-4ce7-a5b4-493158a13860
 # ╟─f05dcb39-84c9-42e5-95f6-67238c574609
+# ╟─0cc7386d-4584-4a34-bbf7-546bf9ac1134
 # ╟─b52911ff-886a-4113-85a5-af508dc0cb8e
 # ╟─34a4fdfa-df3f-426c-acbd-d18056246714
 # ╟─910399dd-ebe1-447f-967f-7a38e4913b56
@@ -3197,8 +3511,10 @@ version = "1.4.1+1"
 # ╟─1e4db58a-e57d-457e-9bf4-20961a4775b1
 # ╟─42466480-2d4d-4a62-be06-ede102d818f0
 # ╟─d1e63621-5e4a-4f43-aa4f-a41f12fe632a
-# ╟─16754b05-44c5-47b2-9b2e-89f74d5f59ea
+# ╟─7750287e-96e3-4920-9e3e-0dd461e2f2ea
 # ╟─7416236c-5ff0-4eb8-b448-e50acb0c016b
+# ╟─c2f8d8e7-16d5-46c5-a66d-664dbaeb4c91
+# ╟─be70c96c-685d-4136-8828-c8a35a5cbe0b
 # ╟─48484810-1d47-473d-beb3-972ca8b934d5
 # ╟─559b0936-a051-4f2e-b0ca-81becd631bce
 # ╟─1a930c29-0b6e-405b-9ada-08468c69173c
@@ -3206,7 +3522,13 @@ version = "1.4.1+1"
 # ╟─05e3c6d0-f59b-4e1e-b631-11eb8f8b0945
 # ╟─32bd86a4-0396-47f5-9025-6df83268850e
 # ╟─e12f0e44-2b7d-4075-9986-6322fb1498c4
-# ╟─2229e882-e2b6-4de3-897f-7a75d69c24ec
+# ╟─01140639-6cda-49e0-a9c9-8b7d9169a52d
+# ╟─f60b1407-df78-41b5-959c-742910364fa6
+# ╟─058f1e9b-6e77-4cbc-9338-3de93bc6e5c3
+# ╟─01231683-61fc-4f36-b004-c005723c53e0
+# ╟─8b8ac80b-daa5-4dea-b847-e0e660c1c0c6
+# ╟─cf969c4c-909d-4dc7-ad95-74352f987c1f
+# ╟─571a31d9-77fe-4457-827a-6a746a529a4a
 # ╟─a602e848-8438-4a41-ab76-ec3f6497de3e
 # ╟─eca7d42f-a038-40c9-b584-a6a020ffa9da
 # ╟─fea3395d-250d-406c-9a8c-646f5c48ab12
@@ -3238,10 +3560,17 @@ version = "1.4.1+1"
 # ╟─7652aa5c-47c7-4263-a673-00f073f91018
 # ╟─0198a401-ed47-4f5c-8aca-441cccff472b
 # ╟─6db0a9fa-0137-413e-b122-24a51c4319e0
+# ╟─776649a0-d8ef-4fcb-a9ea-69e956dbd637
+# ╟─0c78067b-e2cc-4866-b12e-abebe09cf564
+# ╟─ef748d34-071b-4e59-a96c-2d606d483ee9
+# ╟─3caf5284-3c82-4fc9-a705-1215b9881df9
 # ╟─8afac55e-44f9-4127-b16a-969560307f90
 # ╟─5bcfc1a8-99d4-4b48-b45c-4c8d0c5acae4
 # ╟─6dc34d66-366f-4e1a-9b73-a74c07e58feb
 # ╟─12751639-7cdc-4e39-ba72-30ee2fe2cd49
+# ╟─7ac35147-4c3d-421e-ba42-6e6e1325584f
+# ╟─c31706a2-cb86-4fe2-9d64-a1d09490792c
+# ╟─393e9b36-d85e-440b-a113-2d748c3ac03b
 # ╟─532a9f66-b04a-446a-becf-d74759bcf750
 # ╟─79f88e1e-9eca-49ed-84e1-3dac5ef1819c
 # ╟─9da0bf21-3d2f-4df0-a8b3-3891dd665c7f
@@ -3256,37 +3585,38 @@ version = "1.4.1+1"
 # ╟─2f5af892-249f-40c8-a2a2-0bc7acc7f000
 # ╟─7b9577e1-e1ce-44a9-9737-a60061ad0dc7
 # ╟─41ee5127-4390-4fb8-b41f-9856346877cf
-# ╟─eda02250-b88d-45a1-9430-114e3d60f72a
-# ╟─7aea40a5-be9f-4ac0-94e7-b692985ea35d
+# ╟─6699af84-5adb-44ce-89c3-03cde2fac07b
 # ╟─be4b66ed-dc94-4450-97dd-a57175913b20
 # ╟─c7217173-3b9e-439a-ad59-6fdea81bb12c
 # ╟─4c4f8078-b3ed-479f-9c0b-35c9e81fe44d
 # ╟─33a8d7e1-cb9b-48c8-9b63-7a817c0497b2
-# ╟─10ad19a7-f1ba-4f3c-ada7-8ce1391ef151
-# ╟─884b5699-08fb-4aba-abf8-2628d71818ce
-# ╟─71cdf6a5-90bc-4a4d-80f7-214406f22019
+# ╟─01794f0a-0c40-43fc-9621-32b46099d6cf
+# ╟─15f2ebfd-cced-48a3-a13c-5ed166111022
 # ╟─b96cc13e-5fd9-4fa1-a9bc-4ea7b22c07a3
 # ╟─a94dac61-af9b-4820-bc2a-812a282a5603
-# ╟─8044aa77-b299-4874-b90b-ee36fb8d374e
-# ╟─63c2da6b-4f7a-40dd-95fe-17aead4134a6
-# ╟─cc8e87da-216c-40bf-9fc1-0e8c929ad7a1
-# ╟─15cf6021-b172-41ae-9392-0838c39d551b
-# ╟─588eec3d-fc0b-4384-ac9b-bb8d8816b184
-# ╟─450de0ac-e2a9-4e0a-b542-72534c751fa2
-# ╟─b96539d8-5ca9-4a04-84bf-660db2a4f609
-# ╟─c6653de5-1542-44a6-9fcb-2e9bd091f2bb
-# ╟─9fafd041-2d42-4bf1-a17a-c31deb23d97d
-# ╟─615b57fb-0ad5-4175-bc71-000aaae89b65
-# ╟─83e1f7fa-c711-4db6-a2be-6914a4e7e8a2
-# ╟─d0868210-baa4-4bdc-8d99-f318b6b8f6df
-# ╟─3db2f0f1-d8b1-4483-af5e-71889be766d9
-# ╟─94767935-df48-4466-9454-aa000217ddda
-# ╟─41f94bdc-5a92-4bc7-accb-f927b02e4032
-# ╟─fbe1bc73-f1c8-484a-8c5f-02781b3f871f
-# ╟─99b465f0-63d6-4daf-bcfd-4704888d9e72
-# ╟─583812b3-7517-4177-b1c7-7cd5b2f1908b
-# ╟─2e2f0b68-b8b1-41fc-981d-46e43037ac3a
-# ╟─7d48dff8-9b53-462a-bbf4-4a9cd4d51be9
+# ╟─17c47cc4-63ab-40ec-86af-b17d0b2d6b5f
+# ╟─fb5bd9c6-6e5c-49d9-9118-9c6de78fa6f7
+# ╟─2bb41562-6011-46a8-a753-b91315911577
+# ╟─6f4acf7a-4978-465f-a50f-25476cacd54b
+# ╟─49a22f7e-b7a2-45dd-a44b-c176da48fd28
+# ╟─7f201df4-9ddb-4565-8b22-aa34ef8a9950
+# ╟─7c27ad55-a49e-4b56-b41e-1a64b99f3688
+# ╟─108d0def-f048-4010-aba9-3f4385875540
+# ╟─e7f3feae-9c29-4e9f-81b9-28895f562d59
+# ╟─e5f08691-e099-4cee-9bbb-b893b512f4bc
+# ╟─c5b2a9f7-9261-444c-812a-64efa3c500ef
+# ╟─a3fe5cfe-6f41-432f-bb60-f08446231fbf
+# ╟─95319916-264a-4893-854a-4d02543fc6c1
+# ╟─4f90a063-7aaf-4287-8616-301a7636665d
+# ╟─7f30f317-82b9-45f2-a6a7-6bcd785b825b
+# ╟─67117028-356f-4ccb-86cd-25b791e76722
+# ╟─b67b29a9-aa19-4bc2-ae60-26ca2453a905
+# ╟─82bd4b52-34a6-44ea-8a18-2e4186cf2210
+# ╟─dd5a7d7b-e59a-4899-8517-d8168a4639ca
+# ╟─608eac2e-544b-44e0-8162-c777123d3e04
+# ╟─c8c61f65-49f3-489d-aff8-b58f498335ca
+# ╟─0b374958-5ee4-4c34-b653-28a115f07e6a
+# ╟─3b488fba-d5df-4c8e-9d68-03c958a8244c
 # ╟─61e3f627-5752-48e3-9100-3c96575f1805
 # ╟─c0e7844b-111f-469a-9d6e-33751a441adb
 # ╟─94ef0651-e697-4806-868a-bce137d8437e

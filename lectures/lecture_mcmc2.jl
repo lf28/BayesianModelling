@@ -56,7 +56,6 @@ md"""
 
 # More on MCMC
 
-* Improving sample quality
 
 * MCMC diagnosis
 
@@ -407,7 +406,7 @@ md"**Summary statistics with MH chain of ``\sigma^2_q=20.0``**"
 
 # ╔═╡ 68c98e53-7ac3-4832-a7dd-97459a89d7cb
 md"""
-# Other MCMC samplers
+# Other MCMC samplers*
 """
 
 # ╔═╡ b29597f1-3fd7-4b44-9097-7c1dc1b7629b
@@ -595,7 +594,7 @@ surface(-9:0.1:9, -6:0.1:6, (x,y) -> -pdf(d, [x,y]), legend=false, title="Negati
 
 # ╔═╡ ba2545d4-cc39-4069-b6a4-a60f15911cec
 md"""
-
+## More details*
 
 At each iteration, 
 
