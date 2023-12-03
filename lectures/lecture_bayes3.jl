@@ -22,6 +22,12 @@ begin
 	using PlutoUI
 end
 
+# ╔═╡ c40745b2-01dd-42c0-9d5a-3a97d2cbd800
+begin
+	import TikzGraphs
+	using Graphs
+end
+
 # ╔═╡ be719382-bf1f-4442-8419-bddcda782525
 TableOfContents()
 
@@ -31,10 +37,10 @@ ChooseDisplayMode()
 # ╔═╡ 77535564-648a-4e17-83a0-c562cc5318ec
 md"""
 
-# Bayesian modelling
+# Bayesian predictions
 
 
-**Lecture 3. more Bayesian inference** 
+**Lecture 6. more Bayesian inference** 
 
 
 $(Resource("https://www.st-andrews.ac.uk/assets/university/brand/logos/standard-vertical-black.png", :width=>130, :align=>"right"))
@@ -49,678 +55,26 @@ Lei Fang (lf28@st-andrews.ac.uk)
 
 """
 
-# ╔═╡ 2057c799-18b5-4a0f-b2c7-66537a3fbe79
-md"""
-
-## In this lecture
-
-* Prior distribution choices
-  * some common distributions for priors
-
-
-
-
-* Conjugate inference 
-
-
-
-
-
-
-
-
-
-"""
-
-# ╔═╡ c677a2d2-f4be-483a-a53b-7b76efb1b80f
-md"""
-
-## Priors are useful
-
-Recall the coughing example
-
-* ``H``: the unknown cause ``h \in \mathcal{A}_H=\{\texttt{cold}, \texttt{cancer}, \texttt{healthy}\}`` 
-
-* ``\mathcal{D}``: the observed data is ``\mathcal{D} = \texttt{Cough}``
- 
-and we have used the **Prior:** ``P(H)``
-
-$$P(h) = \begin{cases} 0.8 & h=\texttt{healthy} \\
-0.18 & h=\texttt{cold}\\ 
-0.02 & h=\texttt{cancer}\end{cases}$$
-
-
-This is an **informative** prior
-
-* instead of a non-informative (say uniform distribution)
-* without the prior, the inference results would be wrong (it would be proportional to the likelihood)
-
-"""
-
-# ╔═╡ 56f2bb33-637c-4450-9769-f338937594da
-md"""
-
-## Priors are useful
-
-
-Priors serve useful functions in Bayesian inference
-* to formally incorporate expert knowledge into the statistical inference
-* regularisation effects 
-  * prevents overfitting
-  * priors contains information from the unseen data 
-
-"""
-
-# ╔═╡ 47359bc3-cfc2-4777-82f9-308e56dca491
-md"""
-
-## How to choose priors
-
-
-
-The first and foremost principle is 
-
-!!! note ""
-	**Priors with matching support**
-
-* that is, the prior distribution has the correct domain of the unknown parameters. 
-
-**Example** For the coin-flipping example
-
-* the unknown bias: ``\theta \in [0,1].`` 
-
-* therefore, a Gaussian distribution is not suitable
-
-
-## Suitable priors for ``\theta \in [0,1]``
-Some suitable priors are 
-
-* Uniform distribution between 0 and 1, 
-* truncated Gaussian (truncated between 0 and 1) 
-* or Beta distribution. The probability density functions are listed below together with their plots.
-
-```math
-
-\begin{align}
-p(\theta) &= \texttt{TruncNormal}(\mu, \sigma^2) \propto \begin{cases} \mathcal N(\mu, \sigma^2) & {0\leq \theta \leq 1} \\ 0 & \text{otherwise}  \end{cases}  \\
-p(\theta) &= \texttt{Uniform}(0,1) = \begin{cases} 1 & {0\leq \theta \leq 1} \\ 0 & \text{otherwise}  \end{cases} 
-
-\end{align}
-```
-"""
-
-# ╔═╡ 35311403-187a-4e23-9e52-7eb0a212452d
-let
-	σ = sqrt(0.1)
-	Plots.plot(TruncatedNormal(0.5, σ, 0., 1), lw=2, label=L"\texttt{TrunNormal}" *"(0.5, $(round((σ^2);digits=2)))", legend=:outerright, xlabel=L"\theta", ylabel=L"p(\theta)", title="Priors for "*L"θ\in [0,1]")
-	Plots.plot!(TruncatedNormal(0.25, σ, 0., 1), lw=2, label=L"\texttt{TrunNormal}"*"(0.25, $(round((σ^2);digits=2))))")
-	Plots.plot!(TruncatedNormal(0.75, σ, 0., 1), lw=2, label=L"\texttt{TrunNormal}"*"(0.75, $(round((σ^2);digits=2))))")
-	Plots.plot!(Uniform(0,1), lw=2, label=L"\texttt{Uniform}(0, 1)")
-end
-
-# ╔═╡ 9fa2c7bf-3fa2-4869-8515-fa0048fa3cd6
-md"""
-
-## Suitable priors for ``\theta > 0``
-
-
-Suppose we want to infer the variance ``\sigma^2`` of a Gaussian sample
-
-As the ``\sigma^2`` is a positive number: ``\sigma^2 >0``. 
-
-
-Some possible priors on the positive real line are 
-
-* e.g. Exponential distribution
-* Gamma
-* or Half-Cauchy
-
-"""
-
-# ╔═╡ ae234663-90b4-432d-bacb-188dd1ee1034
-let
-	xpltlim1= -1
-	xpltlim2 = 6
-	Plots.plot(xpltlim1:0.01:xpltlim2, Exponential(1),lw=1.5,  label=L"\texttt{Exponential}(1.0)", legend=:best, xlabel=L"\theta", ylabel=L"p(\theta)", title="Priors for "*L"σ^2\in (0,∞)")
-	Plots.plot!(xpltlim1:0.01:xpltlim2, Exponential(2),lw=1.5,  label=L"\texttt{Exponential}(2.0)")
-	Plots.plot!(xpltlim1:0.01:xpltlim2, Exponential(5), lw=1.5, label=L"\texttt{Exponential}(5.0)")
-	Plots.plot!(xpltlim1:0.01:xpltlim2, truncated(Cauchy(0, 1), lower= 0), lw=1.5, label=L"\texttt{HalfCauchy}(0, 1)")
-	# Plots.plot!(0:0.1:10, truncated(Cauchy(0, 2), lower= 0), label="HalfCauchy(0, 2)")
-	# Plots.plot!(0:0.1:10, truncated(Cauchy(0, 5), lower= 0), label="HalfCauchy(0, 5)")
-end
-
-# ╔═╡ d764a435-7e11-4736-a0d0-0f2d5265b7af
-md"""
-
-## Conjugate prior
-
-
-Conjugate priors are
-
-* such that posterior distribution is of the functional form
-  * we will see an example soon
-* computational cheap and simple 
-  * as the posterior will be of the closed form (usually)
-  * the inference/computation is just updating prior parameters
-
-
-
-Unfortunately, conjugate priors only exist in some very simple Bayesian models
-* not that important for the practical sense
-* but provides us insights into the purpose of priors
-
-
-## Example: Beta-Bernoulli model
-
-
-For the coin flipping example, the conjugate prior of the bias ``\theta`` is 
-
-```math
-p(\theta) = \texttt{Beta}(\theta; a_0, b_0) = \frac{1}{\text{B}(a_0, b_0)} \theta^{a_0-1}(1-\theta)^{b_0-1},
-```
-* ``a_0,b_0 >0`` are the prior's parameter 
-* and ``B(a_0,b_0)``, the beta function, is a normalising constant for the Beta distribution: 
-
-* *i.e.* ``\mathrm{B}(a_0, b_0) = \int \theta^{a_0-1}(1-\theta)^{b_0-1}\mathrm{d}\theta``. 
-
-
-"""
-
-# ╔═╡ 5aaf5221-e77b-4339-95c5-dc21bd815fc3
-md"""
-
-## Beta distribution
-
-
-A few Beta distributions with different parameterisations are plotted below. 
-
-* ``a_0=b_0=1``, the prior reduces to a uniform distribution. 
-* ``a_0> b_0``, e.g. ``\texttt{Beta}(5,2)``, the prior belief has its mode > 0.5,
-
-  * which implies the prior believes the coin is biased towards the head; 
-
-
-
-
-* ``a_0< b_0`` and vice versa.
-"""
-
-# ╔═╡ 047a8e19-54d4-454a-8635-8becd4b93061
-let
-	plot(Beta(1,1), xlims=[0,1], ylim=[0,3], xlabel=L"\theta", ylabel=L"p(\theta)",label=L"\texttt{Beta}(a_0=1,b_0=1)", linewidth=2, legend=:outerright, size=(600,300))	
-	plot!(Beta(0.5,0.5), xlims=[0,1], ylim=[0,3], label=L"\texttt{Beta}(a_0=.5,b_0=.5)", linewidth=2)
-	plot!(Beta(5,5), xlims=[0,1], ylim=[0,3], label=L"\texttt{Beta}(a_0=2,b_0=2)", linewidth=2)
-	plot!(Beta(5,2), xlims=[0,1], ylim=[0,3], label=L"\texttt{Beta}(a_0=5,b_0=2)", linewidth=2)
-	plot!(Beta(2,5), xlims=[0,1], ylim=[0,3], label=L"\texttt{Beta}(a_0=2,b_0=5)", linewidth=2)
-end
-
-# ╔═╡ 43cedf4c-65c4-4b2b-afb3-21f5827f2af6
-md"""
-## Example: Beta-Bernoulli model (cont.)
-
-
-A classic statistical inference problem
-
-> A coin 🪙 is tossed 10 times. 
-> * the tossing results are recorded:  $\mathcal D=\{1, 1, 1, 0, 1, 0, 1, 1, 1, 0\}$; 7 out of 10 are heads
-> * is the coin **fair**?
-
-
-"""
-
-# ╔═╡ 4e82a77d-af72-4653-aaa9-f7303e33c3ea
-md"""
-
-## Example: Beta-Bernoulli model (cont.)
-
-
-Recall the likelihood is 
-
-
-```math
-p(\mathcal{D}|\theta) = \prod_i p(d_i|\theta) =\theta^{\sum_n d_n} (1-\theta)^{N-\sum_n d_n} = \theta^{N_h} (1-\theta)^{N-N_h}
-```
-
-* assume ``n`` independent Bernoulli trial
-* ``N_h = \sum_i d_i`` is the total number of heads observed in the ``N`` tosses.
-
-
-
-Apply Baye's rule, we will find the posterior is still of a Beta form (therefore, the **conjugacy**)
-
-```math
-p(\theta|\mathcal D) = \texttt{Beta}(\theta; a_N, b_N) = \frac{1}{\text{B}(a_N, b_N)} \theta^{a_N-1}(1-\theta)^{b_N-1},
-```
-
-* where ``a_N= a_0 + N_h`` and ``b_N = b_0 + N - N_h``; and 
-
-
-"""
-
-# ╔═╡ e2673877-6536-4670-b5b7-b84c36503512
-Foldable("Details about Beta-Binomial model's conjugacy", md"
-Apply Baye's rule, we have 
-
-```math
-\begin{align}
-p(\theta|\mathcal D) &\propto p(\theta) p(\mathcal D|\theta) \\
-&= \frac{1}{\text{B}(a_0, b_0)} \theta^{a_0-1}(1-\theta)^{b_0-1} \theta^{\sum_n d_n} (1-\theta)^{N-\sum_n d_n}\\
-&= \theta^{a_0+ \sum_{n} d_n -1}(1-\theta)^{b_0+N-\sum_n d_n -1}\\
-&= \theta^{a_N -1}(1-\theta)^{b_N -1},
-\end{align} 
-```
-where ``a_N= a_0 + N_h`` and ``b_N = b_0 + N - N_h``.
-Next we needs to normalise the non-normalised posterior to find the exact posterior distribution. The normalising constant is:
-
-$$\int_{0}^1 \theta^{a_N -1}(1-\theta)^{b_N -1} d\theta$$
-
-We recognise the unnormalised distribution is a Beta distribution with the updated parameters ``a_N= a_0 + N_h`` and ``b_N = b_0 + N - N_h``; the normalising constant must be ``B(a_N, b_N)``. Therefore, 
-
-$$p(\theta|\mathcal D) =\text{Beta}(a_N, b_N).$$
-")
-
-# ╔═╡ 33714d50-a04e-41ad-844c-293ed9671163
-md"""
-
-## Example (cont.)
-
-
-For our example, 
-
-* we have observed ``N_h = 7`` number of heads in the 10 tosses. 
-
-
-* if a uniform prior is used ``p(\theta)= \texttt{Beta}(1, 1),``
-
-The updated posterior is then
-
-$$p(\theta|\mathcal D)= \texttt{Beta}(1+7, 1+3).$$
-
-
-
-"""
-
 # ╔═╡ 9308405d-36d0-41a1-8c73-e93b8d699320
 begin
 	𝒟 = [1, 0, 0, 1, 1, 1, 1, 1, 1, 0]
 	# 𝒟 = [0, 0]
-end
-
-# ╔═╡ c32714b7-fa1d-443c-a5a2-4a511fc701bd
-let
-	nh, nt = sum(𝒟), length(𝒟) - sum(𝒟)
-	plot(Beta(1,1), xlims=[0,1], label=L"p(\theta)= \texttt{Beta}(1,1)", linewidth=1, xlabel=L"\theta", ylabel="density" ,fill= true, lw=2, alpha=0.2, legend=:outerright, color=1, title="Conjugate posterior update")	
-	vline!([mean(Beta(1,1))], label="prior mean", lw=2, lc=1, ls=:dash)
-	plot!(Beta(1+nh,1+nt), xlims=[0,1], fill= true, lw=2, alpha=0.2, color=2, label=L"p(\theta|\mathcal{D})= \texttt{Beta}(8,4)", linewidth=2)
-	vline!([mean(Beta(1+nh,1+nt))], label="posterior mean", lw=2, lc=2, ls=:dash)
-end
-
-# ╔═╡ c74a488d-0e1a-4ddc-9d9b-fcb5e813d587
-md"""
-## Remarks
-
-
-Conjugate priors usually lead to very convenient posterior computation:
-
-$$a_N= a_0+ N_h\;\; b_N= b_0+N_t.$$ 
-
-* if we choose a truncated Gaussian prior, then the posterior distribution is much harder to compute
-  * we need to resort to advanced methods like Markov Chain Monte Carlo (MCMC).
-
-
-
-``a_N`` and ``b_N`` are the posterior counts of the heads and tails
-
-* we can interpret the prior parameters ``a_0, b_0`` as some pseudo observations contained in the prior distribution. 
-
-* for example, ``a_0=b_0=1`` implies the prior contains one pseudo count of head and tail each (therefore, the prior is flat). 
-
-
-"""
-
-# ╔═╡ fe47a810-cf29-4adf-a390-6f595b8f3ec9
-md"""
-## Informative vs Non-informative
-
-All priors can be largely classified into two groups: 
-
-* **informative** prior and 
-* **non-informative** prior.
-
-**Non-informative** prior, as the name suggests, contains no information in the prior and *let the data speak to itself*
-
-* for our coin-flipping case, a possible choice is a flat uniform prior: *i.e.* ``p(\theta) \propto 1`` when ``\theta\in[0,1]``. 
-
-
-**Informative** prior, on the other hand, contains the modeller's subjective prior judgement. 
-
-* if we believe our coin should be fair, we can impose an informative prior such as ``p(\theta) =\texttt{Beta}(n,n)``. e.g. ``n=5``: a stronger prior belief in the coin being fair.
-
-
-$(begin
-plot(Beta(1,1), lw=2, xlabel=L"\theta", ylabel="density", label=L"\texttt{Unif}(0,1)", title="Priors with different level of information", legend=:topleft)
-plot!(Beta(2,2), lw=2,label= L"\texttt{Beta}(2,2)")
-plot!(Beta(3,3), lw=2,label= L"\texttt{Beta}(3,3)")
-plot!(Beta(5,5), lw=2,label= L"\texttt{Beta}(5,5)")
-# vline!([0.5], lw=2, ls=:dash, label= "")
-end)
-
-
-### The posteriors
-
-After we observe ``N_h=7, N_t=3``, the posteriors can be calculated by updating the pseudo counts: 
-
-$$\texttt{Beta}(n+7, n+3)$$
-
-The corresponding posteriors 
-
-* together with their posterior means (thick dashed lines) are plotted below.
-
-$(begin
-nh, nt= 7, 3
-plot(Beta(1+7,1+3), lw=2,xlabel=L"\theta", ylabel="density", label=L"\texttt{Beta}(1+7,1+3)", title="Posteriors with different priors",legend=:topleft)
-plot!(Beta(2+7,2+3), lw=2,label= L"\texttt{Beta}(2+7,2+3)")
-plot!(Beta(3+7,3+3), lw=2,label= L"\texttt{Beta}(3+7,3+3)")
-plot!(Beta(5+7,5+3), lw=2,label= L"\texttt{Beta}(5+3,5+3)")
-vline!([mean(Beta(5+7, 5+3))], color=4, ls=:dash, lw=2, label="")
-vline!([mean(Beta(1+7, 1+3))], color=1, ls=:dash, lw=2, label="")
-vline!([mean(Beta(2+7, 2+3))], color=2, ls=:dash, lw=2, label="")
-vline!([mean(Beta(3+7, 3+3))], color=3, ls=:dash, lw=2, label="")
-end)
-"""
-
-# ╔═╡ 30ece808-4852-4cbd-84c5-7e8087753ad5
-md"""
-## Sequential update
-
-
-Conjugate prior also provides us with a simple procedure to do **sequential** inference
-
-
-* *sequential online learning:* update the posterior incrementally as data arrives
-
-```math
-\begin{align}
-p(\theta|\{d_1, d_2, \ldots, d_N\})&\propto  p(\theta) \prod_{n=1}^N p(d_n|\theta) p(d_N|\theta)\\
-&= \underbrace{p(\theta) \prod_{n=1}^{N-1} p(d_n|\theta)}_{p(\theta|\mathcal D_{N-1})}\cdot p(d_N|\theta)\\
-&= \underbrace{p(\theta|\mathcal D_{N-1})}_{\text{new prior}} p(d_N|\theta).
-\end{align}
-```
-
-* *yesterday's posterior becomes today's prior*
-
-## Sequential update*
-
-To be more specific, the sequential update algorithm is:
-
----
-Initialise with a prior ``p(\theta|\emptyset)= \texttt{Beta}(a_0, b_0)``
-
-For ``n = 1,2,\ldots, N``:
-* update 
-
-$$a_n = a_{n-1} + \mathbf{1}(d_n=\texttt{head}), \;\; b_n = b_{n-1} +  \mathbf{1}(d_n=\texttt{tail})$$
----
-
-Note that the function ``\mathbf{1}(\cdot)`` returns 1 if the test result of the argument is true and 0 otherwise. 
-
-## Demonstration: 200 coin tosses
-
-"""
-
-# ╔═╡ 9638d082-5b61-4051-912b-fc263abeb239
-begin
-	# simulate 200 tosses of a fair coin
-	N_tosses = 200
-	true_θ = 0.5
-	Random.seed!(100)
-	coin_flipping_data = rand(N_tosses) .< true_θ
-	Nh = sum(coin_flipping_data)
-	Nt = N_tosses- Nh
 end;
-
-# ╔═╡ 997d45bf-cdbf-4881-b823-ebb7d9ec19db
-let
-	a₀, b₀ = 1, 1
-	prior_θ = Beta(a₀, b₀)
-	plot(prior_θ, xlim = [0, 1], lw=2, fill=(0, 0.1), label="Prior "* L"p(\theta)", xlabel=L"\theta", ylabel="density", title="Sequential update N=0", legend=:topleft)
-	plot!(Beta(a₀ + Nh, b₀+ Nt), lw=2, fill=(0, 0.1), label="Posterior "* L"p(\theta|\mathcal{D})")
-	vline!([true_θ], label="true "*L"θ", lw=4, lc=3)
-	an = a₀
-	bn = b₀
-	anim=@animate for n in 1:N_tosses
-		# if the toss is head, update an
-		if coin_flipping_data[n]
-			an += 1
-		# otherwise
-		else	
-			bn += 1
-		end
-		poster_n = Beta(an, bn)
-		# plot every 5-th frame
-		if (n % 5) == 0
-			plot!(poster_n, lw=1, label="", title="Sequential update with observation N=$(n)")
-		end
-	end
-	gif(anim, fps=15)
-end
-
-# ╔═╡ 9bbfb923-1448-45c9-8091-bfd86c4d54bb
-md"""
-
-## More conjugate example: Gamma-Gaussian
-
-Consider the problem
-> Given i.i.d observations from a zero mean Gaussian 
-> $\mathcal D=\{d_i\}_{i=1}^n$;
->
-> $d_i \sim \mathcal{N}(\mu, \sigma^2)$
-> * infer the variance ``\sigma^2`` of the Gaussian
-> * assume ``\mu`` is known
-
-
-"""
-
-# ╔═╡ 63f39880-d150-44fe-8c02-d3dc9b4deb1f
-md"""
-
-* it is more convenient to model the precision 
-
-$\phi\triangleq 1/\sigma^2$ 
-
-* a conjugate prior for ``\phi`` is Gamma distribution
-  * note that Gamma distributions have support on the positive real line which is required here
-
-
-## Aside: MLE for ``\sigma^2`` and ``\phi``
-
-It can be shown that the MLE for ``\hat{\sigma}^2`` is
-
-```math
-\hat{\sigma}^2 = \frac{\sum_{n} (d_n- \mu)^2}{N}
-```
-
-
-* sum of squared errors divided by ``N``
-
-Therefore, the MLE for ``\phi`` is 
-
-```math
-\hat{\phi} = \frac{N}{\sum_{n} (d_n- \mu)^2}
-```
-
-
-
-
-## Aside: Gamma distribution
-
-A Gamma distribution, parameterised with a shape  ``a_0>0``,  and a rate parameter ``b_0>0``
-
-```math
-p(\phi; a_0, b_0) = \texttt{Gamma}(\phi; a_0, b_0)=\frac{b_0^{a_0}}{\Gamma(b_0)} \phi^{a_0-1} e^{-b_0\phi}.
-```
-
-* we will interpret ``a_0``, ``b_0`` in a bit
-
-
-!!! info ""
-	The mean of a Gamma distribution is 
-
-	$$\mathbb{E}[\phi] = \frac{a_0}{b_0}$$
-"""
-
-# ╔═╡ 898a0670-d5bb-42f9-8afd-c3a51c426065
-let
-	as_ = [1,2,3,5,9,7.5,0.5]
-	bs_ = [1/2, 1/2, 1/2, 1, 1/0.5, 1, 1]
-	plt= plot(xlim =[0,20], ylim = [0, 0.8], xlabel=L"\phi", ylabel="density")
-	for i in 1:length(as_)
-		plot!(Gamma(as_[i], 1/bs_[i]), fill=(0, .1), lw=1.5, label=L"\texttt{Gamma}"*"($(as_[i]),$(bs_[i]))")
-	end
-	plt
-end
-
-# ╔═╡ cf7b36c9-1c78-4ef6-bd06-2590b67c3703
-md"""
-## Conjugacy
-**Conjugacy.** The data follow a Gaussian distribution. That is for ``n = 1,2,\ldots, N``:
-```math
-d_n \sim \mathcal N(\mu, 1/\phi);
-```
-* the likelihood, therefore, is a product of Gaussian likelihoods:
-
-```math
-p(\mathcal D|\mu, \phi) = \prod_{n=1}^N p(d_n|\mu, \phi) = \prod_{n=1}^N \mathcal N(d_n; \mu, 1/\phi) .
-```
-
-By Baye's rule, the posterior
-
-```math
-
-p(\phi|\mathcal D, \mu) \propto p(\phi) p(\mathcal D|\mu, \phi)
-
-```
-* the posterior is still of a Gamma form (therefore conjugate): 
-
-```math
-p(\phi|\mathcal D, \mu) = \texttt{Gamma}(a_N, b_N),
-```
-* where 
-
-$a_N= a_0 +\frac{N}{2}, \;\;b_N = b_0 + \frac{\sum_{n} (d_n- \mu)^2}{2}.$
-
-
-
-* The Bayesian computation reduces to **hyperparameter update** again 
-
-
-## Intepretation
-
-The posterior is: 
-
-```math
-p(\phi|\mathcal D, \mu) = \texttt{Gamma}(a_N, b_N),
-```
-* where 
-
-$a_N= a_0 +\frac{N}{2}, \;\;b_N = b_0 + \frac{\sum_{n} (d_n- \mu)^2}{2}.$
-
-
-Therefore, it is not hard to see
-* ``a_N``: the updated observation counts (divided by 2)
-* ``b_N``: the updated sum of squared errors (divided by 2)
-
-Also note the posterior mean is 
-
-$$\mathbb{E}[\phi|\mathcal D] = \frac{a_N}{b_N} = \frac{a_0 + N/2}{b_0 + {\sum_n (d_n -\mu)^2}/{2}}.$$
-
-* if we assume ``a_0= b_0=0`` (an improper  prior), the maximum likelihood estimator for ``{\sigma^2} is recovered``
-
-$$\hat \sigma^2 =1/\hat{\phi} = \frac{\sum_n (d_n-\mu)^2}{N}$$
-
-"""
-
-# ╔═╡ e1bb37e8-d3b5-416f-b90a-fb611864b402
-Foldable("Derivation details on the Gamma-Gaussian conjugacy.", md"
-```math
-\begin{align}
- p(\phi|\mathcal D)&\propto p(\phi) p(\mathcal D|\mu, \phi)\\
-&= \underbrace{\frac{b_0^{a_0}}{\Gamma(a_0)} \phi^{a_0-1} e^{-b_0 \phi}}_{p(\phi)} \underbrace{\frac{1}{ (\sqrt{2\pi})^N}\phi^{\frac{N}{2}}e^{\frac{-\phi\cdot \sum_{n} (d_n-\mu)^2}{2}}}_{p(\mathcal D|\phi, \mu)}\\
-&\propto \phi^{a_0+\frac{N}{2}-1} \exp\left \{-\left (b_0 + \frac{\sum_{n} (d_n- \mu)^2}{2}\right )\phi\right \} \\
-&= \phi^{a_N-1} e^{- b_N \phi}, 
-\end{align}
-```
-where ``a_n= a_0 +\frac{N}{2}, \;\;b_N = b_0 + \frac{\sum_{n} (d_n- \mu)^2}{2}.`` Note this is a unnormalised Gamma distribution (whose normalising constant can be read off directly from a Gamma distribution), therefore 
-
-
-$$p(\phi|\mathcal D)= \text{Gamma}(a_N, b_N).$$
-
-")
-
-# ╔═╡ 4f4882c5-bd3f-4fbe-8a59-cafc5d365d99
-md"""
-
-## Demonstration
-
-
-**Demonstration:** We first simulate ``N=100`` Gaussian observations with 
-
-* unknown ``\mu=0`` and 
-* ``\phi= 1/\sigma^2 = 2``.
-
-"""
-
-# ╔═╡ 78bd6dea-8bcb-408f-9dc3-8a34907a4566
-begin
-	σ² = 0.5
-	true_ϕ = 1/σ²
-	N = 100
-	Random.seed!(100)
-	# Gaussian's density in Distributions.jl is implemented with standard deviation σ rather than σ²
-	gaussian_data = rand(Normal(0, sqrt(σ²)), N)
-	plot(Normal(0, sqrt(σ²)), xlabel=L"d", ylabel="density", label=L"\mathcal{N}(0, 1/2)", title="Simulated Gaussian observations")
-	scatter!(gaussian_data, 0.01 .* ones(N), markershape=:vline, c=1, label=L"d_n")
-end
-
-# ╔═╡ 42603c08-01de-4036-928a-d6a9c2dffbb3
-gaussian_data
-
-# ╔═╡ 83586a99-02e5-42e3-83b2-2d90d3d3e396
-md"""
-* a vague Gamma prior with ``a_0=b_0=0.5``; 
-
-* and the posterior is ``\texttt{Gamma}(a_0+ 100/2, b_0+ \texttt{sse}/2)`` 
-"""
-
-# ╔═╡ 644cbe41-2027-4e3f-a31f-c656a1158466
-begin
-	a₀ = 0.5
-	b₀ = 0.5
-	# Gamma in Distributions.jl is implemented with shape and scale parameters where the second parameter is 1/b 
-	prior_ϕ = Gamma(a₀, 1/b₀)
-	posterior_ϕ = Gamma(a₀+ N/2, 1/(b₀+ sum(gaussian_data.^2)/2))
-end;
-
-# ╔═╡ 1a483bed-1639-41b4-ad7f-40b009bd45a9
-let
-	plot(prior_ϕ, xlim = [0, 5], ylim=[0, 1.5], lw=2, fill=(0, 0.2), label="Prior "* L"p(\phi)", xlabel=L"\phi", ylabel="density", title="Conjugate inference of a Gaussian's precision")
-
-	plot!(posterior_ϕ, lw=2,fill=(0, 0.2), label="Posterior "* L"p(\phi|\mathcal{D})")
-	vline!([true_ϕ], label="true "*L"\phi", lw=4)
-	vline!([mean(prior_ϕ)], label="prior mean", lw=2, lc=1, ls=:dash)
-	vline!([mean(posterior_ϕ)], label="posterior mean", lw=2, lc=2, ls=:dash)
-	# vline!([1/σ²], label="true "*L"λ", lw=2)
-	# end
-end
 
 # ╔═╡ 29a49584-3a52-410e-8f15-1d9293955826
 md"""
 
-# Bayesian predictive checks
+# Bayesian predictions
 
 ## This time
 
-* Predictive distributions and their checks 
+* #### Bayesian predictive distributions 
+
+$$\Large p(y|\mathcal{D})\;\;\;\# \text{Bayesian posterior prediction}$$
+
+
+* #### Predictive checks 
+
   * prior predictive check
   * posterior predictive check
 
@@ -735,108 +89,331 @@ md"""
 ## Prediction 
 
 
-
-In many applications, we also want to make predictions based on observations ``\mathcal{D}``
-
-
-**Bayesian prediction** 
-* routinely applies probability rules
-* aims at computing the following distribution
+#### *Bayesian prediction*
+* ##### aims at computing posterior distribution
 
 ```math
-p(\mathcal{D}_{pred}|\mathcal{D})
+\Large p(\mathcal{D}_{pred}|\mathcal{D})
 ```
 
 
-**Frequentist prediction**
-* usually employs the *plug-in* principle
-* plug in the estimated parameter to the likelihood
+#### *Frequentist prediction*
+* ##### usually employs the *plug-in* principle
 ```math
-p(\mathcal{D}_{pred}|\theta_{ML})
+\Large p(\mathcal{D}_{pred}|\theta_{ML})
 ```
 
 """
 
-# ╔═╡ df3c6bd8-e81f-4ccb-b0d1-98832e41537f
+# ╔═╡ 7a27f63d-b1d6-406b-8b7a-70e9347b8174
+begin
+	g = DiGraph(3)
+	add_edge!(g, 1, 2)
+	add_edge!(g, 1, 3)
+	# add_edge!(g, 1, 3)
+	graphplt = TikzGraphs.plot(g, [L"\textit{Coin}", L"Y_1", L"Y_2"], options="scale=2, font=\\Huge", node_style="draw", graph_options="nodes={draw,circle}")
+end;
+
+# ╔═╡ 8d41ad5e-350b-409b-97ac-640bd8b1bad5
 md"""
 
-## Prediction -- example
-
-Let's use the coughing case as an example again
-
-* the observation: ``\mathcal{D} = \texttt{Cough}``
-
-**Prediction:** he is going to **cough** **again**
-
-```math
-p(\texttt{Cough}_{again}|\texttt{Cough})
-```
+## Example -- coin guess
 
 
-* for prediction, we can introduce an unobserved node to our graph
+!!! problem "Coin guess -- predict next toss"
+	##### Two coins in an urn
+	* ##### Coin 1 fair: $p_{1}= 0.5$
+	* ##### Coin 2 bent: $p_2=0.01$ (very *unlikely* to observe ``\texttt{h}``)
+	##### Randomly pick one coin and toss it *twice* and observe
+
+	$$\Large Y_1 = \texttt{t}$$
+	* ##### what is $Y_2$ ?
+	
+
 """
 
-# ╔═╡ 5440ceb3-b791-4935-8b59-339010546090
-html"<center><img src='https://leo.host.cs.st-andrews.ac.uk/figs/cough_pred_bn.png' width = '250' /></center>"
-
-# ╔═╡ 8c763ff2-cfda-49a6-b0ce-d5530f665971
+# ╔═╡ 288c5949-d24a-4d42-a08b-b6600b5012f5
 md"""
 
-Bayesian routinely applies probability rules to compute
+| |
+| --- |
+| $(graphplt)|
+"""
+
+# ╔═╡ 8834e7a7-20f6-4abd-81d1-b2f74ee03367
+md"""
+
+## Frequentist approach
+
+
+##### Since we observe a tail
+* ###### so it is probably more likely the bent coin has been used
+* indeed, based on **MLE** 
+
+$$\large P(Y_1= \texttt t|C) = \begin{cases}0.5 & C=1 \\ 0.99 & C=2\end{cases}$$ 
+
+$$\large \hat{C}_{MLE} = \arg\max_{c} P(Y_1= \texttt t|C)  =  2$$
+
+"""
+
+# ╔═╡ 418d4290-b598-4e23-a9c1-02508c64c70b
+md"""
+## Frequentist approach (a bad approach!)
+
+### Let's try to be "clever"
+
+
+##### 1. one first finds the most likely coin choice ``C`` based on ``Y_1=\texttt{t}``:
 
 ```math
-\begin{align}
-p(\texttt{cough}_{\text{again}} |\texttt{caugh}) &\propto p(\texttt{cough}_{\text{again}} , \texttt{caugh}) \\
-&= \sum_{h} p(h, \texttt{cough}_{\text{again}} , \texttt{caugh}) \\
-&= \sum_{h} p(\texttt{cough}_{\text{again}}|h) \underbrace{p(\texttt{cough}|h) p(h)}_{= p(h, \texttt{cough})\propto \; p(h|\texttt{cough})} \\
-&= \sum_{h} p(\texttt{cough}_{\text{again}}|h) p(h|\texttt{cough})
-\end{align}
+\Large
+\hat C \leftarrow \arg\max_c P(Y_1|C=\texttt{t})
 ```
 
 
-## Remarks
+And recall for our problem, 
 
-**Bayesian** prediction is
+$$\Large \hat{C}_{MLE} = \arg\max_{c} P(Y_1= \texttt t|C)  =  2$$
+
+* ``\hat{C}_{MLE} = 2``, *i.e.* the second (bent) coin is most likely to have been used
+
+
+##
+
+##### 2. then predict by treating ``\hat C=2`` as a gospel!
 
 ```math
-\begin{align}
-p(\texttt{cough}_{\text{again}} |\texttt{caugh}) 
-&= \sum_{h} p(\texttt{cough}_{\text{again}}|h) p(h|\texttt{cough})
-\end{align}
+\Large
+P(Y_2|C=\hat{C}_{MLE})= \begin{cases} 0.01 & Y_2= \texttt{h} \\ 0.99 & Y_2=\texttt{t}\end{cases}
 ```
 
 
-* the prediction is an ensemble prediction, *i.e.* balanced and **weighted average**
+#### Any problem with this approach?
 
-* each unknown hypothesis ``h\in \{\texttt{cancer}, \texttt{healthy}, \texttt{cold}\}`` is used to make a prediction for another ``\texttt{cough}_{\text{again}}``
-
-* each prediction is weighted by its corresponding posterior ``p(h|\texttt{cough})``
+## 
 
 
-In comparison, the **frequentist** plug-in method's predictions are 
+#### Any problem with this approach?
+
+!!! note "The problem with optimisation approach"
+	The uncertainty associated with ``P(C|Y_1 =\texttt{t})`` is ignored! 
+    * It is not yet conclusive that coin 2 is 100% used at all!
+	* the prediction almost rules out the possibility of observing ``Y_2=\texttt{h}`` after only observing one ``\texttt{t}``
+    * it is also known as overfitting in machine learning 
+"""
+
+# ╔═╡ fa6c61d0-a68f-46bf-b974-ecb5997e5590
+md"""
+
+
+## How to do better ?
+
+
+### _Do not try to be clever_ (_or be Bayesian!_)
+
+
+
+* #### What's Bayesian?  _just compute the posterior like a dumb_
+
+
+
+$$\large \begin{align}P(Y_2|Y_1=y_1) &= \sum_{c=1,2} P(Y_2, C=c|Y_1=y_1) \\
+&=\sum_{c=1,2} P(Y_2|Y_1=t, C=c) P(C=c|Y_1=y_1)\\
+&=\sum_{c=1,2} P(Y_2|\cancel{Y_1=t,} C=c) P(C=c|Y_1=y_1)\\
+&=\sum_{c=1,2} P(Y_2|C=c) P(C=c|Y_1=y_1)
+\end{align}$$ 
+
+
+
+"""
+
+# ╔═╡ 1c2d09e9-7f18-400e-b77d-e740720de545
+md"""
+
+
+## How to do better ?
+
+
+### _Do not try to be clever_ (_or be Bayesian!_)
+
+
+
+* #### What's Bayesian?  _just compute the posterior like a dumb_
+
+
+
+$$\Large \begin{align}P(Y_2|Y_1=y_1) &= ?
+\end{align}$$ 
+
+
+
+"""
+
+# ╔═╡ 8767f2b2-00af-4a7b-9820-1071b1a4144c
+md"""
+
+
+## How to do better ?
+
+
+### _Do not try to be clever_ (_or be Bayesian!_)
+
+
+
+* #### What's Bayesian?  _just compute the posterior like a dumb_
+
+
+
+$$\Large \begin{align}P(Y_2|Y_1=y_1) &= \sum_{c=1,2} P(Y_2, C=c|Y_1=y_1) \\
+\end{align}$$ 
+
+
+
+"""
+
+# ╔═╡ 86a8cc49-2c80-4eeb-963e-fdf49b95bcd7
+md"""
+
+
+## How to do better ?
+
+
+### _Do not try to be clever_ (_or be Bayesian!_)
+
+
+
+* #### What's Bayesian?  _just compute the posterior like a dumb_
+
+
+
+$$\Large \begin{align}P(Y_2|Y_1=y_1) &= \sum_{c=1,2} P(Y_2, C=c|Y_1=y_1) \\
+&=\sum_{c=1,2} P(Y_2|Y_1=y_1, C=c) P(C=c|Y_1=y_1)\\
+&=\sum_{c=1,2} P(Y_2|\cancel{Y_1=y_1,} C=c) P(C=c|Y_1=y_1)\\
+\end{align}$$ 
+
+
+
+"""
+
+# ╔═╡ 2688b341-9f9c-4181-82fa-cff6aee8fa89
+md"""
+
+
+## How to do better ?
+
+
+### _Do not try to be clever_ (_or be Bayesian!_)
+
+
+
+* #### What's Bayesian?  _just compute the posterior like a dumb_
+
+
+
+$$\Large \begin{align}P(Y_2|Y_1=y_1) &= \sum_{c=1,2} P(Y_2, C=c|Y_1=y_1) \\
+&=\sum_{c=1,2} P(Y_2|Y_1=y_1, C=c) P(C=c|Y_1=y_1)\\
+&=\sum_{c=1,2} P(Y_2|\cancel{Y_1=y_1,} C=c) P(C=c|Y_1=y_1)\\
+&=\sum_{c=1,2} P(Y_2|C=c) P(C=c|Y_1=y_1)
+\end{align}$$ 
+
+
+
+"""
+
+# ╔═╡ b348651b-03c8-42e6-835a-9be6b439137e
+md"""
+
+## Comparison
+
+#### Bayesian prediction
 
 ```math
-p(\texttt{cough}_{\text{again}} | h = \hat{h}_{\text{MLE}}= \texttt{cancer})
+\Large
+P(Y_2|Y_1=\texttt{t}) =\begin{cases} 0.174 & Y_2= \texttt h \\ 0.826 & Y_2=\texttt t\end{cases}
+
 ```
 
-* prediction by a single *point* hypothesis
+#### Frequentist (plug-in) prediction
+```math
+\Large
+P(Y_2|C=\hat{C}_{MLE})= \begin{cases} 0.01 & Y_2= \texttt{h} \\ 0.99 & Y_2=\texttt{t}\end{cases}
+```
+
+"""
+
+# ╔═╡ f2c9db4a-9a44-45a7-b2cf-ab3541efd06d
+md"""
+
+
+## Why Bayesian is better ?
+
+
+
+
+
+$$\large \begin{align}P(Y_2|Y_1&=y_1) 
+= \sum_{c=1,2} {P(C=c|Y_1=y_1)} P(Y_2|C=c) \\
+&=\textcolor{red}{\underbrace{{P(C=1|Y_1=y_1)}}_{\color{red}\text{how likely coin 1 used?}}}\;  \textcolor{blue}{\underbrace{\textcolor{blue}{P(Y_2|C=1)}}_{\text{coin 1's prediction}}} \\
+&\quad\quad\quad\quad\quad\quad\quad\quad+ \\
+&\;\;\;\;\;\textcolor{red}{\underbrace{{P(C=2|Y_1=y_1)}}_{\text{how likely coin 2 used?}} }\; \textcolor{blue}{\underbrace{ \textcolor{blue}{P(Y_2|C=2)}}_{\text{coin 2's prediction}}}
+\end{align}$$ 
+
+##### Interpretation of ``P(Y_2|Y_1=y_1)``: a _weighted average_
+
+* **two ways to predict** of ``Y_2``, *i.e. coin 1 and 2*
+
+$\large\color{blue}P(Y_2|C=1);\; P(Y_2|C=2)$
+
+
+* **the weights** are ``P(C|Y_1=y_1)``
+$\large\color{red}P(C=1|Y_1=y_1);\; P(C=2|Y_1=y_1)$
+
+
+* ###### both coin choices are used to make a _prediction_ and weighted by their posteriors
+"""
+
+# ╔═╡ cea2f21a-59df-4326-a553-03b152be8954
+md"""
+
+
+## How to do better ?
+
+\
+
+### The answer is simple: 
+\
+
+
+> ### _DO NOT_ try to be clever 
+> ### ``\quad\quad`` _strictly_ follow the two probability rules!
+> ### ``\quad\quad`` which is the Bayesian approach
+
+
 """
 
 # ╔═╡ b13d76bf-f559-4842-bdfa-78953d74d69a
 md"""
 
-## Why Bayesian prediction is better?
+## One more example
 
 
-Consider the coin flipping example, supposed we have observed data
+#### _More generalised coin guess_
+* ##### infinite number of coins in the urn 
+* ##### each coin has a unique bias $\theta \in [0,1]$
 
-> A coin 🪙 is tossed 2 times. 
+
+####
+
+> #### A coin 🪙 drawn from the urn is tossed 2 times. 
 > * the tossing results are recorded:  $\mathcal D=\{0,0\}$; 0 out of 2 are heads
 > * **predict** the next toss?
 """
 
 # ╔═╡ 37a564d5-8c46-462e-8d3d-45b93ff1d3e4
 md"""
+
+##
+
 **Frequentist's prediction** is based on plug-in principle
 
 The MLE is
@@ -873,68 +450,68 @@ $$P(Y_{N+1}|\theta = \hat{\theta}_{\text{ML}})=\begin{cases} 0 & Y_{N+1} =1 \\ 1
 # ╔═╡ 80400b4b-b130-4719-957a-4c92b556916a
 md"""
 
-## Why Bayesian is better?
+## Bayesian prediction
 
-
-The Bayesian instead computes the integration
+##### The Bayesian computes the posterior by integration
 
 
 ```math
-p(y_{N+1} | \mathcal{D}) = \int_\theta p(y_{N+1}|\theta) p(\theta|\mathcal{D})d\theta
+\large p(y_{N+1} | \mathcal{D}) = \int_\theta p(y_{N+1}|\theta) p(\theta|\mathcal{D})d\theta
 ```
 
 
-* which is a weighted average overall ``\theta``
+* ##### which is still a weighted average overall ``\theta``
 
-* the integration can be computed in closed form if we use conjugate prior
-
-**Bayesian prediction**
 ```math
+\large 
 p(y_{N+1}=1 | \mathcal{D}) = \frac{a_N}{a_N + b_N} =\frac{a_0 + N_h}{a_0+b_0 + N}
 ```
 
 * very simple, add *one pseudo* counts to ``N_h`` and ``N_t``
 
 
-For our case, 
+##### For our case, 
 
 ```math
+\large 
 p(y_{N+1}=1 | \mathcal{D}) = \frac{1 + 0}{2 + 2} = \frac{1}{4}
 ```
 
-* makes better sense! we have only observed two zeros after all!
 """
 
 # ╔═╡ f2912738-1b91-4227-a94f-c61a33a63819
 md"""
 
-## Generalisation
+## Generalisation 
 
 
 Bayesian predictive distribution, in general, can be found by applying the sum rule,
 
 ```math
-
+\large
 p(\mathcal D_{pred}|\mathcal D, \mathcal M) = \int p(\mathcal D_{pred}, \theta|\mathcal D, \mathcal M) \mathrm{d}\theta=  \int p(\mathcal D_{pred} |\theta, \mathcal D, \mathcal M) p(\theta|\mathcal D, \mathcal M) \mathrm{d}\theta
 
 ```
 
 * ``\mathcal{M}``: the model assumption
-* in which the unknown parameters ``\theta`` are integrated out
+* ``\mathcal{D}_{pred}``: predict a bunch rather than a single observation
 
-* assuming that past and future observations are conditionally independent given  ``\theta``, *i.e.* 
+## Generalisation 
 
-$p(\mathcal D_{pred} |\theta, \mathcal D, \mathcal M) = p(\mathcal D_{pred} |\theta, \mathcal M)$
+
+Assume that past and future data are conditionally independent given  ``\theta``, *i.e.* 
+
+$\large p(\mathcal D_{pred} |\theta, \mathcal D, \mathcal M) = p(\mathcal D_{pred} |\theta, \mathcal M)$
 
 The above equation can be written as:
 
 ```math
-
+\Large
 p(\mathcal D_{pred}|\mathcal D, \mathcal M) = \int p(\mathcal D_{pred} |\theta, \mathcal M) p(\theta|\mathcal D, \mathcal M) \mathrm{d}\theta
 
 ```
 
-* Bayesian prediction is an ensemble method by nature 
+* ##### Bayesian prediction is an ensemble method by nature 
 """
 
 # ╔═╡ b572e185-d88e-47d5-a3f3-1e25f2a6ca10
@@ -945,7 +522,7 @@ md"""
 **Posterior predictive distribution:**
 
 ```math
-
+\large
 p(\mathcal D_{pred}|\mathcal D, \mathcal M) =  \int p(\mathcal D_{pred} |\theta, \mathcal M) \underbrace{p(\theta|\mathcal D, \mathcal M) }_{\text{posterior}}\mathrm{d}\theta
 
 ```
@@ -956,7 +533,7 @@ A related concept is **Prior predictive distribution**
 
 
 ```math
-
+\large
 p(\mathcal D_{pred}|\mathcal M) =  \int p(\mathcal D_{pred} |\theta, \mathcal M) \underbrace{p(\theta|\mathcal M) }_{\text{prior}}\mathrm{d}\theta
 
 ```
@@ -1004,7 +581,7 @@ md"""
 ## Example
 
 
-For the coughing example
+For the coin guess example
 
 
 !!! warn ""
@@ -1012,10 +589,10 @@ For the coughing example
 	
 	1. Draw one sample from the posterior (or the prior for prior predictive):
 
-	$$\tilde h \sim p(h|\text{cough})$$
-	2. Conditioning on ``\tilde h``, simulate pseudo observations: 
+	$$\tilde c \sim p(C|Y_1 = \texttt{t})$$
+	2. Conditioning on ``\tilde C=\hat{c}``, simulate pseudo observations: 
 
-	$$\texttt{cough}\sim p(\texttt{cough}_{again}|\tilde{h})$$
+	$${y_2}\sim p(Y_2|C = \hat{c})$$
 
 """
 
@@ -1026,7 +603,7 @@ md"""
 For the conjugate coin-flipping model, the simulation is straightforward 
 
 
-* both the prior and posterior distributions ``p(\theta|\mathcal M)`` (or ``p(\theta|\mathcal M)``) are Beta 
+* both the prior and posterior distributions ``p(\theta|\mathcal M)`` (or ``p(\theta|\mathcal M, \mathcal{D})``) are Beta 
 
 * it is also easy to simulate coin flip observations conditional on the bias ``\theta`` 
 
@@ -1045,17 +622,17 @@ y_new = rand(Bernoulli(θ))
 """
 
 # ╔═╡ 12fe751d-8ef4-4cdf-b5e5-a901a1556924
-md"""
+# md"""
 
 
-## Demonstration
-"""
+# ## Demonstration
+# """
 
 # ╔═╡ 8cf29145-aed3-47e6-a209-369ac393e0e3
 begin
 	R = 5000
 	a0, b0 = 1, 1
-	# nh, nt = sum(𝒟), length(𝒟) - sum(𝒟)
+	nh, nt = sum(𝒟), length(𝒟) - sum(𝒟)
 	an, bn = a0 + nh, b0 + nt
 
 	y_pred = zeros(Bool, R)
@@ -1064,117 +641,147 @@ begin
 		y_pred[r] = rand(Bernoulli(θ))
 	end
 	y_pred
-end
+end;
 
 # ╔═╡ 0ad979b7-8ecb-44c7-958f-be9a78a22553
-md"""
+# md"""
 
-There is a closed-form solution for the Beta-Bernoulli case
-* this is one of the rare examples that we know how to compute the integration
+# There is a closed-form solution for the Beta-Bernoulli case
+# * this is one of the rare examples that we know how to compute the integration
 
 
-```math
-p(y_{N+1}|\mathcal{D}) = \begin{cases}
-\frac{a_N}{a_N + b_N} & y_{N+1} = \texttt{true}\\
-\frac{b_N}{a_N + b_N} & y_{N+1} = \texttt{false}
-\end{cases}
-```
-"""
+# ```math
+# p(y_{N+1}|\mathcal{D}) = \begin{cases}
+# \frac{a_N}{a_N + b_N} & y_{N+1} = \texttt{true}\\
+# \frac{b_N}{a_N + b_N} & y_{N+1} = \texttt{false}
+# \end{cases}
+# ```
+# """
 
 # ╔═╡ 3cb9bb88-d560-4403-b67e-7469f6eddcac
-md"""
+# md"""
 
 
-The Monte Carlo method should be very close to the ground truth
-"""
+# The Monte Carlo method should be very close to the ground truth
+# """
 
 # ╔═╡ 40c740a4-5385-4211-ac86-3c9f0c17b7ff
-mean(y_pred), an/(an+bn)
+# mean(y_pred), an/(an+bn)
 
 # ╔═╡ cd01a246-5e97-4231-a8dc-b2931d151b2f
 md"""
 
-## Model checks via predictive distributions
+## Model checks 
+
+### Why model checks?
+
+\
+
+##### *Bayesian inference*: a lot of modelling choices to make
 
 
-
-Bayesian inference provides a great amount of modelling freedom to its user
-
-
-* one can choose prior distribution to incorporate his knowledge
+* ##### prior distributions
 
 
-* and also choose a suitable likelihood that best matches the data generation process. 
+* ##### suitable likelihood model
 
 
-* however, greater flexibility comes with a price: the modeller also needs to take full responsibility for the modelling decisions 
+## Model checks
+
+> #### Does the Bayesian model's assumption make sense ?
 
 
-For example, whether 
+#### *For example*, **whether** 
 
-* the chosen prior (with its parameters) makes sense;
-* the generative model as a whole (*i.e.* prior plus likelihood) match the observed data? 
+* ##### the prior (with its parameters) makes sense;
+* ##### the generative model as a whole (*i.e.* prior plus likelihood) match the observed data? 
+
+\
 
 
-In other words, we need to **validate the model** 
-
-* **Predictive checks** are a great way to empirically validate a model's assumptions.
+#### *Predictive checks*: empirically validate a model's assumptions.
 
 """
 
 # ╔═╡ a7fcf38b-05c3-4db8-8615-44b93d6d43aa
 md"""
 
+
 ## Predictive checks
 
 
-The idea of predictive checks is to 
+
+#### *The idea*:
+
+##### Generate *pseudo observations* based on *predictive distribution*
+$$\Large \mathcal{D}^{(r)} \sim p(\mathcal D_{\textit{pred}}|\mathcal D, \mathcal M), \;\; \text{for }r= 1\ldots, R$$ 
+  * where ``\mathcal D`` is the observed data and ``\mathcal M`` denotes the Bayesian model.  
+  * note that ``\mathcal{D}^{(r)}`` should be of **the same size** as ``\mathcal{D}``
 
 
 
-**First**, generate future *pseudo observations* based on the assumed model's (prior or posterior) **prediction distribution**:
+## Predictive checks
 
-$$\mathcal{D}^{(r)} \sim p(\mathcal D_{\textit{pred}}|\mathcal D, \mathcal M), \;\; \text{for }r= 1\ldots, R$$ 
+#### *The idea*:
+
+##### _Generate_ *pseudo observations* based on *predictive distribution*
+
+
+$$\Large \mathcal{D}^{(r)} \sim p(\mathcal D_{\textit{pred}}|\mathcal D, \mathcal M), \;\; \text{for }r= 1\ldots, R$$ 
   * where ``\mathcal D`` is the observed data and ``\mathcal M`` denotes the Bayesian model.  
 
-* note that ``\mathcal{D}^{(r)}`` should be of **the same size** as ``\mathcal{D}``
-
-and 
+  * note that ``\mathcal{D}^{(r)}`` should be of **the same size** as ``\mathcal{D}``
 
 
-**Then** If the model assumptions are reasonable, 
+##### _If_ the model is reasonable, then $$\mathcal{D}, \{\tilde{\mathcal{D}}^{(r)}\}$$ should be similar
 
-* we should expect the generated pseudo data "agree with" the observed. 
-
-
+* or we should expect the generated pseudo data "agree with" the observed. 
 
 
-**In practice**, we compute the predictive distribution of some summary statistics,     
-* say mean, variance, median, or any meaningful statistic instead
-* and visually check whether the observed statistic falls within the predictions' possible ranges. 
 
 ## Predictive checks
 
-Based on the Monte Carlo principle, after simulating ``R`` pseudo samples,
+#### *The idea*:
 
-$$\tilde{\mathcal D}^{(1)}, \tilde{\mathcal D}^{(2)}, \tilde{\mathcal D}^{(3)},\ldots, \tilde{\mathcal D}^{(R)} \sim p(\mathcal D_{pred}|\mathcal D, \mathcal M),$$ 
+##### _Generate_ *pseudo observations* based on *predictive distribution*
 
 
-The predictive distribution of a summary statistic ``t(\cdot)``: 
+$$\Large \mathcal{D}^{(r)} \sim p(\mathcal D_{\textit{pred}}|\mathcal D, \mathcal M), \;\; \text{for }r= 1\ldots, R$$ 
+  * where ``\mathcal D`` is the observed data and ``\mathcal M`` denotes the Bayesian model.  
 
-$$p(t(D_{pred})|\mathcal D, \mathcal M)$$ 
-* can be approximated by 
+  * note that ``\mathcal{D}^{(r)}`` should be of **the same size** as ``\mathcal{D}``
 
-$\{t(\tilde{\mathcal D}^{(1)}), t(\tilde{\mathcal D}^{(2)}), \ldots, t(\tilde{\mathcal D}^{(R)})\}$ 
 
-* one can visually check whether the observed statistic ``t(\mathcal{D})`` falls within a credible region of the empirical distribution 
+##### _If_ the model is reasonable, then $$\mathcal{D}, \{D\}^{(r)}$$ should be similar
+
+* or we should expect the generated pseudo data "agree with" the observed. 
+
+##### *In practice*, we compare some summary statistics   
+* _say_ sum, mean, variance, median, of $\mathcal{D}$
+* and do visual checks: whether the observed statistic falls within the predictions' possible ranges. 
+
+## Predictive checks: more formally
+
+Based on the **Monte Carlo principle**, 
+
+$$\large \tilde{\mathcal D}^{(1)}, \tilde{\mathcal D}^{(2)}, \tilde{\mathcal D}^{(3)},\ldots, \tilde{\mathcal D}^{(R)} \sim p(\mathcal D_{pred}|\mathcal D, \mathcal M),$$ 
+
+
+The predictive distribution of summary statistic ``t(\mathcal{D})`` can be approximated by 
+
+$$\large p(t|\mathcal D, \mathcal M) \approx \frac{1}{R} \sum_{r=1}^R \delta_{\tilde{\mathcal{D}}^{(r)}}(t)$$ 
+
+* *i.e.* the empirical distribution formed by
+$\large \{t(\tilde{\mathcal D}^{(1)}), t(\tilde{\mathcal D}^{(2)}), \ldots, t(\tilde{\mathcal D}^{(R)})\}$ 
+
+* one therefore can check whether the observed statistic ``t(\mathcal{D})`` falls within a credible region of the empirical distribution 
 
 
 ## Prior and Posterior predictive checks
 
-If one mainly wants to check the prior assumption, use a **prior predictive distribution** to simulate the *future* data: *i.e.*
+**Prior predictive check**: use prior to simulate the *future* data: *i.e.*
 
-$$\mathcal{D}^{(r)} \sim p(\mathcal D_{pred}|\mathcal M), \;\; \text{for }r= 1\ldots, R$$
+$$\Large \mathcal{D}^{(r)} \sim p(\mathcal D_{pred}|\mathcal M), \;\; \text{for }r= 1\ldots, R$$
 
 
 * and the visual check based on the sample 
@@ -1193,11 +800,11 @@ $$\mathcal{D}^{(r)} \sim p(\mathcal D_{pred}|\mathcal M), \;\; \text{for }r= 1\l
 md"""
 ## Example: coin-flipping model
 
-For predictive checks, we need to simulate ``\mathcal{D}_{pred}`` of **the same length** as ``\mathcal{D}``
+#### We first simulate ``\mathcal{D}_{pred}`` of *the same length* as ``\mathcal{D}``
+
+$$\large \tilde{\mathcal D}^{(1)}, \tilde{\mathcal D}^{(2)}, \tilde{\mathcal D}^{(3)},\ldots, \tilde{\mathcal D}^{(R)} \sim p(\mathcal D_{pred}|\mathcal D, \mathcal M),$$ 
 
 
-* we need to simulate **10** coin tosses in the second step
-* instead of just one
 
 
 ```julia
@@ -1218,21 +825,24 @@ end;
 
 # ╔═╡ d009d1e0-833a-40ea-882d-1b7fdbccf5cc
 md"""
-
-Here we choose to compare **the statistic** of the sum *i.e.* the count of heads
+#### Do visual check
+Here we use **the statistic** of the sum (*i.e.* the count of heads)
 ```math
-t(\mathcal{D}) = N_h= \sum_i d_i
+\large 
+t(\mathcal{D}) = N_h= \sum_{i=1}^N d_i
 ```
 
 """
 
 # ╔═╡ 3de87316-496e-4413-b7a1-3bd961dc9cc0
 md"""
+## Example: coin-flipping model (cont.)
 
-**Predictive checks** with the model
+#### *Prior predictive checks* of the model with ``a_0, b_0 =1``
 
+* the observed (orange): $N_h = 7$
 
-* ``a_0, b_0 =1``
+* the empirical distribution $p(N_h | \mathcal{M})$
 """
 
 # ╔═╡ 48a972dc-c866-43b2-b74a-b10b0ae343a3
@@ -1242,6 +852,14 @@ let
 	histogram(sum(D, dims=1)[:], bins = 20, xticks=0:10, normed=true, label="Prior predictive on "*L"N_h", legend=:outerbottom, xlabel="number of heads "*L"N_h", title="Prior predictive check with "*L"a_0=b_0=1")
 	vline!([7], lw=4, lc=2, label="Observed "*L"N_h")
 end
+
+# ╔═╡ d7d24061-0333-4d0f-8da0-a5df94a55703
+md"""
+
+### The posterior check looks fine: 
+
+* ##### the observed is well within the typical region
+"""
 
 # ╔═╡ 1d296694-2ad8-4e30-a1e6-2741afaae2d3
 let
@@ -1256,18 +874,17 @@ end
 md"""
 
 ## Example -- coin-flipping model check (cont.)
-**A model with misspecified prior** 
 
-$$\theta \sim \text{Beta}(a_0=50, b_0=1)$$
+
+#### *A bad model* with a *misspecified prior*
+
+$$\Large p(\theta) = \text{Beta}(\theta; a_0=50, b_0=1)$$
 
 * the prior is skewed and very informative
 
-* as a result, the posterior is dominated by the prior: 
+As a result, **the posterior** is dominated by the prior
 
-$$\theta \sim \text{Beta}(50+7, 1+3).$$
-
-The prior and posterior plots are shown below for reference
-
+$$\Large p(\theta|\mathcal{D}) = \text{Beta}(\theta;a_n=50+7, b_n=1+3).$$
 
 """
 
@@ -1283,9 +900,12 @@ end
 
 # ╔═╡ c41fef4e-36eb-4d44-8838-1047f77c7ac2
 md"""
+##
+
+#### Let's see whether *predictive checks* can spot the problem?
 
 
-Let's see whether **predictive checks** can spot the problem!
+* ##### the _prior_ assumption does not match the observed: at least *not typical*
 """
 
 # ╔═╡ 1c9997ad-5573-445c-8029-a57398aa442d
@@ -1295,6 +915,12 @@ let
 	histogram(sum(D, dims=1)[:], xlim = [0,11], xticks=0:10, normed=false, label="Prior predictive on " *L"N_h", legend=:outerbottom, xlabel="number of heads", title="Prior predictive check with "*L"a_0=50, b_0=1", ylabel=L"\#"* " of counts")
 	vline!([7], lw=4, lc=2, label="Observed "*L"N_h")
 end
+
+# ╔═╡ 989bcc1f-1342-483e-ab1c-9677266011ea
+md"""
+
+#### The posterior check reveals the same: _not typical_
+"""
 
 # ╔═╡ 3c18a8e6-7a9f-4e22-b1c9-fc8dad8a822d
 let
@@ -1309,6 +935,7 @@ end
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 Latexify = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -1320,9 +947,11 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
+TikzGraphs = "b4f28e30-c73f-5eaf-a395-8a9db949a742"
 
 [compat]
 Distributions = "~0.25.103"
+Graphs = "~1.9.0"
 LaTeXStrings = "~1.3.1"
 Latexify = "~0.16.1"
 LogExpFunctions = "~0.3.26"
@@ -1332,6 +961,7 @@ PlutoUI = "~0.7.54"
 SpecialFunctions = "~2.3.1"
 StatsBase = "~0.34.2"
 StatsPlots = "~0.15.6"
+TikzGraphs = "~1.4.0"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -1340,7 +970,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.4"
 manifest_format = "2.0"
-project_hash = "d3ff3ecdc82b1caabf45b78d6c0229f09d965276"
+project_hash = "7c80e8667a39d24df0fb2aae1f177924c8769f43"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -1372,6 +1002,12 @@ weakdeps = ["StaticArrays"]
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
 version = "1.1.1"
+
+[[deps.ArnoldiMethod]]
+deps = ["LinearAlgebra", "Random", "StaticArrays"]
+git-tree-sha1 = "62e51b39331de8911e4a7ff6f5aaf38a5f4cc0ae"
+uuid = "ec485272-7323-5ecc-a04f-4719b315124d"
+version = "0.2.0"
 
 [[deps.Arpack]]
 deps = ["Arpack_jll", "Libdl", "LinearAlgebra", "Logging"]
@@ -1478,9 +1114,9 @@ version = "0.12.10"
 
 [[deps.Compat]]
 deps = ["UUIDs"]
-git-tree-sha1 = "8a62af3e248a8c4bad6b32cbbe663ae02275e32c"
+git-tree-sha1 = "886826d76ea9e72b35fcd000e535588f7b60f21d"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "4.10.0"
+version = "4.10.1"
 weakdeps = ["Dates", "LinearAlgebra"]
 
     [deps.Compat.extensions]
@@ -1530,9 +1166,9 @@ version = "1.9.1"
 
 [[deps.Distances]]
 deps = ["LinearAlgebra", "Statistics", "StatsAPI"]
-git-tree-sha1 = "5225c965635d8c21168e32a12954675e7bea1151"
+git-tree-sha1 = "66c4c81f259586e8f002eacebc177e1fb06363b0"
 uuid = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
-version = "0.10.10"
+version = "0.10.11"
 weakdeps = ["ChainRulesCore", "SparseArrays"]
 
     [deps.Distances.extensions]
@@ -1601,10 +1237,10 @@ uuid = "c87230d0-a227-11e9-1b43-d7ebe4e7570a"
 version = "0.4.1"
 
 [[deps.FFMPEG_jll]]
-deps = ["Artifacts", "Bzip2_jll", "FreeType2_jll", "FriBidi_jll", "JLLWrappers", "LAME_jll", "Libdl", "Ogg_jll", "OpenSSL_jll", "Opus_jll", "PCRE2_jll", "Zlib_jll", "libaom_jll", "libass_jll", "libfdk_aac_jll", "libvorbis_jll", "x264_jll", "x265_jll"]
-git-tree-sha1 = "466d45dc38e15794ec7d5d63ec03d776a9aff36e"
+deps = ["Artifacts", "Bzip2_jll", "FreeType2_jll", "FriBidi_jll", "JLLWrappers", "LAME_jll", "Libdl", "Ogg_jll", "OpenSSL_jll", "Opus_jll", "PCRE2_jll", "Pkg", "Zlib_jll", "libaom_jll", "libass_jll", "libfdk_aac_jll", "libvorbis_jll", "x264_jll", "x265_jll"]
+git-tree-sha1 = "74faea50c1d007c85837327f6775bea60b5492dd"
 uuid = "b22a6f82-2f65-5046-a5b2-351ab43fb4e5"
-version = "4.4.4+1"
+version = "4.4.2+2"
 
 [[deps.FFTW]]
 deps = ["AbstractFFTs", "FFTW_jll", "LinearAlgebra", "MKL_jll", "Preferences", "Reexport"]
@@ -1671,15 +1307,15 @@ version = "3.3.8+0"
 
 [[deps.GR]]
 deps = ["Artifacts", "Base64", "DelimitedFiles", "Downloads", "GR_jll", "HTTP", "JSON", "Libdl", "LinearAlgebra", "Pkg", "Preferences", "Printf", "Random", "Serialization", "Sockets", "TOML", "Tar", "Test", "UUIDs", "p7zip_jll"]
-git-tree-sha1 = "27442171f28c952804dede8ff72828a96f2bfc1f"
+git-tree-sha1 = "8e2d86e06ceb4580110d9e716be26658effc5bfd"
 uuid = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"
-version = "0.72.10"
+version = "0.72.8"
 
 [[deps.GR_jll]]
-deps = ["Artifacts", "Bzip2_jll", "Cairo_jll", "FFMPEG_jll", "Fontconfig_jll", "FreeType2_jll", "GLFW_jll", "JLLWrappers", "JpegTurbo_jll", "Libdl", "Libtiff_jll", "Pixman_jll", "Qt6Base_jll", "Zlib_jll", "libpng_jll"]
-git-tree-sha1 = "025d171a2847f616becc0f84c8dc62fe18f0f6dd"
+deps = ["Artifacts", "Bzip2_jll", "Cairo_jll", "FFMPEG_jll", "Fontconfig_jll", "GLFW_jll", "JLLWrappers", "JpegTurbo_jll", "Libdl", "Libtiff_jll", "Pixman_jll", "Qt5Base_jll", "Zlib_jll", "libpng_jll"]
+git-tree-sha1 = "da121cbdc95b065da07fbb93638367737969693f"
 uuid = "d2c73de3-f751-5644-a686-071e5b155ba9"
-version = "0.72.10+0"
+version = "0.72.8+0"
 
 [[deps.Gettext_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Libiconv_jll", "Pkg", "XML2_jll"]
@@ -1699,6 +1335,12 @@ git-tree-sha1 = "344bf40dcab1073aca04aa0df4fb092f920e4011"
 uuid = "3b182d85-2403-5c21-9c21-1e1f0cc25472"
 version = "1.3.14+0"
 
+[[deps.Graphs]]
+deps = ["ArnoldiMethod", "Compat", "DataStructures", "Distributed", "Inflate", "LinearAlgebra", "Random", "SharedArrays", "SimpleTraits", "SparseArrays", "Statistics"]
+git-tree-sha1 = "899050ace26649433ef1af25bc17a815b3db52b7"
+uuid = "86223c79-3864-5bf0-83f7-82e725a168b6"
+version = "1.9.0"
+
 [[deps.Grisu]]
 git-tree-sha1 = "53bb909d1151e57e2484c3d1b53e19552b887fb2"
 uuid = "42e2da0e-8278-4e71-bc24-59509adca0fe"
@@ -1706,9 +1348,15 @@ version = "1.0.2"
 
 [[deps.HTTP]]
 deps = ["Base64", "CodecZlib", "ConcurrentUtilities", "Dates", "ExceptionUnwrapping", "Logging", "LoggingExtras", "MbedTLS", "NetworkOptions", "OpenSSL", "Random", "SimpleBufferStream", "Sockets", "URIs", "UUIDs"]
-git-tree-sha1 = "5eab648309e2e060198b45820af1a37182de3cce"
+git-tree-sha1 = "abbbb9ec3afd783a7cbd82ef01dcd088ea051398"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "1.10.0"
+version = "1.10.1"
+
+[[deps.HarfBuzz_ICU_jll]]
+deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "Graphite2_jll", "HarfBuzz_jll", "ICU_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Pkg"]
+git-tree-sha1 = "6ccbc4fdf65c8197738c2d68cc55b74b19c97ac2"
+uuid = "655565e8-fb53-5cb3-b0cd-aec1ca0647ea"
+version = "2.8.1+0"
 
 [[deps.HarfBuzz_jll]]
 deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "Graphite2_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Pkg"]
@@ -1734,11 +1382,22 @@ git-tree-sha1 = "7134810b1afce04bbc1045ca1985fbe81ce17653"
 uuid = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
 version = "0.9.5"
 
+[[deps.ICU_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "20b6765a3016e1fca0c9c93c80d50061b94218b7"
+uuid = "a51ab1cf-af8e-5615-a023-bc2c838bba6b"
+version = "69.1.0+0"
+
 [[deps.IOCapture]]
 deps = ["Logging", "Random"]
 git-tree-sha1 = "d75853a0bdbfb1ac815478bacd89cd27b550ace6"
 uuid = "b5f81e59-6552-4d32-b1f0-c071b021bf89"
 version = "0.2.3"
+
+[[deps.Inflate]]
+git-tree-sha1 = "ea8031dea4aff6bd41f1df8f2fdfb25b33626381"
+uuid = "d25df0c9-e2be-5dd7-82c8-3ad0b3e990b9"
+version = "0.1.4"
 
 [[deps.IntelOpenMP_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -1792,9 +1451,9 @@ version = "2.1.91+0"
 
 [[deps.JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
-git-tree-sha1 = "0592b1810613d1c95eeebcd22dc11fba186c2a57"
+git-tree-sha1 = "e49bce680c109bc86e3e75ebcb15040d6ad9e1d3"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.9.26"
+version = "0.9.27"
 
 [[deps.KernelDensity]]
 deps = ["Distributions", "DocStringExtensions", "FFTW", "Interpolations", "StatsBase"]
@@ -1908,10 +1567,10 @@ uuid = "4b2f31a3-9ecc-558c-b454-b3730dcb73e9"
 version = "2.35.0+0"
 
 [[deps.Libtiff_jll]]
-deps = ["Artifacts", "JLLWrappers", "JpegTurbo_jll", "LERC_jll", "Libdl", "XZ_jll", "Zlib_jll", "Zstd_jll"]
-git-tree-sha1 = "2da088d113af58221c52828a80378e16be7d037a"
+deps = ["Artifacts", "JLLWrappers", "JpegTurbo_jll", "LERC_jll", "Libdl", "Pkg", "Zlib_jll", "Zstd_jll"]
+git-tree-sha1 = "3eb79b0ca5764d4799c06699573fd8f533259713"
 uuid = "89763e89-9b03-5906-acba-b20f662cd828"
-version = "4.5.1+1"
+version = "4.4.0+0"
 
 [[deps.Libuuid_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -1922,6 +1581,12 @@ version = "2.36.0+0"
 [[deps.LinearAlgebra]]
 deps = ["Libdl", "OpenBLAS_jll", "libblastrampoline_jll"]
 uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+
+[[deps.LittleCMS_jll]]
+deps = ["Artifacts", "JLLWrappers", "JpegTurbo_jll", "Libdl", "Libtiff_jll", "Pkg"]
+git-tree-sha1 = "110897e7db2d6836be22c18bffd9422218ee6284"
+uuid = "d3a379c0-f9a3-5b72-a4c0-6bf4d2e8af0f"
+version = "2.12.0+0"
 
 [[deps.LogExpFunctions]]
 deps = ["DocStringExtensions", "IrrationalConstants", "LinearAlgebra"]
@@ -1950,9 +1615,9 @@ version = "1.0.3"
 
 [[deps.LoweredCodeUtils]]
 deps = ["JuliaInterpreter"]
-git-tree-sha1 = "60168780555f3e663c536500aa790b6368adc02a"
+git-tree-sha1 = "c165f205e030208760ebd75b5e1f7706761d9218"
 uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
-version = "2.3.0"
+version = "2.3.1"
 
 [[deps.MIMEs]]
 git-tree-sha1 = "65f28ad4b594aebe22157d6fac869786a255b7eb"
@@ -2048,6 +1713,12 @@ deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
 uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
 version = "0.3.21+4"
 
+[[deps.OpenJpeg_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Libtiff_jll", "LittleCMS_jll", "Pkg", "libpng_jll"]
+git-tree-sha1 = "76374b6e7f632c130e78100b166e5a48464256f8"
+uuid = "643b3616-a352-519d-856d-80112ee9badc"
+version = "2.4.0+0"
+
 [[deps.OpenLibm_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "05823500-19ac-5b8b-9628-191a04bc5112"
@@ -2061,9 +1732,9 @@ version = "1.4.1"
 
 [[deps.OpenSSL_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "cc6e1927ac521b659af340e0ca45828a3ffc748f"
+git-tree-sha1 = "a12e56c72edee3ce6b96667745e6cbbe5498f200"
 uuid = "458c3c95-2e84-50aa-8efc-19380b2a3a95"
-version = "3.0.12+0"
+version = "1.1.23+0"
 
 [[deps.OpenSpecFun_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Pkg"]
@@ -2171,6 +1842,12 @@ git-tree-sha1 = "bd7c69c7f7173097e7b5e1be07cee2b8b7447f51"
 uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 version = "0.7.54"
 
+[[deps.Poppler_jll]]
+deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "Glib_jll", "JLLWrappers", "JpegTurbo_jll", "Libdl", "Libtiff_jll", "OpenJpeg_jll", "Pkg", "libpng_jll"]
+git-tree-sha1 = "02148a0cb2532f22c0589ceb75c110e168fb3d1f"
+uuid = "9c32591e-4766-534b-9725-b71a8799265b"
+version = "21.9.0+0"
+
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
 git-tree-sha1 = "03b4c25b43cb84cee5c90aa9b5ea0a78fd848d2f"
@@ -2187,11 +1864,11 @@ version = "1.4.1"
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
-[[deps.Qt6Base_jll]]
-deps = ["Artifacts", "CompilerSupportLibraries_jll", "Fontconfig_jll", "Glib_jll", "JLLWrappers", "Libdl", "Libglvnd_jll", "OpenSSL_jll", "Vulkan_Loader_jll", "Xorg_libSM_jll", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Xorg_libxcb_jll", "Xorg_xcb_util_cursor_jll", "Xorg_xcb_util_image_jll", "Xorg_xcb_util_keysyms_jll", "Xorg_xcb_util_renderutil_jll", "Xorg_xcb_util_wm_jll", "Zlib_jll", "libinput_jll", "xkbcommon_jll"]
-git-tree-sha1 = "37b7bb7aabf9a085e0044307e1717436117f2b3b"
-uuid = "c0090381-4147-56d7-9ebc-da0b1113ec56"
-version = "6.5.3+1"
+[[deps.Qt5Base_jll]]
+deps = ["Artifacts", "CompilerSupportLibraries_jll", "Fontconfig_jll", "Glib_jll", "JLLWrappers", "Libdl", "Libglvnd_jll", "OpenSSL_jll", "Pkg", "Xorg_libXext_jll", "Xorg_libxcb_jll", "Xorg_xcb_util_image_jll", "Xorg_xcb_util_keysyms_jll", "Xorg_xcb_util_renderutil_jll", "Xorg_xcb_util_wm_jll", "Zlib_jll", "xkbcommon_jll"]
+git-tree-sha1 = "0c03844e2231e12fda4d0086fd7cbe4098ee8dc5"
+uuid = "ea2cea3b-5b76-57ae-a6ef-0a8af62496e1"
+version = "5.15.3+2"
 
 [[deps.QuadGK]]
 deps = ["DataStructures", "LinearAlgebra"]
@@ -2248,9 +1925,9 @@ version = "1.3.0"
 
 [[deps.Revise]]
 deps = ["CodeTracking", "Distributed", "FileWatching", "JuliaInterpreter", "LibGit2", "LoweredCodeUtils", "OrderedCollections", "Pkg", "REPL", "Requires", "UUIDs", "Unicode"]
-git-tree-sha1 = "a38e7d70267283888bc83911626961f0b8d5966f"
+git-tree-sha1 = "6990168abf3fe9a6e34ebb0e05aaaddf6572189e"
 uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
-version = "3.5.9"
+version = "3.5.10"
 
 [[deps.Rmath]]
 deps = ["Random", "Rmath_jll"]
@@ -2297,6 +1974,12 @@ version = "1.0.3"
 git-tree-sha1 = "874e8867b33a00e784c8a7e4b60afe9e037b74e1"
 uuid = "777ac1f9-54b0-4bf8-805c-2214025038e7"
 version = "1.1.0"
+
+[[deps.SimpleTraits]]
+deps = ["InteractiveUtils", "MacroTools"]
+git-tree-sha1 = "5d7e3f4e11935503d3ecaf7186eac40602e7d231"
+uuid = "699a6c99-e7fa-54fc-8d76-47d257e15c1d"
+version = "0.9.4"
 
 [[deps.Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
@@ -2420,6 +2103,18 @@ version = "0.1.1"
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
+[[deps.TikzGraphs]]
+deps = ["Graphs", "LaTeXStrings", "TikzPictures"]
+git-tree-sha1 = "e8f41ed9a2cabf6699d9906c195bab1f773d4ca7"
+uuid = "b4f28e30-c73f-5eaf-a395-8a9db949a742"
+version = "1.4.0"
+
+[[deps.TikzPictures]]
+deps = ["LaTeXStrings", "Poppler_jll", "Requires", "tectonic_jll"]
+git-tree-sha1 = "79e2d29b216ef24a0f4f905532b900dcf529aa06"
+uuid = "37f6aa50-8035-52d0-81c2-5a1d08754b2d"
+version = "3.5.0"
+
 [[deps.TranscodingStreams]]
 git-tree-sha1 = "1fbeaaca45801b4ba17c251dd8603ef24801dd84"
 uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
@@ -2454,9 +2149,9 @@ version = "0.4.1"
 
 [[deps.Unitful]]
 deps = ["Dates", "LinearAlgebra", "Random"]
-git-tree-sha1 = "242982d62ff0d1671e9029b52743062739255c7e"
+git-tree-sha1 = "3c793be6df9dd77a0cf49d80984ef9ff996948fa"
 uuid = "1986cc42-f94f-5a68-af5c-568840ba703d"
-version = "1.18.0"
+version = "1.19.0"
 
     [deps.Unitful.extensions]
     ConstructionBaseUnitfulExt = "ConstructionBase"
@@ -2476,12 +2171,6 @@ version = "1.6.3"
 git-tree-sha1 = "ca0969166a028236229f63514992fc073799bb78"
 uuid = "41fe7b60-77ed-43a1-b4f0-825fd5a5650d"
 version = "0.2.0"
-
-[[deps.Vulkan_Loader_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Wayland_jll", "Xorg_libX11_jll", "Xorg_libXrandr_jll", "xkbcommon_jll"]
-git-tree-sha1 = "2f0486047a07670caad3a81a075d2e518acc5c59"
-uuid = "a44049a8-05dd-5a78-86c9-5fde0876e88c"
-version = "1.3.243+0"
 
 [[deps.Wayland_jll]]
 deps = ["Artifacts", "EpollShim_jll", "Expat_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Pkg", "XML2_jll"]
@@ -2518,24 +2207,6 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Libgcrypt_jll", "Libgpg_error_jll"
 git-tree-sha1 = "91844873c4085240b95e795f692c4cec4d805f8a"
 uuid = "aed1982a-8fda-507f-9586-7b0439959a61"
 version = "1.1.34+0"
-
-[[deps.XZ_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "522b8414d40c4cbbab8dee346ac3a09f9768f25d"
-uuid = "ffd25f8a-64ca-5728-b0f7-c24cf3aae800"
-version = "5.4.5+0"
-
-[[deps.Xorg_libICE_jll]]
-deps = ["Libdl", "Pkg"]
-git-tree-sha1 = "e5becd4411063bdcac16be8b66fc2f9f6f1e8fe5"
-uuid = "f67eecfb-183a-506d-b269-f58e52b52d7c"
-version = "1.0.10+1"
-
-[[deps.Xorg_libSM_jll]]
-deps = ["Libdl", "Pkg", "Xorg_libICE_jll"]
-git-tree-sha1 = "4a9d9e4c180e1e8119b5ffc224a7b59d3a7f7e18"
-uuid = "c834827a-8449-5923-a945-d239c165b7dd"
-version = "1.2.3+0"
 
 [[deps.Xorg_libX11_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libxcb_jll", "Xorg_xtrans_jll"]
@@ -2615,12 +2286,6 @@ git-tree-sha1 = "730eeca102434283c50ccf7d1ecdadf521a765a4"
 uuid = "cc61e674-0454-545c-8b26-ed2c68acab7a"
 version = "1.1.2+0"
 
-[[deps.Xorg_xcb_util_cursor_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_xcb_util_image_jll", "Xorg_xcb_util_jll", "Xorg_xcb_util_renderutil_jll"]
-git-tree-sha1 = "04341cb870f29dcd5e39055f895c39d016e18ccd"
-uuid = "e920d4aa-a673-5f3a-b3d7-f755a4d47c43"
-version = "0.1.4+0"
-
 [[deps.Xorg_xcb_util_image_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Xorg_xcb_util_jll"]
 git-tree-sha1 = "0fab0a40349ba1cba2c1da699243396ff8e94b97"
@@ -2680,23 +2345,11 @@ git-tree-sha1 = "49ce682769cd5de6c72dcf1b94ed7790cd08974c"
 uuid = "3161d3a3-bdf6-5164-811a-617609db77b4"
 version = "1.5.5+0"
 
-[[deps.eudev_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "gperf_jll"]
-git-tree-sha1 = "431b678a28ebb559d224c0b6b6d01afce87c51ba"
-uuid = "35ca27e7-8b34-5b7f-bca9-bdc33f59eb06"
-version = "3.2.9+0"
-
 [[deps.fzf_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
 git-tree-sha1 = "a68c9655fbe6dfcab3d972808f1aafec151ce3f8"
 uuid = "214eeab7-80f7-51ab-84ad-2988db7cef09"
 version = "0.43.0+0"
-
-[[deps.gperf_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "3516a5630f741c9eecb3720b1ec9d8edc3ecc033"
-uuid = "1a1c6b14-54f6-533d-8383-74cd7377aa70"
-version = "3.1.1+0"
 
 [[deps.libaom_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -2715,23 +2368,11 @@ deps = ["Artifacts", "Libdl"]
 uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
 version = "5.8.0+0"
 
-[[deps.libevdev_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "141fe65dc3efabb0b1d5ba74e91f6ad26f84cc22"
-uuid = "2db6ffa8-e38f-5e21-84af-90c45d0032cc"
-version = "1.11.0+0"
-
 [[deps.libfdk_aac_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "daacc84a041563f965be61859a36e17c4e4fcd55"
 uuid = "f638f0a6-7fb0-5443-88ba-1cc74229b280"
 version = "2.0.2+0"
-
-[[deps.libinput_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "eudev_jll", "libevdev_jll", "mtdev_jll"]
-git-tree-sha1 = "ad50e5b90f222cfe78aa3d5183a20a12de1322ce"
-uuid = "36db933b-70db-51c0-b978-0f229ee0e533"
-version = "1.18.0+0"
 
 [[deps.libpng_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Zlib_jll"]
@@ -2745,12 +2386,6 @@ git-tree-sha1 = "b910cb81ef3fe6e78bf6acee440bda86fd6ae00c"
 uuid = "f27f6e37-5d2b-51aa-960f-b287f2bc3b7a"
 version = "1.3.7+1"
 
-[[deps.mtdev_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "814e154bdb7be91d78b6802843f76b6ece642f11"
-uuid = "009596ad-96f7-51b1-9f1b-5ce2d5e8a71e"
-version = "1.1.6+0"
-
 [[deps.nghttp2_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
@@ -2760,6 +2395,12 @@ version = "1.52.0+1"
 deps = ["Artifacts", "Libdl"]
 uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 version = "17.4.0+0"
+
+[[deps.tectonic_jll]]
+deps = ["Artifacts", "Fontconfig_jll", "FreeType2_jll", "Graphite2_jll", "HarfBuzz_ICU_jll", "HarfBuzz_jll", "ICU_jll", "JLLWrappers", "Libdl", "OpenSSL_jll", "Zlib_jll", "libpng_jll"]
+git-tree-sha1 = "54867b00af20c70b52a1f9c00043864d8b926a21"
+uuid = "d7dd28d6-a5e6-559c-9131-7eb760cdacc5"
+version = "0.13.1+0"
 
 [[deps.x264_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -2785,43 +2426,23 @@ version = "1.4.1+1"
 # ╟─be719382-bf1f-4442-8419-bddcda782525
 # ╟─45f045d9-cdb7-4ade-a8e6-1f1a984cc58a
 # ╟─77535564-648a-4e17-83a0-c562cc5318ec
-# ╟─2057c799-18b5-4a0f-b2c7-66537a3fbe79
-# ╟─c677a2d2-f4be-483a-a53b-7b76efb1b80f
-# ╟─56f2bb33-637c-4450-9769-f338937594da
-# ╟─47359bc3-cfc2-4777-82f9-308e56dca491
-# ╟─35311403-187a-4e23-9e52-7eb0a212452d
-# ╟─9fa2c7bf-3fa2-4869-8515-fa0048fa3cd6
-# ╟─ae234663-90b4-432d-bacb-188dd1ee1034
-# ╟─d764a435-7e11-4736-a0d0-0f2d5265b7af
-# ╟─5aaf5221-e77b-4339-95c5-dc21bd815fc3
-# ╟─047a8e19-54d4-454a-8635-8becd4b93061
-# ╟─43cedf4c-65c4-4b2b-afb3-21f5827f2af6
-# ╟─4e82a77d-af72-4653-aaa9-f7303e33c3ea
-# ╟─e2673877-6536-4670-b5b7-b84c36503512
-# ╟─33714d50-a04e-41ad-844c-293ed9671163
 # ╟─9308405d-36d0-41a1-8c73-e93b8d699320
-# ╟─c32714b7-fa1d-443c-a5a2-4a511fc701bd
-# ╟─c74a488d-0e1a-4ddc-9d9b-fcb5e813d587
-# ╟─fe47a810-cf29-4adf-a390-6f595b8f3ec9
-# ╟─30ece808-4852-4cbd-84c5-7e8087753ad5
-# ╟─9638d082-5b61-4051-912b-fc263abeb239
-# ╟─997d45bf-cdbf-4881-b823-ebb7d9ec19db
-# ╟─9bbfb923-1448-45c9-8091-bfd86c4d54bb
-# ╟─63f39880-d150-44fe-8c02-d3dc9b4deb1f
-# ╟─898a0670-d5bb-42f9-8afd-c3a51c426065
-# ╟─cf7b36c9-1c78-4ef6-bd06-2590b67c3703
-# ╟─e1bb37e8-d3b5-416f-b90a-fb611864b402
-# ╟─4f4882c5-bd3f-4fbe-8a59-cafc5d365d99
-# ╟─78bd6dea-8bcb-408f-9dc3-8a34907a4566
-# ╠═42603c08-01de-4036-928a-d6a9c2dffbb3
-# ╟─83586a99-02e5-42e3-83b2-2d90d3d3e396
-# ╠═644cbe41-2027-4e3f-a31f-c656a1158466
-# ╟─1a483bed-1639-41b4-ad7f-40b009bd45a9
 # ╟─29a49584-3a52-410e-8f15-1d9293955826
 # ╟─6b460036-890d-4364-aac2-2c61dc44ed75
-# ╟─df3c6bd8-e81f-4ccb-b0d1-98832e41537f
-# ╟─5440ceb3-b791-4935-8b59-339010546090
-# ╟─8c763ff2-cfda-49a6-b0ce-d5530f665971
+# ╟─c40745b2-01dd-42c0-9d5a-3a97d2cbd800
+# ╟─7a27f63d-b1d6-406b-8b7a-70e9347b8174
+# ╟─8d41ad5e-350b-409b-97ac-640bd8b1bad5
+# ╟─288c5949-d24a-4d42-a08b-b6600b5012f5
+# ╟─8834e7a7-20f6-4abd-81d1-b2f74ee03367
+# ╟─418d4290-b598-4e23-a9c1-02508c64c70b
+# ╟─fa6c61d0-a68f-46bf-b974-ecb5997e5590
+# ╟─1c2d09e9-7f18-400e-b77d-e740720de545
+# ╟─8767f2b2-00af-4a7b-9820-1071b1a4144c
+# ╟─86a8cc49-2c80-4eeb-963e-fdf49b95bcd7
+# ╟─2688b341-9f9c-4181-82fa-cff6aee8fa89
+# ╟─b348651b-03c8-42e6-835a-9be6b439137e
+# ╟─f2c9db4a-9a44-45a7-b2cf-ab3541efd06d
+# ╟─cea2f21a-59df-4326-a553-03b152be8954
 # ╟─b13d76bf-f559-4842-bdfa-78953d74d69a
 # ╟─37a564d5-8c46-462e-8d3d-45b93ff1d3e4
 # ╟─03181c93-6a31-46d6-aa64-1521234e2341
@@ -2835,7 +2456,7 @@ version = "1.4.1+1"
 # ╟─8cf29145-aed3-47e6-a209-369ac393e0e3
 # ╟─0ad979b7-8ecb-44c7-958f-be9a78a22553
 # ╟─3cb9bb88-d560-4403-b67e-7469f6eddcac
-# ╠═40c740a4-5385-4211-ac86-3c9f0c17b7ff
+# ╟─40c740a4-5385-4211-ac86-3c9f0c17b7ff
 # ╟─cd01a246-5e97-4231-a8dc-b2931d151b2f
 # ╟─a7fcf38b-05c3-4db8-8615-44b93d6d43aa
 # ╟─1975923e-66fb-4aa4-a3d3-370b38d1df34
@@ -2843,11 +2464,13 @@ version = "1.4.1+1"
 # ╟─d009d1e0-833a-40ea-882d-1b7fdbccf5cc
 # ╟─3de87316-496e-4413-b7a1-3bd961dc9cc0
 # ╟─48a972dc-c866-43b2-b74a-b10b0ae343a3
+# ╟─d7d24061-0333-4d0f-8da0-a5df94a55703
 # ╟─1d296694-2ad8-4e30-a1e6-2741afaae2d3
 # ╟─d3ec8762-fd5c-4614-9271-6cd3de4185c3
 # ╟─e20c3ef6-e7f4-4fd5-be74-ef46970911d1
 # ╟─c41fef4e-36eb-4d44-8838-1047f77c7ac2
 # ╟─1c9997ad-5573-445c-8029-a57398aa442d
+# ╟─989bcc1f-1342-483e-ab1c-9677266011ea
 # ╟─3c18a8e6-7a9f-4e22-b1c9-fc8dad8a822d
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

@@ -83,39 +83,29 @@ Scalars: normal letters
 """
 
 # ╔═╡ 4ed16d76-2815-4f8c-8ab0-3819a03a1acc
+# md"""
+
+# ## Supervised learning
+
+# Supervised learning in general 
+
+# * predict *targets* ``Y`` with *covariates* ``X``
+# * it tries to access how ``X`` affects ``Y``
+
+
+
+
+# Depending on the type of the labelled targets ``Y``
+# * regression*: ``Y`` is continuous real values
+# * and *classification*: ``Y`` is categorical 
+
+# In this chapter, we consider regression in Bayesian approach
+# """
+
+# ╔═╡ 65f8b976-2151-447a-bdcf-8f0430d5757a
 md"""
 
-## Supervised learning
-
-Supervised learning in general 
-
-* predict *targets* ``Y`` with *covariates* ``X``
-* it tries to access how ``X`` affects ``Y``
-
-
-
-
-Depending on the type of the labelled targets ``Y``
-* regression*: ``Y`` is continuous real values
-* and *classification*: ``Y`` is categorical 
-
-In this chapter, we consider regression in Bayesian approach
-"""
-
-# ╔═╡ c21f64bb-a934-4ec0-b1eb-e3fd6695d116
-md"""
-
-## Regression example
-
-
-Example: **House price** prediction
-
-The data is ``\mathbf{x}^{(i)}, y^{(i)}`` for ``i=1,2,\ldots, n``
-
-* ``\mathbf{x}^{(i)}`` has 14 features: such as average number of rooms, crime rate, *etc*
-
-* ``y^{(i)} \in R``:  house price of the ``i``- observation
-
+## What is regression ?
 
 """
 
@@ -126,15 +116,6 @@ begin
 	df_house[!, :target] = MLDatasets.BostonHousing.targets()[:]
 end;
 
-# ╔═╡ 94e5a7ed-6332-4f92-8b77-7e0ce7b88a84
-md"""
-
-Consider the relationship between `room` and `price`
-"""
-
-# ╔═╡ 215c4d7f-ef58-4682-893b-d41b7de75afa
-@df df_house scatter(:rm, :target, xlabel="room", ylabel="price", label="", title="House price prediction: regression")
-
 # ╔═╡ c6c3e3aa-fee6-418f-b304-8d5b353bd2d7
 md"""
 
@@ -142,20 +123,40 @@ md"""
 
 
 !!! note "Linear regression assumption"
-	Linear regression: prediction function ``\mu(\cdot)`` is assumed linear 
+	Linear regression: prediction function ``\mu(\cdot)`` is assumed **linear**
 
 	```math
+	\large
 	\mu(x_{\text{room}}) = \beta_0 + \beta_1 x_{\text{room}} 
 	```
-
-
-``\mu(x)`` is called **prediction** function or **regression function**
-* ``\beta_0, \beta_1``: model parameters
-* sometimes we write ``\mu(x; \beta_0, \beta_1)`` or ``\mu_{\beta_0, \beta_1}(x)`` to emphasise ``\mu`` is parameterised with ``\beta_0, \beta_1``
+	``\mu(x)`` is called **prediction** function or **regression function**
+	* ``\beta_0, \beta_1``: model parameters
 """
 
 # ╔═╡ 06f941c1-53c8-4279-8214-0d3ef5c81c4b
 linear_reg_normal_eq(X, y) = GLM.lm(X, y) |> coef
+
+# ╔═╡ 7ca631e2-aafa-4f3f-909b-ba73775ec8c4
+TwoColumn(md"""
+!!! information "Regression"
+	_Supervised learning_ with _continuous_ targets ``y^{(i)} \in \mathbb{R}``
+    * input feature ``\mathbf{x}^{(i)}``
+    * target ``y^{(i)}``
+
+**Example**: *house price* prediction:  data ``\{\mathbf{x}^{(i)}, y^{(i)}\}`` for ``i=1,2,\ldots, n``
+
+* ``y^{(i)} \in \mathbb{R}``:  house _price_ is continuous
+* ``\mathbf{x}^{(i)}``: the average number of rooms""", 
+	
+	let
+	@df df_house scatter(:rm, :target, xlabel="room", ylabel="price", label="", title="House price prediction", size=(350,300))
+	x_room = df_house[:, :rm]
+	# x_room_sq = x_room.^2
+	X_train_room = [ones(length(x_room)) x_room]
+	c, b = linear_reg_normal_eq(X_train_room, df_house.target)
+
+	plot!(3.5:0.5:9, (x) -> b* x+ c, lw=3, label="")
+end)
 
 # ╔═╡ 75567e73-f48a-477c-bc9f-91ce1630468c
 begin
@@ -175,7 +176,7 @@ md"""
 ## Multiple linear regression
 
 
-When the covariate ``\mathbf{x} \in R^m``
+When the covariate ``\mathbf{x} \in \mathbb{R}^m``
 
 * we have ``m=14`` predictors in our house data, *e.g.* crime, room, *etc*
 
@@ -203,7 +204,7 @@ md"""
 ## Hyperplane ``\mu(\mathbf{x}) = \boldsymbol{\beta}^\top \mathbf{x}``
 
 
-Geometrically, ``\mu(\mathbf{x})`` forms a hyperplane 
+#### ``\mu(\mathbf{x})`` now forms a _hyperplane_
 """
 
 # ╔═╡ 41f6c4fa-89b9-492d-9276-b1651ba92236
@@ -211,15 +212,13 @@ md"""
 ## Frequentist's linear regression model
 
 
-In other words, 
+$$\Large y^{(i)} = \boldsymbol{\beta}^\top \mathbf{x}^{(i)} + \epsilon^{(i)}, \;\; \epsilon^{(i)} \sim  \mathcal{N}(0, \sigma^2)$$
 
-$$y^{(i)} = \boldsymbol{\beta}^\top \mathbf{x}^{(i)} + \epsilon^{(i)}, \;\; \epsilon^{(i)} \sim  \mathcal{N}(0, \sigma^2)$$
+* which implies **a probability distribution** for ``y^{(i)}``
+  * **Gaussian**: mean $\boldsymbol{\beta}^\top \mathbf{x}^{(i)}$ and variance $\sigma^2$ 
 
-which implies **a probability distribution** for ``y^{(i)}`` 
 
 $p(y^{(i)}|\mathbf{x}^{(i)}, \boldsymbol{\beta}, \sigma^2) = \mathcal{N}(y^{(i)};  \boldsymbol{\beta}^\top \mathbf{x}^{(i)} , \sigma^2)= \frac{1}{\sqrt{2\pi\sigma^2}}\text{exp}\left(-\frac{(y^{(i)}-{\boldsymbol{\beta}}^\top\mathbf{x}^{(i)})^2}{2\sigma^2}\right)$
-
-* ``y^{(i)}`` is a univariate Gaussian with mean $\boldsymbol{\beta}^\top \mathbf{x}^{(i)}$ and variance $\sigma^2$ 
 
 """
 
@@ -233,7 +232,7 @@ md"input $x^{(i)}=$ $(xᵢ0); and ``\sigma^2=`` $(σ²0)"
 let
 	gr()
 
-
+	Random.seed!(123)
 	n_obs = 100
 	# the input x is fixed; non-random
 	xs = range(-0.5, 1; length = n_obs)
@@ -282,24 +281,38 @@ md"""
 
 
 
-For the linear regression model
-
-* the unknown are: ``\boldsymbol{\beta}, \sigma^2``
-
-* the data observations are: ``\mathcal{D} =\{y^{(1)}, y^{(2)}, \ldots, y^{(n)}\}``
-
-* note that ``\{\mathbf{x}^{(i)}\}`` are assumed fixed
 
 
 
-Therefore, the likelihood function is
+
+
+"""
+
+# ╔═╡ fe7503ef-0ad6-4192-b3af-ddcc94e2c36b
+TwoColumn(
+md"""
+
+
+The **likelihood**:
 
 ```math
+\large
 p(\mathcal{D}|\boldsymbol{\beta}, \sigma^2, \{\mathbf{x}^{(i)}\}) = \prod_{i=1}^n p(y^{(i)}|\boldsymbol{\beta}, \sigma^2, \mathbf{x}^{(i)})
 ```
 
-* conditional independence assumption (also i.i.d assumption)
-"""
+* conditional independence assumed (*i.i.d*)
+
+* the unknown: ``\beta_0, \boldsymbol{\beta}, \sigma^2``
+
+* the observed: ``\mathcal{D} =\{y^{(1)}, y^{(2)}, \ldots, y^{(n)}\}``
+
+  * note that ``\{\mathbf{x}^{(i)}\}`` are assumed fixed
+""",
+
+Resource("https://leo.host.cs.st-andrews.ac.uk/figs/bayes/regression_freq.png", :height=>310)	
+
+	
+)
 
 # ╔═╡ 3a46c193-5a25-423f-bcb5-038f3756d7ba
 md"""
@@ -309,18 +322,16 @@ Frequentists estimate the model by using maximum likelihood estimation (MLE):
 
 
 ```math
-\hat{\beta_0}, \hat{\boldsymbol{\beta}}_1, \hat{\sigma^2} \leftarrow \arg\max p(\mathbf y|\mathbf X, \beta_0, \boldsymbol{\beta}_1, \sigma^2)
+\large
+\hat{\beta_0}, \hat{\boldsymbol{\beta}}_1, \hat{\sigma}^2 \leftarrow \arg\max p(\mathbf y|\mathbf X, \beta_0, \boldsymbol{\beta}_1, \sigma^2)
 ```
-It can be shown that the MLE are equivalent to the ordinary least square (OLS) estimators
-
-```math
-\hat{\beta_0}, \hat{\boldsymbol{\beta}}_1 \leftarrow \arg\min \sum_{n=1}^N (y_n - \mathbf{x}_n^\top \boldsymbol{\beta}_1 -\beta_0)^2.
-```
+It can be shown that the MLE are equivalent to the ordinary least square (OLS) estimator
 
 The closed-form OLS estimator is:
 
 ```math
-\hat{\boldsymbol{\beta}} = (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\mathbf{y},
+\large
+\hat{\boldsymbol{\beta}} = (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\mathbf{y}
 ```
 
 * the design matrix ``\mathbf{X}`` is augmented with ``\mathbf{1}_N`` as the first column (*i.e.* dummy variable for intercept).
@@ -341,8 +352,8 @@ y_n = \beta_0 + \beta_1 x_n + \varepsilon_n.
 """
 
 # ╔═╡ effcd3d2-ba90-4ca8-a69c-f1ef1ad697ab
-md"
-* use `GLM.jl` to fit the OLS estimation "
+# md"
+# * use `GLM.jl` to fit the OLS estimation "
 
 # ╔═╡ af404db3-7397-4fd7-a5f4-0c812bd90c4a
 begin
@@ -357,7 +368,7 @@ end;
 # ╔═╡ 3e98e9ff-b674-43f9-a3e0-1ca5d8614327
 begin
 	ols_simulated = lm([ones(N) X], yy)
-end
+end;
 
 # ╔═╡ af2e55f3-08b8-48d4-ae95-e65168a23eeb
 let
@@ -366,33 +377,6 @@ let
 	plot!(0:0.1:1, pred, lw=2, label="OLS fit", legend=:topleft)
 	plot!(0:0.1:1, (x) -> β₀ + β₁*x, lw=2, label="True model", legend=:topleft)
 end
-
-# ╔═╡ bc597dc8-dbfe-4a75-81b5-ea37655f95eb
-md"""
-
-## Graphical model
-
-
-The frequentist model is on the **left** 
-
-* where the parameters are not assumed random
-
-```math
-p(\mathbf{y}|\beta_0, \boldsymbol{\beta}, \sigma^2,  \mathbf{X}) = \prod_i p(y^{(i)} |\mathbf{x}^{(i)}, \beta_0, \boldsymbol{\beta}, \sigma^2)
-```
-
-The Bayesian model is on the right
-
-* all parameters are assumed random (with priors)
-* and based on the factoring property
-
-```math
-p(\beta_0, \boldsymbol{\beta}, \sigma^2, \mathbf{y}, \mathbf{X}) = p(\beta_0) p(\boldsymbol{\beta})p(\sigma^2)\prod_i p(y^{(i)} |\mathbf{x}^{(i)}, \beta_0, \boldsymbol{\beta}, \sigma^2)
-```
-"""
-
-# ╔═╡ f240d7b7-4ea8-4836-81ae-ba1cd169b87d
-TwoColumn(Resource("https://leo.host.cs.st-andrews.ac.uk/figs/bayes/regression_freq.png", :height=>310, :align=>"left"), Resource("https://leo.host.cs.st-andrews.ac.uk/figs/bayes/regression_bayes.png", :height=>310, :align=>"right"))
 
 # ╔═╡ 43191a7a-f1a2-41df-910d-cf85907e8f7a
 md"""
@@ -403,47 +387,101 @@ md"""
 # ╔═╡ 98ef1cca-de03-44c2-bcf4-6e79da139e11
 md"""
 
-The Bayesian model reuses the frequentist's likelihood model for ``\mathbf{y}``:
+The **Bayesian model** reuses the frequentist's likelihood model for ``\mathbf{y}``:
 
 ```math
 p(y_n|\mathbf{x}_n, \boldsymbol{\beta}, \sigma^2) = \mathcal{N}(y_n; \beta_0+\mathbf{x}_n^\top \boldsymbol{\beta}_1, \sigma^2),
 ```
 where the model parameters are
-* ``\beta_0\in R`` -- intercept
-* ``\boldsymbol{\beta}_1 \in R^D`` -- regression coefficient vector
-* ``\sigma^2\in R^+`` -- Gaussian noise's variance
+* ``\beta_0\in \mathbb{R}`` -- intercept
+* ``\boldsymbol{\beta}_1 \in \mathbb{R}^D`` -- regression coefficient vector
+* ``\sigma^2\in \mathbb{R}^+`` -- Gaussian noise's variance
 
 
-**In addition**, the Bayesian model also imposes priors on the unknowns
+**In addition**, the Bayesian model also imposes **priors** on the unknowns
 
 ```math
-p(\beta_0, \boldsymbol{\beta}_1, \sigma^2).
+p(\beta_0, \boldsymbol{\beta}_1, \sigma^2)
 ```
 
-* a simple independent prior 
-
+* *e.g.* a simple independent prior:
 ```math
-p(\beta_0, \boldsymbol{\beta}_1, \sigma^2)= p(\beta_0)p(\boldsymbol{\beta}_1)p( \sigma^2).
+p(\beta_0, \boldsymbol{\beta}_1, \sigma^2)= p(\beta_0)p(\boldsymbol{\beta}_1)p( \sigma^2)
 ```
 
 
 
 """
 
+# ╔═╡ bc597dc8-dbfe-4a75-81b5-ea37655f95eb
+md"""
+
+## Graphical model
+
+
+
+"""
+
+# ╔═╡ d910a745-ba64-4ca0-ab92-acdda7262444
+TwoColumn(md"""
+### Frequentist's model
+
+$(Resource("https://leo.host.cs.st-andrews.ac.uk/figs/bayes/regression_freq.png", :height=>310, :align=>"left"))
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+
+
+* fixed unknowns
+""", 
+
+md"""
+
+### Bayesian model
+
+$(Resource("https://leo.host.cs.st-andrews.ac.uk/figs/bayes/regression_bayes.png", :height=>310, :align=>"right"))
+
+* prior for the unknown
+
+```math
+p(\beta_0, \boldsymbol{\beta}, \sigma^2) = p(\beta_0) p(\boldsymbol{\beta})p(\sigma^2)
+```
+
+""")
+
 # ╔═╡ a1421ccb-2d6e-4406-b770-ad7dff007c69
 md"""
 
-## Prior choices
+## Prior choices: ``p(\beta_0)``
 
 
 **Prior for the intercept ``p(\beta_0)``** 
 
-``\beta_0 \in R``, a common choice is Gaussian 
+``\beta_0 \in \mathbb{R}``, a common choice is Gaussian 
 
 $$p(\beta_0) = \mathcal N(m_0^{\beta_0}, v_0^{\beta_0});$$ 
 
 * where the hyper-parameters ``m_0^{\beta_0}, v_0^{\beta_0}`` can be specified based on the data or independently.
 
+## Prior choices: ``p(\beta_0)``
+
+
+**Prior for the intercept ``p(\beta_0)``** 
+
+``\beta_0 \in \mathbb{R}``, a common choice is Gaussian 
+
+$$p(\beta_0) = \mathcal N(m_0^{\beta_0}, v_0^{\beta_0});$$ 
+
+* where the hyper-parameters ``m_0^{\beta_0}, v_0^{\beta_0}`` can be specified based on the data or independently.
 
 **Data-dependent hyper-parameter:** e.g. 
 
@@ -468,7 +506,7 @@ md"""
 
 ## Prior choice (cont.)
 
-**Prior for**  $$p(\boldsymbol{\beta}_1)$$: ``\boldsymbol{\beta}_1\in R^D`` is also unconstrained
+**Prior for**  $$p(\boldsymbol{\beta}_1)$$: ``\boldsymbol{\beta}_1\in \mathbb{R}^D`` is also unconstrained
 
 * a common prior choice is a D-dimensional multivariate Gaussian 
 
@@ -516,9 +554,6 @@ end
 md"""
 
 ## The full model
-
-To put everything together, the model and the graphical model are
-
 """
 
 # ╔═╡ 3a21c148-9538-4a0b-92df-67857c8099d7
@@ -955,8 +990,8 @@ p(\boldsymbol{\beta}|\mathcal{D}, \sigma^2) =\mathcal{N}(\mathbf{m}_N, \mathbf{V
 
 """
 
-# ╔═╡ 965faf88-1d33-4c1d-971c-6763cd737145
-σ²_prior = 1^2
+# ╔═╡ 8f51d185-fabf-4199-9373-62e30f6eb0f5
+md"``v_0:`` $(@bind σ²_prior Slider(10.0.^(2:-.2:-5); show_value=true))"
 
 # ╔═╡ 5dee6633-3100-418c-af3a-d9843e093eab
 begin
@@ -970,12 +1005,6 @@ end;
 # ╔═╡ 378f8401-310f-4506-bd3b-f9e5e4dae124
 mN_
 
-# ╔═╡ 2fd3cddf-12be-40be-b793-142f8f22de39
-begin
-	plot(Normal(mN_[2], VN_[2, 2]), label=L"p(\beta_1|\mathcal{D})", xlim=[-0.5, 4])
-	plot!(Normal(mN_[1], VN_[1, 1]), label=L"p(\beta_0|\mathcal{D})")
-end
-
 # ╔═╡ b3b1dc37-4ce9-4b3d-b59d-74412cd63c1e
 begin
 
@@ -986,9 +1015,15 @@ begin
 	# plot!(-5:0.1:5, -5:0.1:5, (x,y)-> pdf(MvNormal(m₀_, V₀_), [x,y]) * 100, levels=3, seriestype=:contour, colorbar=false , fill=false, ratio=1)
 end
 
+# ╔═╡ 2fd3cddf-12be-40be-b793-142f8f22de39
+# begin
+# 	plot(Normal(mN_[2], VN_[2, 2]), label=L"p(\beta_1|\mathcal{D})", xlim=[-0.5, 4])
+# 	plot!(Normal(mN_[1], VN_[1, 1]), label=L"p(\beta_0|\mathcal{D})")
+# end
+
 # ╔═╡ bab3a19c-deb0-4b1c-a8f9-f713d66d9199
 md"""
-## Connection to ridge regression 
+## Connection to ridge regression*
 
 """
 
@@ -4464,10 +4499,9 @@ version = "1.4.1+1"
 # ╟─684f63ec-1e2f-4384-8ddd-f18d2469ebc3
 # ╟─b94583a3-7a04-4b30-ba7b-4ff5a72baf5f
 # ╟─4ed16d76-2815-4f8c-8ab0-3819a03a1acc
-# ╟─c21f64bb-a934-4ec0-b1eb-e3fd6695d116
+# ╟─65f8b976-2151-447a-bdcf-8f0430d5757a
+# ╟─7ca631e2-aafa-4f3f-909b-ba73775ec8c4
 # ╟─0d3d98c4-fed4-4f4b-be17-bd733e808256
-# ╟─94e5a7ed-6332-4f92-8b77-7e0ce7b88a84
-# ╟─215c4d7f-ef58-4682-893b-d41b7de75afa
 # ╟─c6c3e3aa-fee6-418f-b304-8d5b353bd2d7
 # ╟─75567e73-f48a-477c-bc9f-91ce1630468c
 # ╟─06f941c1-53c8-4279-8214-0d3ef5c81c4b
@@ -4479,16 +4513,17 @@ version = "1.4.1+1"
 # ╟─f6cb99dd-f25c-4770-bba2-8a2496016316
 # ╟─510cc569-08eb-4deb-b695-2f3044d758e5
 # ╟─b0008150-7aae-4310-bfa8-950ba7bc9092
+# ╟─fe7503ef-0ad6-4192-b3af-ddcc94e2c36b
 # ╟─3a46c193-5a25-423f-bcb5-038f3756d7ba
 # ╟─c6938b7f-e6e5-4bea-a273-52ab3916d07c
-# ╟─effcd3d2-ba90-4ca8-a69c-f1ef1ad697ab
-# ╠═3e98e9ff-b674-43f9-a3e0-1ca5d8614327
-# ╟─af404db3-7397-4fd7-a5f4-0c812bd90c4a
 # ╟─af2e55f3-08b8-48d4-ae95-e65168a23eeb
-# ╟─bc597dc8-dbfe-4a75-81b5-ea37655f95eb
-# ╟─f240d7b7-4ea8-4836-81ae-ba1cd169b87d
+# ╟─effcd3d2-ba90-4ca8-a69c-f1ef1ad697ab
+# ╟─3e98e9ff-b674-43f9-a3e0-1ca5d8614327
+# ╟─af404db3-7397-4fd7-a5f4-0c812bd90c4a
 # ╟─43191a7a-f1a2-41df-910d-cf85907e8f7a
 # ╟─98ef1cca-de03-44c2-bcf4-6e79da139e11
+# ╟─bc597dc8-dbfe-4a75-81b5-ea37655f95eb
+# ╟─d910a745-ba64-4ca0-ab92-acdda7262444
 # ╟─a1421ccb-2d6e-4406-b770-ad7dff007c69
 # ╟─e1552414-e701-42b5-8eaf-21ae04a829a8
 # ╟─9387dcb4-3f4e-4ec7-8393-30a483e00c63
@@ -4518,11 +4553,11 @@ version = "1.4.1+1"
 # ╟─d02d5490-cf53-487d-a0c6-651725600f52
 # ╟─7dcf736f-958c-43bf-8c15-ec5b27a4650e
 # ╟─49790b58-9f66-4dd2-bfbc-415c916ae2ab
-# ╠═965faf88-1d33-4c1d-971c-6763cd737145
+# ╟─8f51d185-fabf-4199-9373-62e30f6eb0f5
 # ╟─378f8401-310f-4506-bd3b-f9e5e4dae124
+# ╟─b3b1dc37-4ce9-4b3d-b59d-74412cd63c1e
 # ╟─5dee6633-3100-418c-af3a-d9843e093eab
 # ╟─2fd3cddf-12be-40be-b793-142f8f22de39
-# ╟─b3b1dc37-4ce9-4b3d-b59d-74412cd63c1e
 # ╟─bab3a19c-deb0-4b1c-a8f9-f713d66d9199
 # ╟─b433c147-f547-4234-9817-2b29e7d57219
 # ╟─59dd8a13-89c6-4ae9-8546-877bb7992570

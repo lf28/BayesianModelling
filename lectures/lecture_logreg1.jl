@@ -72,23 +72,22 @@ md"""
 
 
 
+"""
+
+# ╔═╡ 5338bdba-0004-436d-8a96-b7811fc39637
+md"""
+
 * input features: ``\mathbf{x} \in \mathbb{R}^m``
 
 * output label: ``y^{(i)} \in \{0,1\}``
 
 
-Below is a two-dimensional example ``m=2``
 """
 
-# ╔═╡ 8879917c-072c-41b2-947f-7e65f12faa58
+# ╔═╡ fd8f1465-3419-4042-a61d-af4898e6788a
 md"""
 
-## Logistic function 
-
-
-> Idea: apply some "activation" function to squeeze the hyperplane to 0 and 1
-> * which can then be interpreted as **probability** of ``y^{(i)}`` being class 1
-
+## Logistic regression: the idea
 """
 
 # ╔═╡ 38bf8ca4-2507-45cf-8036-1f9b6ba0a66a
@@ -178,6 +177,18 @@ Now feed a hyperplane
 # ╔═╡ 06bfedf9-f4e2-4885-b466-842362e4d739
 wv_ = [1, 1] * 1
 
+# ╔═╡ 55ebd87c-7789-4a4d-9d49-99e0e5d9a5c7
+# let
+# 	gr()
+# 	w₀ = 0
+# 	w₁, w₂ = wv_[1], wv_[2]
+# 	plot(-5:0.5:5, -5:0.5:5, (x, y) -> logistic(w₀+ w₁* x + w₂ * y), st=:contourf, c=:jet, colorbar=false, alpha=0.7, xlim=[-5, 5], ylim=[-5, 5],  xlabel="x₁", ylabel="x₂", title="contour plot of "* "σ(wᵀx)", ratio=1)
+# 	α = 2
+# 	xs_, ys_ = meshgrid(range(-5, 5, length=20), range(-5, 5, length=20))
+# 	∇f_d(x, y) = ∇σ([1, x, y], [w₀, w₁, w₂])[2:end] * α
+# 	quiver!(xs_, ys_, quiver = ∇f_d, c=:black)
+# end
+
 # ╔═╡ 6d9ff057-1ebd-43bd-ac2e-cbfb1da6dd98
 md"""
 
@@ -186,14 +197,11 @@ md"""
 
 The model 
 ```math
+\large
 \sigma(\mathbf{x}) = \frac{1}{1+ e^{- \mathbf{w}^\top\mathbf{x}}}
 ``` 
 
 can be represented as a **computational graph**
-
-* the output is between 0 and 1
-  * which can be interpreted as a probability!
-* a building block of a neural network
 
 """
 
@@ -204,25 +212,14 @@ html"<center><img src='https://leo.host.cs.st-andrews.ac.uk/figs/CS3105/logistic
 # ╔═╡ ee737d2c-d7d9-464b-8cd5-91b0b97f07d0
 html"<center><img src='https://carpentries-incubator.github.io/ml4bio-workshop/assets/logit_nodes.png' width = '400' /></center>";
 
-# ╔═╡ ad9019e9-5ffd-4d18-8f67-0d7a41d08a56
+# ╔═╡ 9984ab77-7c79-4bf5-8b94-5b78f37e42f6
 md"""
-
-## Probabilistic model for logistic regression
-
+## Recap: probabilistic linear regression model
 
 
-Since ``y^{(i)} \in \{0,1\}``, a natural choice of likelihood model is Bernoulli (coin tossing)
+> $\large \begin{align}p(y^{(i)}|\mathbf{x}^{(i)}, \mathbf{w}, \sigma^2) &= \mathcal{N}(y^{(i)};  \mathbf{w}^\top \mathbf{x}^{(i)} , \sigma^2)\end{align}$
 
-* replace the bias with the sigmoid output!
-
-
-```math
-p(y^{(i)}|\mathbf{w}, \mathbf{x}^{(i)}) = \begin{cases}\sigma(\mathbf{w}^\top\mathbf{x}^{(i)}) & y^{(i)} =1
-\\
-1-\sigma(\mathbf{w}^\top\mathbf{x}^{(i)}) & y^{(i)} = 0   \end{cases}
-```
-
-* for notational convenience, we use short hand ``\sigma^{(i)} =\sigma(\mathbf{w}^\top\mathbf{x}^{(i)})``
+* ``y^{(i)}`` now becomes a Gaussian random variable with mean $\mathbf{w}^\top \mathbf{x}^{(i)}$ and variance $\sigma^2$ 
 
 
 """
@@ -235,6 +232,108 @@ end
 
 # ╔═╡ 4c0fc54b-9184-4f0b-8224-bf0774d844f1
 logistic_loss(w, data, targets) = - sum(logpdf.(BernoulliLogit.(data * w), targets))
+
+# ╔═╡ ab1eef52-53c2-40cc-b9ae-938e49a8db6e
+md"""
+
+## Probabilistic model for logistic regression
+
+
+
+Since ``y^{(i)} \in \{0,1\}``, a natural choice for ``p(y^{(i)}|\cdot)`` is Bernoulli (since the outcome is binary)
+
+> ```math
+> \large
+> 
+> p(y^{(i)}|\mathbf{w}, \mathbf{x}^{(i)}) = \texttt{Bernoulli}(\sigma^{(i)}) =\begin{cases}\sigma(\mathbf{w}^\top\mathbf{x}^{(i)}) & y^{(i)} =1
+> \\
+> 1-\sigma(\mathbf{w}^\top\mathbf{x}^{(i)}) & y^{(i)} = 0   \end{cases}
+> ```
+
+* short-hand notation ``\sigma^{(i)} =\sigma(\mathbf{w}^\top\mathbf{x}^{(i)})``
+
+
+"""
+
+# ╔═╡ 33cafb73-e309-462c-b58d-f88daec1f326
+md"Add true function ``\sigma(x; \mathbf{w})``: $(@bind add_h CheckBox(default=false)),
+Add ``p(y^{(i)}|x^{(i)})``: $(@bind add_pyi CheckBox(default=false)),
+Add ``y^{(i)}\sim p(y^{(i)}|x^{(i)})``: $(@bind add_yi CheckBox(default=false))
+"
+
+# ╔═╡ c52b18a8-3474-4622-92ab-abb54956e872
+begin
+	Random.seed!(123)
+	n_obs = 20
+	# the input x is fixed; non-random
+	# xs = range(-1, 1; length = n_obs)
+	xs = sort(rand(n_obs) * 20)
+	true_w = [-11, 1]
+	# true_σ² = 0.05
+	ys = zeros(Bool, n_obs)
+	for (i, xⁱ) in enumerate(xs)
+		hⁱ = true_w' * [1, xⁱ]
+		# ys[i] = hⁱ + rand(Normal(0, sqrt(true_σ²)))
+		ys[i] = rand() < logistic(hⁱ)
+	end
+end
+
+# ╔═╡ 339b564b-f855-490f-a3f0-c5fd655dd897
+md"
+Select ``x^{(i)}``: $(@bind add_i Slider(1:length(xs); show_value=true))
+"
+
+# ╔═╡ 344bbb93-0aa4-4d3a-9ed7-6867c5e1f173
+TwoColumnWideLeft(let
+	gr()
+	plt = plot(xs, zeros(length(xs)), st=:scatter, framestyle=:origin, labels=L"x", color=:black, ms=5, markershape=:x, xlabel="Weight of the animal (kg)", ylim=[-0.2, 1.2],legend=:outerbottom, size=(450,350))
+
+
+
+	if add_h
+		plot!(-0.01:0.01:21, (x) -> logistic(true_w[1] + true_w[2]*x), lw=2, label="the bias: " * L"h(x)")
+	end
+	# σ²0 = true_σ²
+	xis = xs
+	i = add_i
+	plot!([xs[i]], [0],st=:scatter, markershape=:x, ms=5, markerstrokewidth=5, c=:black, label="")
+	labels = [y == 0 ? text("cat", 10, "Computer Modern" , :blue) : text("dog", 10, "Computer Modern" , :red) for y in ys]
+	if add_yi
+		shapes = [:diamond, :circle]
+		# scatter!([xis[1:i]],[ys[1:i]], alpha=0.5, markershape = shapes[ys[i] + 1], label="observation: "*L"y^{(i)}\sim \texttt{Bern}(\sigma^{(i)})", c = ys[1:i] .+1, markersize=8, series_annotations = labels[1:i])
+
+		scatter!(xis[1:i],ys[1:i], alpha=0.5, markershape = shapes[ys[i] + 1], label="observation: "*L"y^{(i)}\sim \texttt{Bern}(\sigma^{(i)})", c = ys[1:i] .+1, markersize=8; annotation = (xis[1:i],ys[1:i] .+0.1, labels[1:i]))
+	end
+
+	plt
+end, 
+	let 
+	gr()
+	xis = xs
+	i = add_i
+	if add_pyi
+		x = xis[i]
+		μi = dot(true_w, [1, x])
+		σ = logistic(μi)
+		# scatter!([x],[μi], markerstrokewidth =1, markershape = :diamond, c=:grey, label="signal: "*L"h(x)", markersize=3)
+		# plot!(ys_ .+x, xs_, c=:grey, label="", linewidth=2)
+		plot(["y = cat", "y = dog"], [1-σ, σ], c= [1,2], st=:bar, orientation=:v, size=(250,250), title="Bias: "*L"\sigma(x^{(i)})=%$(round(σ, digits=2))", ylim =(0, 1.02), label="", ylabel=L"P(y|x)" )
+	else
+		plot(size=(250,250))
+	end
+	
+end)
+
+# ╔═╡ ee819c57-e25d-4dd9-944e-d1be58e5db6a
+md"""
+## Demonstration (animation)
+"""
+
+# ╔═╡ 7f2d4d2b-53ec-4bb2-8f26-11beb13d599d
+begin
+	bias = 0.0 # 2
+	slope = 1.0 # 10, 0.1
+end;
 
 # ╔═╡ 1d87e445-984a-4544-88e3-780c681fb737
 md"""
@@ -257,20 +356,26 @@ Let's classify `0` (positive) from non-zeros `{1,2,…,9}` (negative)
 
 * it becomes a **binary classification**
 
-Flatten the input ``28 \times 28`` to a long ``28^2+1`` vector 
+"""
+
+# ╔═╡ b973cdbd-4cfd-4bf3-b3fd-d431d3fab814
+md"""
+
+
+We flatten the input ``28 \times 28`` to a long ``28^2+1`` vector 
 * +1: dummy one for the intercept
 * and feed it to a logistic regression/single neuron
 """
 
-# ╔═╡ bbbf3716-ec62-4f41-97a1-1fa2563481e3
+# ╔═╡ ec89eb57-3394-42f6-9811-9eec52e1e5a1
 md"""
-## Visualise the learnt parameter
+## Visualise the parameter
 
-The learnt features ``\hat{\mathbf{w}}`` is a ``28^2+1`` long vector
-* we can view it as an image
-* the classifier *does not like* the blue pixels for an image to be `0`
-  * *e.g.* anything in the centre 
-  * or the centre of an image should be blank
+The learnt features ``\hat{\mathbf{w}}`` as an image
+* ``\color{blue} \text{blue pixel}``: negative weights
+
+* ``\color{red} \text{red pixel}``: positive weights
+
 """
 
 # ╔═╡ 6d94f30d-a57a-420d-a073-261ae765e2cb
@@ -281,12 +386,29 @@ begin
 	
 end;
 
+# ╔═╡ a6bad7ec-f731-4870-8198-f90e30deecd6
+mnist_idx_by_digits = [findall(mnist_train_ys .== d) for d in 0:9];
+
+# ╔═╡ d922e78b-9c43-4f83-83d0-737d50b6a135
+TwoColumn(
+let
+	# mnist_idx_by_digits = [findall(mnist_train_ys .== d) for d in 0:9];
+	num_each_digit = 8
+	reshape([Gray.(mnist_train_X[:, :, mnist_idx_by_digits[1][d]]') for d in 1:num_each_digit], 4, 2)
+end,
+
+let
+	# mnist_idx_by_digits = [findall(mnist_train_ys .== d) for d in 1:9];
+	reshape([Gray.(mnist_train_X[:, :, mnist_idx_by_digits[d][1]]') for d in 2:10][1:8], 4, 2)
+end
+)
+
 # ╔═╡ 10d0b2bd-222c-46f7-abc3-b70b8425add7
 let
 	mnist_idx_by_digits = [findall(mnist_train_ys .== d) for d in 0:9];
 	num_each_digit = 1
 	reshape([Gray.(mnist_train_X[:,:,i]) for d in 1:length(mnist_idx_by_digits) for i in mnist_idx_by_digits[d][1:num_each_digit]], 10, num_each_digit)'
-end
+end;
 
 # ╔═╡ f71fb8d9-e63e-4d3a-a872-ee36f55c869f
 # begin
@@ -340,16 +462,13 @@ md"""
 
 ## MLE overfitting
 
+```math
+\Large
+\mathbf{w} \rightarrow \infty \;\;\;\Longrightarrow\;\;\; \text{loss} \rightarrow 0
+```
 
-
-When the data is linearly separable
-
-* MLE leads to very large scale ``\mathbf{w}``
-
-* ``\mathbf{w} \rightarrow \infty``, ``\text{loss} \rightarrow 0``
-
-
-The sharper the better! overfitting 
+* when the data is linearly separable
+* MLE: the sharper the better! overfitting 
 """
 
 # ╔═╡ 55ffe10e-899d-456f-ba62-12d51a072843
@@ -376,6 +495,7 @@ md"""
 !!! note "Frequentist solution: regularisation or MAP"
 	Solution: add a penalty term or MAP estimator
 	```math
+	\Large
 		\hat{\mathbf{w}}_{\text{MAP}}\leftarrow \arg\min_{\mathbf{w}} \underbrace{L(\mathbf{w}) + \frac{\lambda }{2} \mathbf{w}^\top \mathbf{w}}_{\text{regularised loss}}
 	```
 
@@ -387,14 +507,28 @@ function ∇logistic_regularised(w, X, y; λ = 0.02)
 end;
 
 # ╔═╡ dbf31225-55a1-4d3d-8758-bcab0e653f55
-md"""
-## Comparison 
+# md"""
+# ## Comparison 
 
 
-* MLE (``\textcolor{blue}{\text{blue}}`` lines) converge to larger scale
-* MAP (the ridge logistic regression)(``\textcolor{orange}{\text{orange}}`` lines) more regularised; thanks to regularisation (or add the zero mean Gaussian prior)
+# * MLE (``\textcolor{blue}{\text{blue}}`` lines) converge to larger scale
+# * MAP (the ridge logistic regression)(``\textcolor{orange}{\text{orange}}`` lines) more regularised; thanks to regularisation (or add the zero mean Gaussian prior)
 
-"""
+# """
+
+# ╔═╡ 338ae8dc-b1b4-4953-9aee-f97e15421f97
+# let
+# 	gr()
+# 	step = 1000
+# 	plot(wws_mle[1,1:step:end], c=1, ls=:dash,  marker = (:d, 0.5, 0.8, Plots.stroke(0.5, :gray)), label="w0: MLE")
+# 	plot!(wws_mle[2,1:step:end], c=1, ls=:dash,  marker = (:circle, 0.5, 0.8, Plots.stroke(0.5, :gray)), label="w1: MLE")
+# 	plot!(wws_mle[3,1:step:end], c=1, ls=:dash, marker = (:xcross, 0.5, 0.8, Plots.stroke(0.5, :gray)), label ="w2: MLE")
+
+# 	plot!(wws_map[1,1:step:end], c=2, ls=:dot,  marker = (:d, 0.5, 0.8, Plots.stroke(0.5, :gray)) , label="w0: MAP")
+
+# 	plot!(wws_map[2,1:step:end], c=2, ls=:dash,  marker = (:circle, 0.5, 0.8, Plots.stroke(0.5, :gray)), label="w1: MAP")
+# 	plot!(wws_map[3,1:step:end], c=2, marker = (:xcross, 0.5, 0.8, Plots.stroke(0.5, :gray)), label ="w2: MAP", legend=:outerright, xlabel="Iterations (× 1000)", ylabel="w")
+# end
 
 # ╔═╡ daeaf752-7f43-4afb-abdc-73a3ad7f2301
 md"""
@@ -404,22 +538,22 @@ md"""
 """
 
 # ╔═╡ b2888f9b-c40a-4ee9-bdbd-898eb89df5be
-md"""
+# md"""
 
 
-The regularised or MAP prediction, still a plug-in prediction *b.t.w.*, 
+# The regularised or MAP prediction, still a plug-in prediction *b.t.w.*, 
 
-```math
-\begin{align}
-p(y_{test} =1 |\hat{\mathbf{w}}_{\text{ML}}, \mathbf{x}_{test}) &=\sigma(\hat{\mathbf{w}}_{\text{ML}}^\top\mathbf{x}_{test}) \\
+# ```math
+# \begin{align}
+# p(y_{test} =1 |\hat{\mathbf{w}}_{\text{ML}}, \mathbf{x}_{test}) &=\sigma(\hat{\mathbf{w}}_{\text{ML}}^\top\mathbf{x}_{test}) \\
 
-&vs\\
+# &vs\\
 
-p(y_{test} =1 |\hat{\mathbf{w}}_{\text{MAP}}, \mathbf{x}_{test}) &=\sigma(\hat{\mathbf{w}}_{\text{MAP}}^\top\mathbf{x}_{test})
+# p(y_{test} =1 |\hat{\mathbf{w}}_{\text{MAP}}, \mathbf{x}_{test}) &=\sigma(\hat{\mathbf{w}}_{\text{MAP}}^\top\mathbf{x}_{test})
 
-\end{align}
-```
-"""
+# \end{align}
+# ```
+# """
 
 # ╔═╡ e30b60a4-0625-4f68-83bd-481b623616c9
 md"""
@@ -427,25 +561,14 @@ md"""
 ## MAP is not perfect either
 
 
-The MAP prediction is still just **plug in**
-* the straight-line extrapolated prediction is **not natural**
-  * poor generalisation performance
-* data points further away from the training data should be ``\Rightarrow`` less certain
+The MAP prediction is still just **plug in**: **lack of nuance**
 
 """
 
 # ╔═╡ 4840b4b2-f8ad-4a43-95c1-750d2cb39524
 md"""
 
-## Bayesian inference
-
-Full Bayesian preview
-
-* provides a very nuanced, reasonable and intelligent prediction 
-
-* attention to the finest details
-
-* uncertainties well accounted for -- good generalisation performance!
+## Bayesian inference -- preview
 """
 
 # ╔═╡ e71c8dd8-2f5e-4038-88cd-ea2863adc3b0
@@ -472,12 +595,14 @@ The CPF for ``y^{(i)}`` given its parents: ``\mathbf{x}^{(i)}``, and ``\mathbf{w
 Bernoulli with a logistic transformed bias
 
 ```math
+\Large
 p(y^{(i)}|\mathbf{x}^{(i)}, \mathbf{w}) = \begin{cases} \sigma(\mathbf{w}^\top \mathbf{x}^{(i)})& y^{(i)} = 1\\ 1- \sigma(\mathbf{w}^\top \mathbf{x}^{(i)})& y^{(i)} = 0\end{cases} 
 ```
 
 The prior ``p(\mathbf{w})`` 
 
 ```math
+\Large
 p(\mathbf{w}) = \prod_{j=1}^m \mathcal{N}({0}, 1/\lambda)
 ```
 * ``m`` variate (``m`` features) independent zero mean Gaussians with variance ``1/\lambda``
@@ -495,7 +620,7 @@ md"""
 
 ## Bayesian logistic regression in BN with prediction
 
-Now what if we want to predict ``\mathbf{x}_{test} \in \mathbf{D}_{test}``?
+Now what if we want to predict ``\mathbf{x}_{test} \in \mathcal{D}_{test}``?
 * add an unknown node
 * the hyperparameter ``\lambda`` (Gaussian prior's precision) is also added for completeness
 """
@@ -575,11 +700,7 @@ md"""
 
 100 ``\mathbf{w}^{(m)}`` induced predictions (dash gray lines) are plotted below
 
-Full Bayesian use all of them to make a prediction!
-* the final prediction is an average of all ``M`` ensemble's prediction
-
-
-* a very natural curved prediction surface emerges by this average
+Full Bayesian use all of them to make a prediction: **ensemble method**
 """
 
 # ╔═╡ 66e8bc6e-61dd-4b5d-8130-b96f03d92bf8
@@ -683,24 +804,95 @@ wws_mle = let
 	wws
 end;
 
-# ╔═╡ 338ae8dc-b1b4-4953-9aee-f97e15421f97
-let
-	gr()
-	step = 1000
-	plot(wws_mle[1,1:step:end], c=1, ls=:dash,  marker = (:d, 0.5, 0.8, Plots.stroke(0.5, :gray)), label="w0: MLE")
-	plot!(wws_mle[2,1:step:end], c=1, ls=:dash,  marker = (:circle, 0.5, 0.8, Plots.stroke(0.5, :gray)), label="w1: MLE")
-	plot!(wws_mle[3,1:step:end], c=1, ls=:dash, marker = (:xcross, 0.5, 0.8, Plots.stroke(0.5, :gray)), label ="w2: MLE")
-
-	plot!(wws_map[1,1:step:end], c=2, ls=:dot,  marker = (:d, 0.5, 0.8, Plots.stroke(0.5, :gray)) , label="w0: MAP")
-
-	plot!(wws_map[2,1:step:end], c=2, ls=:dash,  marker = (:circle, 0.5, 0.8, Plots.stroke(0.5, :gray)), label="w1: MAP")
-	plot!(wws_map[3,1:step:end], c=2, marker = (:xcross, 0.5, 0.8, Plots.stroke(0.5, :gray)), label ="w2: MAP", legend=:outerright, xlabel="Iterations (× 1000)", ylabel="w")
-end
-
 # ╔═╡ 28c04f67-699d-4665-90ef-ed402eed0b2c
 begin
 	using GLM
 	glm_fit = glm(D, targets, Bernoulli(), LogitLink())
+end
+
+# ╔═╡ 40b7a859-e7ee-4bec-b588-07a53f3be65e
+TwoColumn(md"""
+\
+\
+
+The generative model for ``y^{(i)}``
+
+---
+
+
+Given fixed ``\{\mathbf{x}^{(i)}\}`` (fixed and non-random)
+
+
+for each ``\mathbf{x}^{(i)}``
+  * *true signal* ``h(\mathbf{x}^{(i)}) =\mathbf{w}^\top \mathbf{x}^{(i)}``
+  * *generate* ``y^{(i)} \sim \mathcal{N}(\mu^{(i)}=h(\mathbf{x}^{(i)}), \sigma^2)``
+
+---
+
+""", let
+	xs = -1:0.1:1
+	plt = plot(xs, zeros(length(xs)), st=:scatter, framestyle=:origin, labels=L"x", color=:black, ms=5, markershape=:x, xlabel=L"x", ylim=[-2.2, 2.5], ylabel=L"y", legend=:outerbottom, size=(400,450))
+	true_w =[0, 1]
+	plot!(-1:0.1:1.1, (x) -> true_w[1] + true_w[2]*x, lw=2, label="the true signal: " * L"h(x)")
+	true_σ² = 0.05
+	σ²0 = true_σ²
+	xis = xs
+
+	ys = xs * true_w[2] .+ true_w[1] + randn(length(xs)) * sqrt(σ²0)
+	anim = @animate for i in 1:length(xis)
+		x = xis[i]
+		μi = dot(true_w, [1, x])
+		σ = sqrt(σ²0)
+		xs_ = μi- 4 * σ :0.05:μi+ 4 * σ
+		ys_ = pdf.(Normal(μi, sqrt(σ²0)), xs_)
+		ys_ = 0.1 *ys_ ./ maximum(ys_)
+		# scatter!([x],[μi], markerstrokewidth =1, markershape = :diamond, c=:grey, label="", markersize=3)
+		plot!(ys_ .+x, xs_, c=:grey, label="", linewidth=.5)
+		scatter!([xis[i]],[ys[i]], markershape = :circle, label="", c=1, markersize=4)
+	end
+
+	gif(anim; fps=4)
+end)
+
+# ╔═╡ e3669405-3321-4706-9a9e-5e9de75b7eb9
+let
+	gr()
+	n_obs = 20
+	# logistic = σ
+	Random.seed!(4321)
+	xs = sort(rand(n_obs) * 10 .- 5)
+	true_w = [bias, slope]
+	# true_σ² = 0.05
+	ys = zeros(Bool, n_obs)
+	for (i, xⁱ) in enumerate(xs)
+		hⁱ = true_w' * [1, xⁱ]
+		# ys[i] = hⁱ + rand(Normal(0, sqrt(true_σ²)))
+		ys[i] = rand() < logistic(hⁱ)
+	end
+
+	x_centre = -true_w[1]/true_w[2]
+
+	plt = plot(xs, zeros(length(xs)), st=:scatter, framestyle=:origin, labels=L"x", color=:black, ms=5, markershape=:x, xlabel=L"x", ylim=[-0.1, 1.2], ylabel=L"y", legend=:outerbottom)
+	# true_w =[0, 1]
+	plot!(plt, min(-5 + x_centre, -5):0.01:max(x_centre +5, 5), (x) -> logistic(true_w[1] + true_w[2]*x), lw=1.5, label=L"\sigma(x): "*" probability of being +", title="Probabilistic model for logistic regression")
+	plot!(plt, min(-5 + x_centre, -5):0.01:max(x_centre +5, 5), (x) -> 1-logistic(true_w[1] + true_w[2]*x),lc=1, lw=1.5, label=L"1-\sigma(x): "*" probability of being -")
+
+	xis = xs
+
+	anim = @animate for i in 1:length(xis)
+		x = xis[i]
+		scatter!(plt, [xis[i]],[ys[i]], markershape = :circle, label="", c=ys[i]+1, markersize=5)
+		vline!(plt, [x], ls=:dash, lc=:gray, lw=0.2, label="")
+		plt2 = plot(Bernoulli(logistic(true_w[1] + true_w[2]*x)), st=:bar, yticks=(0:1, ["negative", "positive"]), xlim=[0,1.01], orientation=:h, yflip=true, label="", title=L"p(y|{x})", color=1:2)
+		plot(plt, plt2, layout=grid(2, 1, heights=[0.85, 0.15]), size=(650,500))
+	end
+	# ys = xs * true_w[2] .+ true_w[1] + randn(length(xs)) * sqrt(σ²0)
+	
+	# 	x = xis[i]
+	# 	
+	# end
+
+	gif(anim; fps=4)
 end
 
 # ╔═╡ d05c93b1-d1fb-473c-b269-fce2bb48f8e0
@@ -911,18 +1103,6 @@ begin
 	end
 end
 
-# ╔═╡ 55ebd87c-7789-4a4d-9d49-99e0e5d9a5c7
-let
-	plotly()
-	w₀ = 0
-	w₁, w₂ = wv_[1], wv_[2]
-	plot(-5:0.5:5, -5:0.5:5, (x, y) -> logistic(w₀+ w₁* x + w₂ * y), st=:contourf, c=:jet, colorbar=false, alpha=0.7, xlim=[-5, 5], ylim=[-5, 5],  xlabel="x₁", ylabel="x₂", title="contour plot of "* "σ(wᵀx)", ratio=1)
-	α = 2
-	xs_, ys_ = meshgrid(range(-5, 5, length=20), range(-5, 5, length=20))
-	∇f_d(x, y) = ∇σ([1, x, y], [w₀, w₁, w₂])[2:end] * α
-	quiver!(xs_, ys_, quiver = ∇f_d, c=:black)
-end
-
 # ╔═╡ fd35b73a-fdbc-4ae9-aa45-0eeeb91698c5
 md"""
 
@@ -986,9 +1166,12 @@ p_bayes_pred=begin
 	gr()
 	ppf(x, y) = prediction(mcmcLR[:,1:1000]', x, y)
 	contour(-0:0.1:10, 0:0.1:10, ppf, xlabel=L"x_1", ylabel=L"x_2", fill=true,  connectgaps=true, line_smoothing=0.85, title="Bayesian prediction", c=:jet, alpha=0.9)
-end
+end;
 
 # ╔═╡ 0a7e8f24-b4aa-46a9-8e8c-2bca3b9c36fe
+p_bayes_pred
+
+# ╔═╡ 7d896e5b-f523-44fa-9199-a280f43f58e5
 p_bayes_pred
 
 # ╔═╡ effd0f06-ddfb-478b-b04e-e0fb8b72cead
@@ -3673,8 +3856,9 @@ version = "1.4.1+1"
 # ╟─46f17e57-c0e5-4ed5-9a9c-11812718a347
 # ╟─07d11cca-30a6-414c-bdd6-176de80e8b33
 # ╟─7547a998-0652-4c8a-ac63-c0daf03b72cf
+# ╟─5338bdba-0004-436d-8a96-b7811fc39637
 # ╟─a8c421e9-369e-438b-9388-9b4c5fd03484
-# ╟─8879917c-072c-41b2-947f-7e65f12faa58
+# ╟─fd8f1465-3419-4042-a61d-af4898e6788a
 # ╟─38bf8ca4-2507-45cf-8036-1f9b6ba0a66a
 # ╟─a6ad102a-9ff7-4ed9-8ab6-fd7790d8d37a
 # ╟─0f225525-1a86-4fab-9a8f-3d6a3a5135f6
@@ -3690,9 +3874,18 @@ version = "1.4.1+1"
 # ╟─6d9ff057-1ebd-43bd-ac2e-cbfb1da6dd98
 # ╟─e759ec49-c1ae-491d-b5bd-1043e934aa87
 # ╟─ee737d2c-d7d9-464b-8cd5-91b0b97f07d0
-# ╟─ad9019e9-5ffd-4d18-8f67-0d7a41d08a56
+# ╟─9984ab77-7c79-4bf5-8b94-5b78f37e42f6
+# ╟─40b7a859-e7ee-4bec-b588-07a53f3be65e
 # ╟─9c844e0d-6396-46e6-8de2-4c7bb18254c2
 # ╟─4c0fc54b-9184-4f0b-8224-bf0774d844f1
+# ╟─ab1eef52-53c2-40cc-b9ae-938e49a8db6e
+# ╟─33cafb73-e309-462c-b58d-f88daec1f326
+# ╟─c52b18a8-3474-4622-92ab-abb54956e872
+# ╟─339b564b-f855-490f-a3f0-c5fd655dd897
+# ╟─344bbb93-0aa4-4d3a-9ed7-6867c5e1f173
+# ╟─ee819c57-e25d-4dd9-944e-d1be58e5db6a
+# ╟─7f2d4d2b-53ec-4bb2-8f26-11beb13d599d
+# ╟─e3669405-3321-4706-9a9e-5e9de75b7eb9
 # ╟─1d87e445-984a-4544-88e3-780c681fb737
 # ╟─6ebd4400-23dc-4b94-b637-d82f174a2c6d
 # ╟─9e00e2b5-4c8f-41f6-b433-934edfc742ef
@@ -3700,12 +3893,15 @@ version = "1.4.1+1"
 # ╟─19d40f67-02b2-4f84-8def-1f278fb44ea5
 # ╟─037ad762-08f1-4b7e-9582-5b1b094afeb4
 # ╟─74b9b15d-a8ab-42b9-a5c3-74e78994e4e6
+# ╟─d922e78b-9c43-4f83-83d0-737d50b6a135
+# ╟─b973cdbd-4cfd-4bf3-b3fd-d431d3fab814
+# ╟─a6bad7ec-f731-4870-8198-f90e30deecd6
 # ╟─10d0b2bd-222c-46f7-abc3-b70b8425add7
 # ╟─9f8d8b7c-cb34-4ca4-ad0f-01aa2826d29f
 # ╟─9579c682-835c-4155-84cc-a9227f793432
 # ╟─2c37c0da-31f3-4730-a5d7-6bdef1393b96
 # ╟─b9d60608-e9ee-4e7f-a2cc-90d9d7adc56c
-# ╟─bbbf3716-ec62-4f41-97a1-1fa2563481e3
+# ╟─ec89eb57-3394-42f6-9811-9eec52e1e5a1
 # ╟─b2a3def4-ebee-4b7a-a986-ab91cfed1d69
 # ╟─6d94f30d-a57a-420d-a073-261ae765e2cb
 # ╟─f71fb8d9-e63e-4d3a-a872-ee36f55c869f
@@ -3755,6 +3951,7 @@ version = "1.4.1+1"
 # ╟─af74c191-0176-4197-945e-174c0456bd66
 # ╟─f09f3b01-623d-4cd0-9d6f-939787aed445
 # ╟─eade1785-e759-4e23-ab97-50d94360687d
+# ╟─7d896e5b-f523-44fa-9199-a280f43f58e5
 # ╟─fc1a2ca5-ab39-44e6-8199-86f1656a0c03
 # ╟─66e8bc6e-61dd-4b5d-8130-b96f03d92bf8
 # ╟─b07efeea-75c9-4847-ba45-752ff9b34d53

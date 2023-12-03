@@ -55,11 +55,12 @@ md"""
 * [Lecture 3. Bayesian inference 2](./lectures/lecture_bayes2.html)
 * [Lecture 4. MCMC 1](./lectures/lecture_mcmc1.html)
 * [Lecture 5. MCMC 2](./lectures/lecture_mcmc2.html)
-* [Lecture 6. Turing](./lectures/lecture_turing.html)
-* [Lecture 7. Bayesian linear regression](./lectures/lecture_linerreg.html)
-* [Lecture 8. Bayesian logistic regression](./lectures/lecture_logreg1.html)
-* [Lecture 9. Bayesian logistic regression with Turing](./lectures/lecture_logreg2.html)
-* [Lecture 10. Non linear models](./lectures/lecture_nonlin.html)
+* [Lecture 6. Bayesian inference 3](./lectures/lecture_bayes3.html)
+* [Lecture 7. Turing](./lectures/lecture_turing.html)
+* [Lecture 8. Bayesian linear regression](./lectures/lecture_linerreg.html)
+* [Lecture 9. Bayesian logistic regression](./lectures/lecture_logreg1.html)
+* [Lecture 10. Bayesian logistic regression with Turing](./lectures/lecture_logreg2.html)
+* [Lecture 11*. Non linear models](./lectures/lecture_nonlin.html)
 """
 
 # ╔═╡ 0edb7166-5be6-49e7-8ccb-9e36bd1e3c0a

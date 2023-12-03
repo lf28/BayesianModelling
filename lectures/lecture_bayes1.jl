@@ -65,7 +65,7 @@ md"""
 ## In this lecture
 
 * More Bayesian inference 
-  * more examples of the workflow
+  * the workflow: modelling + computation
 
 
   * Estimate the bias of a coin (Bernoulli likelihood)
@@ -104,23 +104,25 @@ md"""
 
 ## Forward modelling
 
-The random variables are 
+#### The *random variables* are 
 
-**The positive rate**: ``\theta \in [0,1]``: 
+* ##### *The positive rate*: ``\theta \in [0,1]``
 
-* the unknown positive rate of the seller; also known as the bias for Bernoulli r.v.
-
-
-**The observed tosses**: ``\mathcal{D} =\{Y_1, \ldots, Y_n\}``
+  * the bias for Bernoulli r.v.
 
 
-How the random variables shall be linked?
-* need to think generatively
-* the following seems  right
+* ##### *The observed tosses*: ``\mathcal{D} =\{Y_1, \ldots, Y_n\}``
+
+
+\
+\
+
+##### How the random variables shall be linked?
+
 ```math
-\theta \Rightarrow \mathcal{D}
+\Large \theta \Rightarrow \mathcal{D}
 ```
-* common cause pattern
+* the tossing results depend on $\theta$
 """
 
 # ╔═╡ 66926dbf-964d-4048-b8ad-459f36236c14
@@ -129,12 +131,10 @@ md"""
 ## The graphical model
 
 
-Equivalently, we can represent it as a graphical model
 
-
-In other words, the joint distribution is factored as (conditional independence assumption)
 
 ```math
+\large
 P(\theta, Y_1, Y_2, \ldots, Y_{10}) = \underbrace{P(\theta)}_{\text{prior}} \underbrace{P(Y_1, Y_2, \ldots, Y_{10}|\theta)}_{\text{likelihood}} = P(\theta)\prod_i P(Y_i|\theta)
 ```
 
@@ -209,9 +209,8 @@ P(\mathcal{D}|\theta) = \theta^{N^+}(1-\theta)^{N-N^+}
 # ╔═╡ 1bc6b970-f1fa-48c9-b17e-cef4d01aa47a
 md"""
 
-## MLE
+## Maximum likelihood estimation
 
-The likelihood ``P(\mathcal{D}|\theta)`` is plotted
 """
 
 # ╔═╡ 15571edc-32d7-4ac5-9c53-d49f595f84b1
@@ -295,7 +294,7 @@ $(let
 end)
 The MLE is 
 
-$$\hat{\theta}_{\text{ML}} = \frac{0}{2} =0$$
+$$\large \hat{\theta}_{\text{ML}} = \frac{0}{2} =0$$
 
 """
 
@@ -342,14 +341,17 @@ The only random variables are the data ``\mathcal{D}``
   * frequentists only need the likelihood ``P(\mathcal{D}|\theta)``
   * MLEs are usually random variables (therefore, with sampling distribution)
 
+## Frequentist approach
+
+
 A **confidence interval** can be calculated as 
 
 $$(\hat{\theta} - z_{\alpha/2} \hat{\texttt{se}}, \hat{\theta} + z_{\alpha/2} \hat{\texttt{se}}), \text{where}$$ 
 
 $$\hat{\texttt{se}}= \sqrt{\frac{\hat{\theta}(1-\hat{\theta})}{N}}.$$
 
-* ``\hat{\theta}`` is the MLE, which is a random variable
-* the interval is formed based on the converging property of the MLE
+* ##### ``\hat{\theta}, \hat{\texttt{se}}`` are random variables
+* ##### the intervals themselves are random but $\theta$ is fixed
 """
 
 # ╔═╡ b3bcf03b-f4f8-4ddb-ab59-fa5f780ed563
@@ -358,17 +360,19 @@ md"""
 ## Confidence interval
 
 
-For our problem, a 90% frequentist confidence interval is
+For our problem, a 90% frequentist **confidence interval** is
 
-$$(0.46, 0.94)$$
-
-
-> But how shall we interpret this interval?
-
-* ``\theta`` is not a random variable, it is clearly not an uncertainty statement  about ``\theta``
-* but the interval itself is random
+$$\large (0.46, 0.94)$$
 
 
+> #### But how shall we interpret this interval?
+
+* ``\theta`` is not a random variable
+  * ##### not an uncertainty statement  about ``\theta`` in the Bayesian sense
+
+* ##### but the intervals are random 
+
+## Confidence interval
 !!! danger ""
 	
 	
@@ -385,6 +389,7 @@ $$(0.46, 0.94)$$
 
 # ╔═╡ ff01e390-a72d-41b0-9a7c-1d63060491f9
 md"""
+##
 
 The animation illustrates the idea 
 * conditional on the hypothesis that the coin is fair, *i.e.* ``\theta =0.5`` (it works for any ``\theta\in [0,1]``)
@@ -415,6 +420,46 @@ And Bayesian inference is procedurally simple and uniform
 * forward modelling + inference computation
 * frequentist methods need different tests for different purposes
 """
+
+# ╔═╡ 84f66218-1309-4cfd-8250-11bd75f78eb4
+md"""
+
+## Bayesian vs Frequentist
+"""
+
+# ╔═╡ 98e84190-393a-4eb9-8f1c-fa90bf8973d2
+TwoColumn(md"""
+
+### Bayesian
+
+
+##### ``\theta`` is random
+* many ``\theta`` flausible
+
+
+
+##### ``\mathcal{D}`` random but observed (fixed)
+* only one ``\mathcal{D}`` assumed 
+
+
+##### One algorithm rules all 
+* *i.e.* Bayes' rule
+
+""", md"""
+### Frequentist
+
+##### ``\theta`` is not random (fixed)
+* only one ``\theta`` (although unknown) 
+
+
+
+##### ``\mathcal{D}`` random and repeated (varies)
+* many possible ``\mathcal{D}`` assumed 
+
+
+##### One algorithm per problem
+* recall those `tests` you have been taught
+""")
 
 # ╔═╡ 6131ad55-eee7-44ec-b965-ce17ef3f8f84
 begin
@@ -485,8 +530,6 @@ md"""
 # ╔═╡ 89f0aa81-1da3-41a0-8d72-72637d8052aa
 md"""
 
-It is the same to estimating a coin's bias actually
-
 > Seller *A* is "tossed" 10 times. 
 > * 8 out of the 10 experiments are positive. 
 > * what is the unknown positive rating ?
@@ -536,7 +579,8 @@ let
 	plot!(post_plt, θs, posterior_dis, color=2, label ="Posterior", fill=true, alpha=0.5)
 	plot!(post_plt, θs, 1/length(θs) * ones(length(θs)), seriestype=:sticks, markershape=:circle, color =1, alpha=0.2, label="")
 	plot!(post_plt, θs, 1/length(θs) * ones(length(θs)), color=1, label ="Prior", fill=true, alpha=0.2)
-	plot(prior_plt_seller, like_plt_seller, post_plt, layout=l)
+	like_plt = plot(θs, θ -> ℓ(θ, 𝒟), seriestype=:sticks, color=1, markershape=:circle, xlabel=L"θ", ylabel=L"P(\{0,0\}|θ)", label="", title="Likelihood: "*L"P(\{0,0\}|\theta)")
+	plot(prior_plt_seller, like_plt, post_plt, layout=l)
 end
 
 # ╔═╡ fde1b917-9d81-4a29-b553-caad3c736682
@@ -679,7 +723,7 @@ md"""
 The heatmap of the posterior density is also plotted for reference.
 
 $(begin
-
+gr()
 Plots.plot(θ₁s, θ₂s,  ps', st=:heatmap, xlabel=L"\theta_A", ylabel=L"\theta_B", ratio=1, xlim=[0,1], ylim=[0,1], zlim =[-0.003, maximum(ps)], colorbar=false, c=:plasma, zlabel="density", alpha=0.7, title="Posterior's density heapmap")
 
 end)
@@ -831,11 +875,11 @@ md"""
 
 The posterior distribution ``P(\theta|\mathcal{D})`` provides what we need to know
 
-* the mode of the posterior is around 0.7
+* the **mode** of the posterior is around 0.7
 
 
 
-To summarise the uncertainty, we can report **highest probability density interval (HPDI)** 
+To **summarise the uncertainty**, we often report **highest probability density interval (HPDI)** 
 
 * Bayesian **credible interval** (c.f. confidence interval)
 
@@ -844,7 +888,7 @@ To summarise the uncertainty, we can report **highest probability density interv
 $$p(l \leq \theta \leq u|\mathcal D) = 90 \%.$$
 
 * however, the wide tail suggests it is not very certain; we only have observed 10 tosses after all
-  * the 90% region for ``\theta`` is ($(θs_refined[l2]), $(θs_refined[u2]))
+  * ##### the 90% region for ``\theta`` is ($(θs_refined[l2]), $(θs_refined[u2]))
 """
 
 # ╔═╡ f7456b7a-3d05-468a-a7ee-50a83affba72
@@ -2407,6 +2451,8 @@ version = "1.4.1+1"
 # ╟─ff01e390-a72d-41b0-9a7c-1d63060491f9
 # ╟─6d136ab7-c7ea-43a7-a16d-0af53b123b59
 # ╟─c1edf5ff-f25f-4a71-95fb-53515aae9d97
+# ╟─84f66218-1309-4cfd-8250-11bd75f78eb4
+# ╟─98e84190-393a-4eb9-8f1c-fa90bf8973d2
 # ╟─a152a7bd-062d-4fd9-be38-c217fdaca20f
 # ╟─6131ad55-eee7-44ec-b965-ce17ef3f8f84
 # ╟─a2642e09-3202-4c73-914a-bdd6c0b374c2
