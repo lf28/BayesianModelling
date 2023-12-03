@@ -61,67 +61,56 @@ md"""
 ## Bayesian computation is hard
 
 
-**Bayes' theorem** has provided us with a conceptually simple mechanism to compute the posterior:
+**Bayes' theorem** is conceptually simple
 
-$$\text{posterior}=\frac{\text{prior} \times \text{likelihood}}{\text{evidence}}\;\;\text{or}\;\;p(\theta|\mathcal D) =\frac{p(\theta) p(\mathcal D|\theta)}{p(\mathcal D)},$$
-where 
-
-$$p(\mathcal D) = \int p(\theta) p(\mathcal D|\theta) \mathrm{d}\theta,$$ known as *evidence* or *marginal likelihood*, is a constant with respect to the model parameter ``\theta``.
+$$\Large\text{posterior}=\frac{\text{prior} \times \text{likelihood}}{\text{evidence}}\;\;\text{or}\;\;p(\theta|\mathcal D) =\frac{p(\theta) p(\mathcal D|\theta)}{p(\mathcal D)}$$
 
 
-* the difficulty part lies in the computation of the normalising constant: ``p(\mathcal D)``. 
+##### The evidence term:
+
+$$\large p(\mathcal D) = \int p(\theta) p(\mathcal D|\theta) \mathrm{d}\theta$$ 
 
 
-* the integration is often high-dimensional, therefore usually *intractable*. 
+* ##### an integration: often high-dimensional, therefore *intractable*. 
 
-As a result, posterior probability calculations, such as $\theta \in A$
 
-$$\mathbb{P}(\theta \in A|\mathcal D) = \int_{\theta \in A} p(\theta |\mathcal D) \mathrm{d}\theta = \frac{ \int_{\theta \in A} p(\theta) p(\mathcal D|\theta) \mathrm{d}\theta}{p(\mathcal D)},$$ 
+## Bayesian computation is hard
+
+
+##### As a result, posterior probability calculations, such as $\theta \in A$
+
+$$\large\mathbb{P}(\theta \in A|\mathcal D) = \int_{\theta \in A} p(\theta |\mathcal D) \mathrm{d}\theta = \frac{ \int_{\theta \in A} p(\theta) p(\mathcal D|\theta) \mathrm{d}\theta}{p(\mathcal D)},$$ 
 
 * can not be evaluated exactly. 
 
 
 **For example**, in the coin tossing example, the computation
 
-$$\mathbb{P}(0.45 \leq \theta \leq 0.55|\mathcal D)= \frac{\int_{.45}^.55 p(\theta)p(\theta |\mathcal D) \mathrm{d}\theta}{p(\mathcal D)}$$ 
+$$\large \mathbb{P}(0.45 \leq \theta \leq 0.55|\mathcal D)= \frac{\int_{.45}^.55 p(\theta)p(\theta |\mathcal D) \mathrm{d}\theta}{p(\mathcal D)}$$ 
 
 
-would be challenging.
-
-## Bayesian computation is hard (cont.)
-
-Previously, we sidestepped the difficult problem by discretisation
-
-
-* the integration reduces a **brute-force enumeration** summation
-
-$$\mathbb{P}(0.45 \leq \theta \leq 0.55|\mathcal D) = \frac{\int_{.45}^.55 p(\theta)p(\theta |\mathcal D) \mathrm{d}\theta}{p(\mathcal D)}\approx \frac{\sum_{\theta_0'\in \{.5\}} p(\theta=\theta_0')p(\mathcal D|\theta=\theta_0')}{\sum_{\theta_0\in \{0, 0.1, \ldots, 1.0\}} p(\theta=\theta_0)p(\mathcal D|\theta=\theta_0)}.$$
-
-* unfortunately, this brute force discretisation-based method is not scalable when the dimension of unknown increases
+would be challenging
 
 
 ## Bayesian computation is hard (cont.)
 
-**What's worse**, even when ``p(\mathcal D)`` is known, or when we can evaluate 
-``
-p(\theta) 
-`` exactly
+##### *What's worse*, even when ``p(\mathcal D)`` is known
 
 * the computation can still be hard for general problems
 * we still need to evaluate the numerator's integration (and find the ratio)
 
 
-**For example**: given a $5$-dimensional Gaussian $\theta \in R^5$:
+**For example**: given a $5$-dimensional Gaussian $\theta \in \mathbb{R}^5$:
 
-$$p(\boldsymbol{\theta}) = \mathcal{N}(\boldsymbol{x}; \boldsymbol{\mu}, \boldsymbol{\Sigma})= \underbrace{\frac{1}{(2\pi)^{d/2}} |\boldsymbol{\Sigma}|^{-1/2}}_{\text{normalising constant}} \exp \left \{ -\frac{1}{2} (\boldsymbol{\theta} - \boldsymbol{\mu})^\top \boldsymbol{\Sigma}^{-1} (\boldsymbol{\theta} - \boldsymbol{\mu})\right\}$$
+$$p(\boldsymbol{\theta}) = \mathcal{N}(\boldsymbol{\theta}; \boldsymbol{\mu}, \boldsymbol{\Sigma})= \underbrace{\frac{1}{(2\pi)^{d/2}} |\boldsymbol{\Sigma}|^{-1/2}}_{\text{normalising constant}} \exp \left \{ -\frac{1}{2} (\boldsymbol{\theta} - \boldsymbol{\mu})^\top \boldsymbol{\Sigma}^{-1} (\boldsymbol{\theta} - \boldsymbol{\mu})\right\}$$
 
-where $\boldsymbol{\theta} = [\theta_1, \theta_2,\ldots, \theta_5]^\top.$ Find the probability $P(\theta_1<\theta_2<\theta_3<\theta_4<\theta_5)$ ?
+* where $\boldsymbol{\theta} = [\theta_1, \theta_2,\ldots, \theta_5]^\top$ 
+* find the probability $P(\theta_1<\theta_2<\theta_3<\theta_4<\theta_5)$ ?
 
 One still needs to find it by integrating the non constant part:
 
-$$
-\begin{align}
-P(&\theta_1<\ldots<\theta_5) = \int_{\theta_1}\int_{\theta_2}\ldots\int_{\theta_5}I(\theta_1<\theta_2<\ldots< \theta_5)\mathcal N(\boldsymbol{\theta}; \boldsymbol{\mu}, \boldsymbol{\Sigma})d{\theta_1}d{\theta_2}\ldots d{\theta_5}\\
+$$\begin{align}
+P&(\theta_1<\ldots<\theta_5) = \int_{\theta_1}\int_{\theta_2}\ldots\int_{\theta_5}I(\theta_1<\theta_2<\ldots< \theta_5)\mathcal N(\boldsymbol{\theta}; \boldsymbol{\mu}, \boldsymbol{\Sigma})d{\theta_1}d{\theta_2}\ldots d{\theta_5}\\
 &=\frac{1}{(2\pi)^{d/2}} |\boldsymbol{\Sigma}|^{-1/2} \int_{\theta_1}\ldots\int_{\theta_5}I(\theta_1<\ldots< \theta_5)\exp \left \{ -\frac{1}{2} (\boldsymbol{\theta} - \boldsymbol{\mu})^\top \boldsymbol{\Sigma}^{-1} (\boldsymbol{\theta} - \boldsymbol{\mu})\right\}d{\theta_1}\ldots d{\theta_5}
 \end{align}$$
 
@@ -129,16 +118,50 @@ P(&\theta_1<\ldots<\theta_5) = \int_{\theta_1}\int_{\theta_2}\ldots\int_{\theta_
 
 ## Bayesian computation is hard (cont.)
 
-To summarise, the difficulty of Bayesian computation are two-folds
+#### To summarise, the difficulty are two-folds
 
 
-1. the posterior distribution is only evaluable up to some unknown normalising constant;
+##### 1. the posterior's normalising constant is intractable
 
 
-2. posterior summary involves integrations, which are intractable.
+##### 2. posterior computation involves integrations
 
 
 """
+
+# ╔═╡ 1a45b61e-d133-45eb-a166-9b687fddd265
+md"""
+
+## Two schools of method
+
+
+
+#### MCMC: sampling based 
+
+* a bit **slow** but no compromise on accuracy
+\
+
+
+#### Variational inference: optimisation based 
+
+
+```math
+\large
+q^\ast(\theta) \leftarrow \arg\min_{q} \text{KL}(q(\theta)\, \Vert\, p(\theta| \mathcal{D}))
+```
+
+* **fast** but compromise on accuracy
+  * simplified assumption are made on $q$
+
+* more popular in Machine Learning community
+
+"""
+
+# ╔═╡ 9e1f6c0c-fd36-4290-9971-7cf91b4230f9
+# md"""
+
+# ## Variational inference*
+# """
 
 # ╔═╡ 0688cb0f-422a-413f-87d6-aaecc04f1914
 md"""
@@ -146,24 +169,27 @@ md"""
 ## Monte Carlo method
 
 
-**Monte Carlo** methods: approximating a distribution by its **empirical samples distribution**
+#### *Monte Carlo*: approximate a distribution by *empirical samples*
 
-$$\theta^{(1)}, \theta^{(2)}, \ldots, \theta^{(R)} \sim p(\theta|\mathcal D),$$
+$$\large \theta^{(1)}, \theta^{(2)}, \ldots, \theta^{(R)} \sim p(\theta|\mathcal D),$$
 
 * if the sample size, ``R``, is large enough:
 
-$${\mathbb{P}}(\theta \in A|\mathcal D) \approx \frac{\#\{\theta^{(r)} \in A\}}{R},$$ 
+$$\large {\mathbb{P}}(\theta \in A|\mathcal D) \approx \frac{\#\{\theta^{(r)} \in A\}}{R},$$ 
 * where ``\#\{\cdot\}`` counts how many samples falls in set ``A``.
 
-And general expectations of the form
 
-$$\mathbb E[t(\theta)|\mathcal D] = \int t(\theta) p(\theta|\mathcal D) \mathrm{d}\theta = \frac{\int t(\theta) p(\theta) p(\mathcal D|\theta) \mathrm{d}\theta}{p(\mathcal D)}$$ 
+## Monte Carlo method
+
+#### More generally, 
+
+$$\large \mathbb E[t(\theta)|\mathcal D] = \int t(\theta) p(\theta|\mathcal D) \mathrm{d}\theta = \frac{\int t(\theta) p(\theta) p(\mathcal D|\theta) \mathrm{d}\theta}{p(\mathcal D)}$$ 
 
 * can also be approximated by its Monte Carlo estimation
 
 $${\mathbb{E}}[t(\theta)|\mathcal D] \approx \frac{1}{R} \sum_{r} t(\theta^{(r)}),$$
 
-* which is the sample average evaluated at the drawn samples. 
+* which is the sample average evaluated at the drawn samples
 
 
 
@@ -186,12 +212,12 @@ Monte Carlo method essentially uses the *histogram* (on the right) to **replace*
 """
 
 # ╔═╡ 12f25671-850c-40c8-972e-5face10cf105
-md"""
-As an example, to compute the expectation of ``\theta``, the Monte Carlo estimator becomes 
+# md"""
+# As an example, to compute the expectation of ``\theta``, the Monte Carlo estimator becomes 
 
-$\mathbb E[\theta] \approx \frac{1}{R} \sum_r \theta^{(r)}$
+# $\mathbb E[\theta] \approx \frac{1}{R} \sum_r \theta^{(r)}$
 
-"""
+# """
 
 # ╔═╡ ce7ea4e9-8286-49a6-b8b2-353ae7571088
 begin
@@ -245,7 +271,7 @@ md"""
 ## Example (cont.)
 Similarly, calculating probability, such as ``\mathbb P(0\leq \theta \leq 15)``, reduces to frequency counting: 
 
-$$
+$$\large
 \hat{\mathbb{P}}(0\leq \theta \leq \theta) = \frac{\#\{0\leq \theta^{(r)}\leq 15\}}{2000} =0.905,$$  
 
 * count the proportion of samples that falls in the area of interest
@@ -294,15 +320,15 @@ md"""
 
 Bayesian inference problem's posterior can only be evaluated up to some unknown constant:
 
-$$p(\theta|\mathcal D) \propto p(\theta) p(\mathcal D|\theta),$$
+$$\Large p(\theta|\mathcal D) \propto p(\theta) p(\mathcal D|\theta),$$
 
 * where the scalar ``1/p(\mathcal D)`` involves a nasty integration
 
 The question we face now is how to sample
 
-> **Problem 2**: how to generate samples ``\{\theta^{(r)}\}_{r=1}^R`` from a un-normalised distribution:
+> **Problem**: how to generate samples ``\{\theta^{(r)}\}_{r=1}^R`` from a un-normalised distribution:
 >
-> $$p(\theta|\mathcal D) \propto p(\theta)p(\mathcal D|\theta)?$$
+> $$\large p(\theta|\mathcal D) \propto p(\theta)p(\mathcal D|\theta)?$$
 
 """
 
@@ -318,17 +344,17 @@ md"""
 
 ## MCMC -- Basic idea
 
-A class of methods called **Markov Chain Monte Carlo** (MCMC) 
+#### *Markov Chain Monte Carlo* (MCMC) 
 
+\
 
-**Markov Chain**: 
+##### *Markov Chain* 
 
-$p(\theta^{(r)}|\theta^{(1)}, \theta^{(2)}, \ldots, \theta^{(r-1)}) = p(\theta^{(r)}|\theta^{(r-1)})$
+$\large p(\theta^{(r)}|\theta^{(1)}, \theta^{(2)}, \ldots, \theta^{(r-1)}) = p(\theta^{(r)}|\theta^{(r-1)})$
   * samples are generated by a Markov Chains
   * current sample depends on the previous sample
-  * the Markov Chain has the posterior as the target distribution 
 
-**Monte Carlo**: 
+##### *Monte Carlo*
 
 * estimation by the Markov chain samples as illustrated in the previous section
 """
@@ -345,16 +371,23 @@ md"""
 * considered a [**top 10** algorithm of the 20th century](https://www.computer.org/csdl/magazine/cs/2000/01/c1022/13rRUxBJhBm)
 
 
+## Metropolis  sampling 
 
-**Metropolis** algorithm:
-	$\theta^{(i)} \sim p(\theta|\mathcal{D})$
-	
+
+##### _Objective_:
+
+!!! infor "Objective"
+	$\large \theta^{(i)} \sim p(\theta|\mathcal{D})$
+
+
+##### _How_:
 !!! infor "How it works?"
-	It samples by simulating a Markov chain ( that's why it is an MCMC algorithm)
+	It samples by simulating a **Markov chain** 
     * it needs a symmetric proposal distribution ``q(\theta|\theta')`` (a conditional distribution but I have used another letter ``q``)
       * *symmetric:* ``q(\theta|\theta') = q(\theta'|\theta)``
-    * if asymmetric proposal is used: the algorithm is called Metropolis-Hastings
-**Assumption**
+	* propose + reject/accept
+
+##### _Assumption_:
 
 !!! infor "Assumption on p(θ|𝒟)"
 	The target distribution is known up to some unknown constant ``1/p(\mathcal{D})``:
@@ -366,11 +399,13 @@ md"""
 
 # ╔═╡ 4803df98-1392-44bb-98d3-c832d4043086
 md"""
-## Metropolis algorithm
+## Metropolis sampling - the algorithm
 
-Metropolis algorithm only involves two steps!
+##### Metropolis algorithm only involves _two steps_!
+\
 
-*assume* the current sample: ``\theta_{\text{current}}``
+
+##### *Assume* the *current sample*: ``\theta_{\text{current}}``
 
 
 
@@ -417,11 +452,10 @@ p^\ast(\theta) = p(\theta)p(\mathcal{D}|\theta)
 
 ## Metropolis sampling -- pseudo code
 
-The algorithm details are summarised below:
-
 **Input:** un-normalised target distribution
 
 ```math
+\large
 p^\ast(\theta) = p(\theta)p(\mathcal{D}|\theta)
 ```
 
@@ -445,7 +479,7 @@ md"""
 # ╔═╡ 159c2632-e820-4a0d-8729-c1907796e8aa
 md"""
 
-Finally, discard some initial samples as **burn-in**
+##### _Finally_, discard some initial samples as *burn-in*
 
 """
 
@@ -478,10 +512,11 @@ md"""
 
 ## Example: a walk through of MH
 
-Recall two seller problem's model
+Consider the two seller's posterior
 
 ```math
-p(\theta_A, \theta_B, N⁺_A, N⁺_B) = \underbrace{p(\theta_A, \theta_B)}_{\text{prior}} \underbrace{p(N⁺_A, N⁺_B|\theta_A, \theta_B)}_{\text{likelihood}}
+\large
+p(\theta_A, \theta_B| N⁺_A, N⁺_B) \propto \underbrace{p(\theta_A, \theta_B)}_{\text{prior}} \underbrace{p(N⁺_A, N⁺_B|\theta_A, \theta_B)}_{\text{likelihood}}
 ```
 
 * ``\boldsymbol{\theta} =[\theta_A, \theta_B]`` together as a random variable (vector)
@@ -495,37 +530,38 @@ p(\theta_A, \theta_B, N⁺_A, N⁺_B) = \underbrace{p(\theta_A, \theta_B)}_{\tex
 # ╔═╡ a4b0ddf5-399b-415c-bf43-73acbd82c389
 md"""
 
+##
 
-The objective is to find the posterior
+##### The *objective* is to compute the posterior
 
 
 ```math
+\large
 p(\theta_A, \theta_B| N⁺_A, N⁺_B) = \frac{p(\theta_A, \theta_B)p(N⁺_A, N⁺_B|\theta_A, \theta_B)}{\underbrace{\int \int p(\theta_A, \theta_B)p(N⁺_A, N⁺_B|\theta_A, \theta_B)  \mathrm{d}\theta_A \mathrm{d}\theta_B}_{\text{can be nasty to compute!}}}
 ```
 
-* the nasty integration in general cannot be computed!
 
-
-**BUT** the key thing to remember is the posterior can be evaluated *proportionally*
+**BUT** the key thing to note is the posterior can be evaluated *proportionally*
 
 ```math
+\large
 p(\theta_A, \theta_B| N⁺_A, N⁺_B) \propto p(\theta_A, \theta_B)p(N⁺_A, N⁺_B|\theta_A, \theta_B)
 ```
 
 """
 
 # ╔═╡ 12965122-0ee0-4ca8-bcab-c3a93ab05f38
-md"And the contour plot
-* each coloured line is a *level set* of the mountain (of the same height)
-"
+# md"And the contour plot
+# * each coloured line is a *level set* of the mountain (of the same height)
+# "
 
 # ╔═╡ 58d6dce4-0fc1-4f8f-adae-0ab59c8032e3
 
 md"""
-## What we have done last time
+## What we have done last time*
 
 
-We sidesteped the integration via discretisation 
+##### We have used _discretisation_
 
 
 
@@ -567,7 +603,7 @@ end;
 # ╔═╡ d193042c-9882-4633-8367-4698fcbfe9f8
 md"""
 ```math
-P(\theta_A, \theta_B| N⁺_A, N⁺_B) \approx \frac{P(\theta_A, \theta_B)P(N⁺_A, N⁺_B|\theta_A, \theta_B)}{\underbrace{\sum_{\theta_A\in\{0, \ldots 1.0\}} \sum_{\theta_B\in\{0, \ldots 1.0\}} P(\theta_A, \theta_B)P(N⁺_A, N⁺_B|\theta_A, \theta_B)  }_{\text{can be nasty to compute if there are a lot!}}}
+P(\theta_A, \theta_B| N⁺_A, N⁺_B) \approx \frac{P(\theta_A, \theta_B)P(N⁺_A, N⁺_B|\theta_A, \theta_B)}{\underbrace{\sum_{\theta_A\in\{0, \ldots 1.0\}} \sum_{\theta_B\in\{0, \ldots 1.0\}} P(\theta_A, \theta_B)P(N⁺_A, N⁺_B|\theta_A, \theta_B)  }_{\text{can still be nasty to compute if there are a lot!}}}
 ```
 
 !!! danger "problem"
@@ -639,7 +675,7 @@ md"""
 ## The algorithm - step by step
 
 
-Uniform proposal distribution
+##### A uniform proposal distribution
 
 ```math
 q(\boldsymbol \theta|\boldsymbol \theta^{(t)}) = \texttt{Uniform}(0,1) \times \texttt{Uniform}(0,1)
@@ -2749,6 +2785,8 @@ version = "1.4.1+1"
 # ╟─b5e1f496-02e1-4352-9912-ff7bf4ea622c
 # ╟─d1b809fb-e381-49ac-bfa4-77c12f3ccf17
 # ╟─2f5f8005-fda3-4a07-9c39-969ca4417f2c
+# ╟─1a45b61e-d133-45eb-a166-9b687fddd265
+# ╟─9e1f6c0c-fd36-4290-9971-7cf91b4230f9
 # ╟─0688cb0f-422a-413f-87d6-aaecc04f1914
 # ╟─e9ca80e4-4b93-4c8e-9cc7-36b5077ac7ff
 # ╟─461e94ea-0b29-4b60-b536-dd0bfd318070
@@ -2771,8 +2809,8 @@ version = "1.4.1+1"
 # ╟─35a49bf3-753b-4341-9d65-bff4b7883248
 # ╟─a4b0ddf5-399b-415c-bf43-73acbd82c389
 # ╟─ddf45f75-ac6e-4f7e-ba22-a98d570b9fbd
-# ╟─12965122-0ee0-4ca8-bcab-c3a93ab05f38
 # ╟─2006210d-96a5-410f-97e4-b2869aa23c25
+# ╟─12965122-0ee0-4ca8-bcab-c3a93ab05f38
 # ╟─58d6dce4-0fc1-4f8f-adae-0ab59c8032e3
 # ╟─28ba62e5-e3af-4c83-9a9b-7f7ff688b339
 # ╟─f1c6942c-3acb-4eda-a8f1-db603ff72ebf
