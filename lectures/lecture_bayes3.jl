@@ -22,12 +22,6 @@ begin
 	using PlutoUI
 end
 
-# ╔═╡ c40745b2-01dd-42c0-9d5a-3a97d2cbd800
-begin
-	import TikzGraphs
-	using Graphs
-end
-
 # ╔═╡ be719382-bf1f-4442-8419-bddcda782525
 TableOfContents()
 
@@ -105,14 +99,28 @@ md"""
 
 """
 
+# ╔═╡ c40745b2-01dd-42c0-9d5a-3a97d2cbd800
+# begin
+# 	import TikzGraphs
+# 	using Graphs
+# end
+
 # ╔═╡ 7a27f63d-b1d6-406b-8b7a-70e9347b8174
-begin
-	g = DiGraph(3)
-	add_edge!(g, 1, 2)
-	add_edge!(g, 1, 3)
-	# add_edge!(g, 1, 3)
-	graphplt = TikzGraphs.plot(g, [L"\textit{Coin}", L"Y_1", L"Y_2"], options="scale=2, font=\\Huge", node_style="draw", graph_options="nodes={draw,circle}")
-end;
+# begin
+# 	g = DiGraph(3)
+# 	add_edge!(g, 1, 2)
+# 	add_edge!(g, 1, 3)
+# 	# add_edge!(g, 1, 3)
+# 	graphplt = TikzGraphs.plot(g, [L"\textit{Coin}", L"Y_1", L"Y_2"], options="scale=2, font=\\Huge", node_style="draw", graph_options="nodes={draw,circle}")
+# end;
+
+# ╔═╡ 288c5949-d24a-4d42-a08b-b6600b5012f5
+# md"""
+
+# | |
+# | --- |
+# | $(graphplt)|
+# """
 
 # ╔═╡ 8d41ad5e-350b-409b-97ac-640bd8b1bad5
 md"""
@@ -132,12 +140,8 @@ md"""
 
 """
 
-# ╔═╡ 288c5949-d24a-4d42-a08b-b6600b5012f5
-md"""
-
-| |
-| --- |
-| $(graphplt)|
+# ╔═╡ d4d381e1-118a-4f8e-bd97-aad6b10153e4
+html"""<center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/coin_guess.svg" width = "300"/></center>
 """
 
 # ╔═╡ 8834e7a7-20f6-4abd-81d1-b2f74ee03367
@@ -935,7 +939,6 @@ end
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
-Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 Latexify = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -947,11 +950,9 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
-TikzGraphs = "b4f28e30-c73f-5eaf-a395-8a9db949a742"
 
 [compat]
 Distributions = "~0.25.103"
-Graphs = "~1.9.0"
 LaTeXStrings = "~1.3.1"
 Latexify = "~0.16.1"
 LogExpFunctions = "~0.3.26"
@@ -961,7 +962,6 @@ PlutoUI = "~0.7.54"
 SpecialFunctions = "~2.3.1"
 StatsBase = "~0.34.2"
 StatsPlots = "~0.15.6"
-TikzGraphs = "~1.4.0"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -970,7 +970,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.4"
 manifest_format = "2.0"
-project_hash = "7c80e8667a39d24df0fb2aae1f177924c8769f43"
+project_hash = "d3ff3ecdc82b1caabf45b78d6c0229f09d965276"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -1002,12 +1002,6 @@ weakdeps = ["StaticArrays"]
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
 version = "1.1.1"
-
-[[deps.ArnoldiMethod]]
-deps = ["LinearAlgebra", "Random", "StaticArrays"]
-git-tree-sha1 = "62e51b39331de8911e4a7ff6f5aaf38a5f4cc0ae"
-uuid = "ec485272-7323-5ecc-a04f-4719b315124d"
-version = "0.2.0"
 
 [[deps.Arpack]]
 deps = ["Arpack_jll", "Libdl", "LinearAlgebra", "Logging"]
@@ -1335,12 +1329,6 @@ git-tree-sha1 = "344bf40dcab1073aca04aa0df4fb092f920e4011"
 uuid = "3b182d85-2403-5c21-9c21-1e1f0cc25472"
 version = "1.3.14+0"
 
-[[deps.Graphs]]
-deps = ["ArnoldiMethod", "Compat", "DataStructures", "Distributed", "Inflate", "LinearAlgebra", "Random", "SharedArrays", "SimpleTraits", "SparseArrays", "Statistics"]
-git-tree-sha1 = "899050ace26649433ef1af25bc17a815b3db52b7"
-uuid = "86223c79-3864-5bf0-83f7-82e725a168b6"
-version = "1.9.0"
-
 [[deps.Grisu]]
 git-tree-sha1 = "53bb909d1151e57e2484c3d1b53e19552b887fb2"
 uuid = "42e2da0e-8278-4e71-bc24-59509adca0fe"
@@ -1351,12 +1339,6 @@ deps = ["Base64", "CodecZlib", "ConcurrentUtilities", "Dates", "ExceptionUnwrapp
 git-tree-sha1 = "abbbb9ec3afd783a7cbd82ef01dcd088ea051398"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
 version = "1.10.1"
-
-[[deps.HarfBuzz_ICU_jll]]
-deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "Graphite2_jll", "HarfBuzz_jll", "ICU_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Pkg"]
-git-tree-sha1 = "6ccbc4fdf65c8197738c2d68cc55b74b19c97ac2"
-uuid = "655565e8-fb53-5cb3-b0cd-aec1ca0647ea"
-version = "2.8.1+0"
 
 [[deps.HarfBuzz_jll]]
 deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "Graphite2_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Pkg"]
@@ -1382,22 +1364,11 @@ git-tree-sha1 = "7134810b1afce04bbc1045ca1985fbe81ce17653"
 uuid = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
 version = "0.9.5"
 
-[[deps.ICU_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "20b6765a3016e1fca0c9c93c80d50061b94218b7"
-uuid = "a51ab1cf-af8e-5615-a023-bc2c838bba6b"
-version = "69.1.0+0"
-
 [[deps.IOCapture]]
 deps = ["Logging", "Random"]
 git-tree-sha1 = "d75853a0bdbfb1ac815478bacd89cd27b550ace6"
 uuid = "b5f81e59-6552-4d32-b1f0-c071b021bf89"
 version = "0.2.3"
-
-[[deps.Inflate]]
-git-tree-sha1 = "ea8031dea4aff6bd41f1df8f2fdfb25b33626381"
-uuid = "d25df0c9-e2be-5dd7-82c8-3ad0b3e990b9"
-version = "0.1.4"
 
 [[deps.IntelOpenMP_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -1582,12 +1553,6 @@ version = "2.36.0+0"
 deps = ["Libdl", "OpenBLAS_jll", "libblastrampoline_jll"]
 uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
-[[deps.LittleCMS_jll]]
-deps = ["Artifacts", "JLLWrappers", "JpegTurbo_jll", "Libdl", "Libtiff_jll", "Pkg"]
-git-tree-sha1 = "110897e7db2d6836be22c18bffd9422218ee6284"
-uuid = "d3a379c0-f9a3-5b72-a4c0-6bf4d2e8af0f"
-version = "2.12.0+0"
-
 [[deps.LogExpFunctions]]
 deps = ["DocStringExtensions", "IrrationalConstants", "LinearAlgebra"]
 git-tree-sha1 = "7d6dd4e9212aebaeed356de34ccf262a3cd415aa"
@@ -1713,12 +1678,6 @@ deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
 uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
 version = "0.3.21+4"
 
-[[deps.OpenJpeg_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Libtiff_jll", "LittleCMS_jll", "Pkg", "libpng_jll"]
-git-tree-sha1 = "76374b6e7f632c130e78100b166e5a48464256f8"
-uuid = "643b3616-a352-519d-856d-80112ee9badc"
-version = "2.4.0+0"
-
 [[deps.OpenLibm_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "05823500-19ac-5b8b-9628-191a04bc5112"
@@ -1841,12 +1800,6 @@ deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "FixedPointNu
 git-tree-sha1 = "bd7c69c7f7173097e7b5e1be07cee2b8b7447f51"
 uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 version = "0.7.54"
-
-[[deps.Poppler_jll]]
-deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "Glib_jll", "JLLWrappers", "JpegTurbo_jll", "Libdl", "Libtiff_jll", "OpenJpeg_jll", "Pkg", "libpng_jll"]
-git-tree-sha1 = "02148a0cb2532f22c0589ceb75c110e168fb3d1f"
-uuid = "9c32591e-4766-534b-9725-b71a8799265b"
-version = "21.9.0+0"
 
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
@@ -1975,12 +1928,6 @@ git-tree-sha1 = "874e8867b33a00e784c8a7e4b60afe9e037b74e1"
 uuid = "777ac1f9-54b0-4bf8-805c-2214025038e7"
 version = "1.1.0"
 
-[[deps.SimpleTraits]]
-deps = ["InteractiveUtils", "MacroTools"]
-git-tree-sha1 = "5d7e3f4e11935503d3ecaf7186eac40602e7d231"
-uuid = "699a6c99-e7fa-54fc-8d76-47d257e15c1d"
-version = "0.9.4"
-
 [[deps.Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 
@@ -2102,18 +2049,6 @@ version = "0.1.1"
 [[deps.Test]]
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
-[[deps.TikzGraphs]]
-deps = ["Graphs", "LaTeXStrings", "TikzPictures"]
-git-tree-sha1 = "e8f41ed9a2cabf6699d9906c195bab1f773d4ca7"
-uuid = "b4f28e30-c73f-5eaf-a395-8a9db949a742"
-version = "1.4.0"
-
-[[deps.TikzPictures]]
-deps = ["LaTeXStrings", "Poppler_jll", "Requires", "tectonic_jll"]
-git-tree-sha1 = "79e2d29b216ef24a0f4f905532b900dcf529aa06"
-uuid = "37f6aa50-8035-52d0-81c2-5a1d08754b2d"
-version = "3.5.0"
 
 [[deps.TranscodingStreams]]
 git-tree-sha1 = "1fbeaaca45801b4ba17c251dd8603ef24801dd84"
@@ -2396,12 +2331,6 @@ deps = ["Artifacts", "Libdl"]
 uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 version = "17.4.0+0"
 
-[[deps.tectonic_jll]]
-deps = ["Artifacts", "Fontconfig_jll", "FreeType2_jll", "Graphite2_jll", "HarfBuzz_ICU_jll", "HarfBuzz_jll", "ICU_jll", "JLLWrappers", "Libdl", "OpenSSL_jll", "Zlib_jll", "libpng_jll"]
-git-tree-sha1 = "54867b00af20c70b52a1f9c00043864d8b926a21"
-uuid = "d7dd28d6-a5e6-559c-9131-7eb760cdacc5"
-version = "0.13.1+0"
-
 [[deps.x264_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "4fea590b89e6ec504593146bf8b988b2c00922b2"
@@ -2431,8 +2360,9 @@ version = "1.4.1+1"
 # ╟─6b460036-890d-4364-aac2-2c61dc44ed75
 # ╟─c40745b2-01dd-42c0-9d5a-3a97d2cbd800
 # ╟─7a27f63d-b1d6-406b-8b7a-70e9347b8174
-# ╟─8d41ad5e-350b-409b-97ac-640bd8b1bad5
 # ╟─288c5949-d24a-4d42-a08b-b6600b5012f5
+# ╟─8d41ad5e-350b-409b-97ac-640bd8b1bad5
+# ╟─d4d381e1-118a-4f8e-bd97-aad6b10153e4
 # ╟─8834e7a7-20f6-4abd-81d1-b2f74ee03367
 # ╟─418d4290-b598-4e23-a9c1-02508c64c70b
 # ╟─fa6c61d0-a68f-46bf-b974-ecb5997e5590
