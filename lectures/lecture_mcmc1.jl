@@ -272,7 +272,7 @@ md"""
 Similarly, calculating probability, such as ``\mathbb P(0\leq \theta \leq 15)``, reduces to frequency counting: 
 
 $$\large
-\hat{\mathbb{P}}(0\leq \theta \leq \theta) = \frac{\#\{0\leq \theta^{(r)}\leq 15\}}{2000} =0.905,$$  
+\hat{\mathbb{P}}(0\leq \theta \leq 15) = \frac{\#\{0\leq \theta^{(r)}\leq 15\}}{2000} =0.905,$$  
 
 * count the proportion of samples that falls in the area of interest
 """

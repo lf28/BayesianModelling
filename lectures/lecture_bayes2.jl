@@ -90,10 +90,10 @@ $$P(h) = \begin{cases} 0.8 & h=\texttt{healthy} \\
 0.02 & h=\texttt{cancer}\end{cases}$$
 
 
-This is an **informative** prior
+#### This is an *informative* prior
 
 * instead of a non-informative (say uniform distribution)
-* without the prior, the inference results would be wrong (it would be proportional to the likelihood)
+* ###### without the prior, the inference results would be wrong (it would be proportional to the likelihood)
 
 """
 
@@ -103,7 +103,7 @@ md"""
 ## Priors are useful
 
 
-Priors serve useful functions in Bayesian inference
+##### Priors serve very useful purposes in Bayesian inference
 * to formally incorporate expert knowledge into the statistical inference
 * regularisation effects 
   * prevents overfitting
@@ -118,12 +118,11 @@ md"""
 
 
 
-The first and foremost principle is 
+#### The first and foremost principle is 
 
 !!! note ""
 	**Priors with matching support**
 
-* that is, the prior distribution has the correct domain of the unknown parameters. 
 
 **Example** For the coin-flipping example
 
@@ -166,7 +165,7 @@ md"""
 
 Suppose we want to infer the variance ``\sigma^2`` of a Gaussian sample
 
-As the ``\sigma^2`` is a positive number: ``\sigma^2 >0``. 
+* as the ``\sigma^2`` is a positive number: ``\sigma^2 >0``. 
 
 
 Some possible priors on the positive real line are 
@@ -195,11 +194,11 @@ md"""
 ## Conjugate prior
 
 
-Conjugate priors are
+#### Conjugate priors are
 
-* such that posterior distribution is of the functional form
+* ##### posterior distribution is of the same form as prior
   * we will see an example soon
-* computational cheap and simple 
+* ##### *benefits:* computational cheap and simple 
   * as the posterior will be of the closed form (usually)
   * the inference/computation is just updating prior parameters
 
@@ -216,7 +215,7 @@ Unfortunately, conjugate priors only exist in some very simple Bayesian models
 For the coin flipping example, the conjugate prior of the bias ``\theta`` is 
 
 ```math
-p(\theta) = \texttt{Beta}(\theta; a_0, b_0) = \frac{1}{\text{B}(a_0, b_0)} \theta^{a_0-1}(1-\theta)^{b_0-1},
+\Large p(\theta) = \texttt{Beta}(\theta; a_0, b_0) = \frac{1}{\text{B}(a_0, b_0)} \theta^{a_0-1}(1-\theta)^{b_0-1},
 ```
 * ``a_0,b_0 >0`` are the prior's parameter 
 * and ``B(a_0,b_0)``, the beta function, is a normalising constant for the Beta distribution: 
@@ -259,8 +258,6 @@ md"""
 ## Example: Beta-Bernoulli model (cont.)
 
 
-A classic statistical inference problem
-
 > A coin 🪙 is tossed 10 times. 
 > * the tossing results are recorded:  $\mathcal D=\{1, 1, 1, 0, 1, 0, 1, 1, 1, 0\}$; 7 out of 10 are heads
 > * is the coin **fair**?
@@ -278,6 +275,7 @@ Recall the likelihood is
 
 
 ```math
+\large
 p(\mathcal{D}|\theta) = \prod_i p(d_i|\theta) =\theta^{\sum_n d_n} (1-\theta)^{N-\sum_n d_n} = \theta^{N_h} (1-\theta)^{N-N_h}
 ```
 
@@ -289,6 +287,7 @@ p(\mathcal{D}|\theta) = \prod_i p(d_i|\theta) =\theta^{\sum_n d_n} (1-\theta)^{N
 Apply Baye's rule, we will find the posterior is still of a Beta form (therefore, the **conjugacy**)
 
 ```math
+\large
 p(\theta|\mathcal D) = \texttt{Beta}(\theta; a_N, b_N) = \frac{1}{\text{B}(a_N, b_N)} \theta^{a_N-1}(1-\theta)^{b_N-1},
 ```
 
@@ -302,7 +301,7 @@ Foldable("Details about Beta-Binomial model's conjugacy", md"
 Apply Baye's rule, we have 
 
 ```math
-\begin{align}
+\large\begin{align}
 p(\theta|\mathcal D) &\propto p(\theta) p(\mathcal D|\theta) \\
 &= \frac{1}{\text{B}(a_0, b_0)} \theta^{a_0-1}(1-\theta)^{b_0-1} \theta^{\sum_n d_n} (1-\theta)^{N-\sum_n d_n}\\
 &= \theta^{a_0+ \sum_{n} d_n -1}(1-\theta)^{b_0+N-\sum_n d_n -1}\\
@@ -334,7 +333,7 @@ For our example,
 
 The updated posterior is then
 
-$$p(\theta|\mathcal D)= \texttt{Beta}(1+7, 1+3).$$
+$$\Large p(\theta|\mathcal D)= \texttt{Beta}(1+7, 1+3).$$
 
 
 
@@ -344,6 +343,9 @@ $$p(\theta|\mathcal D)= \texttt{Beta}(1+7, 1+3).$$
 begin
 	𝒟 = [1, 0, 0, 1, 1, 1, 1, 1, 1, 0]
 	# 𝒟 = [0, 0]
+
+	# 𝒟 = rand(100) .> 0.2
+
 end
 
 # ╔═╡ c32714b7-fa1d-443c-a5a2-4a511fc701bd
@@ -360,7 +362,7 @@ md"""
 ## Remarks
 
 
-Conjugate priors usually lead to very convenient posterior computation:
+##### Conjugate priors makes the computation simple:
 
 $$a_N= a_0+ N_h\;\; b_N= b_0+N_t.$$ 
 
@@ -369,9 +371,11 @@ $$a_N= a_0+ N_h\;\; b_N= b_0+N_t.$$
 
 
 
-``a_N`` and ``b_N`` are the posterior counts of the heads and tails
+###### Conjugate priors makes interpretation easy:
 
-* we can interpret the prior parameters ``a_0, b_0`` as some pseudo observations contained in the prior distribution. 
+* ##### ``a_N`` and ``b_N`` are the posterior counts of the heads and tails
+
+* therefore, the prior parameters ``a_0, b_0`` as some **pseudo observations** contained in the prior distribution
 
 * for example, ``a_0=b_0=1`` implies the prior contains one pseudo count of head and tail each (therefore, the prior is flat). 
 
@@ -441,7 +445,7 @@ Conjugate prior also provides us with a simple procedure to do **sequential** in
 
 ```math
 \begin{align}
-p(\theta|\{d_1, d_2, \ldots, d_N\})&\propto  p(\theta) \prod_{n=1}^N p(d_n|\theta) p(d_N|\theta)\\
+p(\theta|\{d_1, d_2, \ldots, d_N\})&\propto  p(\theta) \prod_{n=1}^N p(d_n|\theta) \\
 &= \underbrace{p(\theta) \prod_{n=1}^{N-1} p(d_n|\theta)}_{p(\theta|\mathcal D_{N-1})}\cdot p(d_N|\theta)\\
 &= \underbrace{p(\theta|\mathcal D_{N-1})}_{\text{new prior}} p(d_N|\theta).
 \end{align}
@@ -557,6 +561,7 @@ Therefore, the MLE for ``\phi`` is
 A Gamma distribution, parameterised with a shape  ``a_0>0``,  and a rate parameter ``b_0>0``
 
 ```math
+\large
 p(\phi; a_0, b_0) = \texttt{Gamma}(\phi; a_0, b_0)=\frac{b_0^{a_0}}{\Gamma(b_0)} \phi^{a_0-1} e^{-b_0\phi}.
 ```
 
@@ -630,11 +635,14 @@ Therefore, it is not hard to see
 * ``a_N``: the updated observation counts (divided by 2)
 * ``b_N``: the updated sum of squared errors (divided by 2)
 
+
+##
+
 Also note the posterior mean is 
 
 $$\mathbb{E}[\phi|\mathcal D] = \frac{a_N}{b_N} = \frac{a_0 + N/2}{b_0 + {\sum_n (d_n -\mu)^2}/{2}}.$$
 
-* if we assume ``a_0= b_0=0`` (an improper  prior), the maximum likelihood estimator for ``{\sigma^2} is recovered``
+* if we assume ``a_0= b_0=0`` (an improper  prior), the maximum likelihood estimator for ``{\sigma^2}`` is recovered
 
 $$\hat \sigma^2 =1/\hat{\phi} = \frac{\sum_n (d_n-\mu)^2}{N}$$
 
@@ -714,596 +722,596 @@ let
 end
 
 # ╔═╡ 29a49584-3a52-410e-8f15-1d9293955826
-md"""
+# md"""
 
-# Bayesian predictive checks
+# # Bayesian predictive checks
 
-## This time
+# ## This time
 
-* Predictive distributions and their checks 
-  * prior predictive check
-  * posterior predictive check
+# * Predictive distributions and their checks 
+#   * prior predictive check
+#   * posterior predictive check
 
 
   
 
-"""
+# """
 
 # ╔═╡ 6b460036-890d-4364-aac2-2c61dc44ed75
-md"""
+# md"""
 
-## Prediction 
-
-
-
-In many applications, we also want to make predictions based on observations ``\mathcal{D}``
+# ## Prediction 
 
 
-**Bayesian prediction** 
-* routinely applies probability rules
-* aims at computing the following distribution
 
-```math
-p(\mathcal{D}_{pred}|\mathcal{D})
-```
+# In many applications, we also want to make predictions based on observations ``\mathcal{D}``
 
 
-**Frequentist prediction**
-* usually employs the *plug-in* principle
-* plug in the estimated parameter to the likelihood
-```math
-p(\mathcal{D}_{pred}|\theta_{ML})
-```
+# **Bayesian prediction** 
+# * routinely applies probability rules
+# * aims at computing the following distribution
 
-"""
+# ```math
+# p(\mathcal{D}_{pred}|\mathcal{D})
+# ```
+
+
+# **Frequentist prediction**
+# * usually employs the *plug-in* principle
+# * plug in the estimated parameter to the likelihood
+# ```math
+# p(\mathcal{D}_{pred}|\theta_{ML})
+# ```
+
+# """
 
 # ╔═╡ df3c6bd8-e81f-4ccb-b0d1-98832e41537f
-md"""
+# md"""
 
-## Prediction -- example
+# ## Prediction -- example
 
-Let's use the coughing case as an example again
+# Let's use the coughing case as an example again
 
-* the observation: ``\mathcal{D} = \texttt{Cough}``
+# * the observation: ``\mathcal{D} = \texttt{Cough}``
 
-**Prediction:** he is going to **cough** **again**
+# **Prediction:** he is going to **cough** **again**
 
-```math
-p(\texttt{Cough}_{again}|\texttt{Cough})
-```
+# ```math
+# p(\texttt{Cough}_{again}|\texttt{Cough})
+# ```
 
 
-* for prediction, we can introduce an unobserved node to our graph
-"""
+# * for prediction, we can introduce an unobserved node to our graph
+# """
 
 # ╔═╡ 5440ceb3-b791-4935-8b59-339010546090
-html"<center><img src='https://leo.host.cs.st-andrews.ac.uk/figs/cough_pred_bn.png' width = '250' /></center>"
+# html"<center><img src='https://leo.host.cs.st-andrews.ac.uk/figs/cough_pred_bn.png' width = '250' /></center>"
 
 # ╔═╡ 8c763ff2-cfda-49a6-b0ce-d5530f665971
-md"""
+# md"""
 
-Bayesian routinely applies probability rules to compute
+# Bayesian routinely applies probability rules to compute
 
-```math
-\begin{align}
-p(\texttt{cough}_{\text{again}} |\texttt{caugh}) &\propto p(\texttt{cough}_{\text{again}} , \texttt{caugh}) \\
-&= \sum_{h} p(h, \texttt{cough}_{\text{again}} , \texttt{caugh}) \\
-&= \sum_{h} p(\texttt{cough}_{\text{again}}|h) \underbrace{p(\texttt{cough}|h) p(h)}_{= p(h, \texttt{cough})\propto \; p(h|\texttt{cough})} \\
-&= \sum_{h} p(\texttt{cough}_{\text{again}}|h) p(h|\texttt{cough})
-\end{align}
-```
-
-
-## Remarks
-
-**Bayesian** prediction is
-
-```math
-\begin{align}
-p(\texttt{cough}_{\text{again}} |\texttt{caugh}) 
-&= \sum_{h} p(\texttt{cough}_{\text{again}}|h) p(h|\texttt{cough})
-\end{align}
-```
+# ```math
+# \begin{align}
+# p(\texttt{cough}_{\text{again}} |\texttt{caugh}) &\propto p(\texttt{cough}_{\text{again}} , \texttt{caugh}) \\
+# &= \sum_{h} p(h, \texttt{cough}_{\text{again}} , \texttt{caugh}) \\
+# &= \sum_{h} p(\texttt{cough}_{\text{again}}|h) \underbrace{p(\texttt{cough}|h) p(h)}_{= p(h, \texttt{cough})\propto \; p(h|\texttt{cough})} \\
+# &= \sum_{h} p(\texttt{cough}_{\text{again}}|h) p(h|\texttt{cough})
+# \end{align}
+# ```
 
 
-* the prediction is an ensemble prediction, *i.e.* balanced and **weighted average**
+# ## Remarks
 
-* each unknown hypothesis ``h\in \{\texttt{cancer}, \texttt{healthy}, \texttt{cold}\}`` is used to make a prediction for another ``\texttt{cough}_{\text{again}}``
+# **Bayesian** prediction is
 
-* each prediction is weighted by its corresponding posterior ``p(h|\texttt{cough})``
+# ```math
+# \begin{align}
+# p(\texttt{cough}_{\text{again}} |\texttt{caugh}) 
+# &= \sum_{h} p(\texttt{cough}_{\text{again}}|h) p(h|\texttt{cough})
+# \end{align}
+# ```
 
 
-In comparison, the **frequentist** plug-in method's predictions are 
+# * the prediction is an ensemble prediction, *i.e.* balanced and **weighted average**
 
-```math
-p(\texttt{cough}_{\text{again}} | h = \hat{h}_{\text{MLE}}= \texttt{cancer})
-```
+# * each unknown hypothesis ``h\in \{\texttt{cancer}, \texttt{healthy}, \texttt{cold}\}`` is used to make a prediction for another ``\texttt{cough}_{\text{again}}``
 
-* prediction by a single *point* hypothesis
-"""
+# * each prediction is weighted by its corresponding posterior ``p(h|\texttt{cough})``
+
+
+# In comparison, the **frequentist** plug-in method's predictions are 
+
+# ```math
+# p(\texttt{cough}_{\text{again}} | h = \hat{h}_{\text{MLE}}= \texttt{cancer})
+# ```
+
+# * prediction by a single *point* hypothesis
+# """
 
 # ╔═╡ b13d76bf-f559-4842-bdfa-78953d74d69a
-md"""
+# md"""
 
-## Why Bayesian prediction is better?
+# ## Why Bayesian prediction is better?
 
 
-Consider the coin flipping example, supposed we have observed data
+# Consider the coin flipping example, supposed we have observed data
 
-> A coin 🪙 is tossed 2 times. 
-> * the tossing results are recorded:  $\mathcal D=\{0,0\}$; 0 out of 2 are heads
-> * **predict** the next toss?
-"""
+# > A coin 🪙 is tossed 2 times. 
+# > * the tossing results are recorded:  $\mathcal D=\{0,0\}$; 0 out of 2 are heads
+# > * **predict** the next toss?
+# """
 
 # ╔═╡ 37a564d5-8c46-462e-8d3d-45b93ff1d3e4
-md"""
-**Frequentist's prediction** is based on plug-in principle
+# md"""
+# **Frequentist's prediction** is based on plug-in principle
 
-The MLE is
+# The MLE is
 
-```math
-	\theta_{ML} = \frac{N^+}{N} = \frac{0}{2} = 0
-```
-"""
+# ```math
+# 	\theta_{ML} = \frac{N^+}{N} = \frac{0}{2} = 0
+# ```
+# """
 
 # ╔═╡ 03181c93-6a31-46d6-aa64-1521234e2341
-md"""
+# md"""
 
 
 
 
-$(let
-	gr()
-	𝒟 = [0,0]
-	θs = 0:0.01:1
-	like_plt_seller = plot(θs, θ -> exp(loglikelihood(Bernoulli(θ), [0,0] )), seriestype=:line, color=1, xlabel=L"θ", ylabel=L"P(\{0,0\}|θ)", label="", title="Likelihood: "*L"P(\{0,0\}|\theta)")
+# $(let
+# 	gr()
+# 	𝒟 = [0,0]
+# 	θs = 0:0.01:1
+# 	like_plt_seller = plot(θs, θ -> exp(loglikelihood(Bernoulli(θ), [0,0] )), seriestype=:line, color=1, xlabel=L"θ", ylabel=L"P(\{0,0\}|θ)", label="", title="Likelihood: "*L"P(\{0,0\}|\theta)")
 
-end)
+# end)
 
-If you treat $$\hat{\theta}_{\text{ML}} = 0$$ as gospel for future prediction: *i.e.*
+# If you treat $$\hat{\theta}_{\text{ML}} = 0$$ as gospel for future prediction: *i.e.*
 
-$$P(Y_{N+1}|\theta = \hat{\theta}_{\text{ML}})=\begin{cases} 0 & Y_{N+1} =1 \\ 1 & Y_{N+1} =0\end{cases}$$
-* you predict you will **never** see a `Head`/1 again: **Overfitting**
+# $$P(Y_{N+1}|\theta = \hat{\theta}_{\text{ML}})=\begin{cases} 0 & Y_{N+1} =1 \\ 1 & Y_{N+1} =0\end{cases}$$
+# * you predict you will **never** see a `Head`/1 again: **Overfitting**
 
 
-* the frequentist MLE based prediction is pathologically bad when 
-  * there is not enough data
-"""
+# * the frequentist MLE based prediction is pathologically bad when 
+#   * there is not enough data
+# """
 
 # ╔═╡ 80400b4b-b130-4719-957a-4c92b556916a
-md"""
+# md"""
 
-## Why Bayesian is better?
-
-
-The Bayesian instead computes the integration
+# ## Why Bayesian is better?
 
 
-```math
-p(y_{N+1} | \mathcal{D}) = \int_\theta p(y_{N+1}|\theta) p(\theta|\mathcal{D})d\theta
-```
+# The Bayesian instead computes the integration
 
 
-* which is a weighted average overall ``\theta``
-
-* the integration can be computed in closed form if we use conjugate prior
-
-**Bayesian prediction**
-```math
-p(y_{N+1}=1 | \mathcal{D}) = \frac{a_N}{a_N + b_N} =\frac{a_0 + N_h}{a_0+b_0 + N}
-```
-
-* very simple, add *one pseudo* counts to ``N_h`` and ``N_t``
+# ```math
+# p(y_{N+1} | \mathcal{D}) = \int_\theta p(y_{N+1}|\theta) p(\theta|\mathcal{D})d\theta
+# ```
 
 
-For our case, 
+# * which is a weighted average overall ``\theta``
 
-```math
-p(y_{N+1}=1 | \mathcal{D}) = \frac{1 + 0}{2 + 2} = \frac{1}{4}
-```
+# * the integration can be computed in closed form if we use conjugate prior
 
-* makes better sense! we have only observed two zeros after all!
-"""
+# **Bayesian prediction**
+# ```math
+# p(y_{N+1}=1 | \mathcal{D}) = \frac{a_N}{a_N + b_N} =\frac{a_0 + N_h}{a_0+b_0 + N}
+# ```
+
+# * very simple, add *one pseudo* counts to ``N_h`` and ``N_t``
+
+
+# For our case, 
+
+# ```math
+# p(y_{N+1}=1 | \mathcal{D}) = \frac{1 + 0}{2 + 2} = \frac{1}{4}
+# ```
+
+# * makes better sense! we have only observed two zeros after all!
+# """
 
 # ╔═╡ f2912738-1b91-4227-a94f-c61a33a63819
-md"""
+# md"""
 
-## Generalisation
+# ## Generalisation
 
 
-Bayesian predictive distribution, in general, can be found by applying the sum rule,
+# Bayesian predictive distribution, in general, can be found by applying the sum rule,
 
-```math
+# ```math
 
-p(\mathcal D_{pred}|\mathcal D, \mathcal M) = \int p(\mathcal D_{pred}, \theta|\mathcal D, \mathcal M) \mathrm{d}\theta=  \int p(\mathcal D_{pred} |\theta, \mathcal D, \mathcal M) p(\theta|\mathcal D, \mathcal M) \mathrm{d}\theta
+# p(\mathcal D_{pred}|\mathcal D, \mathcal M) = \int p(\mathcal D_{pred}, \theta|\mathcal D, \mathcal M) \mathrm{d}\theta=  \int p(\mathcal D_{pred} |\theta, \mathcal D, \mathcal M) p(\theta|\mathcal D, \mathcal M) \mathrm{d}\theta
 
-```
+# ```
 
-* ``\mathcal{M}``: the model assumption
-* in which the unknown parameters ``\theta`` are integrated out
+# * ``\mathcal{M}``: the model assumption
+# * in which the unknown parameters ``\theta`` are integrated out
 
-* assuming that past and future observations are conditionally independent given  ``\theta``, *i.e.* 
+# * assuming that past and future observations are conditionally independent given  ``\theta``, *i.e.* 
 
-$p(\mathcal D_{pred} |\theta, \mathcal D, \mathcal M) = p(\mathcal D_{pred} |\theta, \mathcal M)$
+# $p(\mathcal D_{pred} |\theta, \mathcal D, \mathcal M) = p(\mathcal D_{pred} |\theta, \mathcal M)$
 
-The above equation can be written as:
+# The above equation can be written as:
 
-```math
+# ```math
 
-p(\mathcal D_{pred}|\mathcal D, \mathcal M) = \int p(\mathcal D_{pred} |\theta, \mathcal M) p(\theta|\mathcal D, \mathcal M) \mathrm{d}\theta
+# p(\mathcal D_{pred}|\mathcal D, \mathcal M) = \int p(\mathcal D_{pred} |\theta, \mathcal M) p(\theta|\mathcal D, \mathcal M) \mathrm{d}\theta
 
-```
+# ```
 
-* Bayesian prediction is an ensemble method by nature 
-"""
+# * Bayesian prediction is an ensemble method by nature 
+# """
 
 # ╔═╡ b572e185-d88e-47d5-a3f3-1e25f2a6ca10
-md"""
+# md"""
 
-## Prior and Posterior predictive distribution
+# ## Prior and Posterior predictive distribution
 
-**Posterior predictive distribution:**
+# **Posterior predictive distribution:**
 
-```math
+# ```math
 
-p(\mathcal D_{pred}|\mathcal D, \mathcal M) =  \int p(\mathcal D_{pred} |\theta, \mathcal M) \underbrace{p(\theta|\mathcal D, \mathcal M) }_{\text{posterior}}\mathrm{d}\theta
+# p(\mathcal D_{pred}|\mathcal D, \mathcal M) =  \int p(\mathcal D_{pred} |\theta, \mathcal M) \underbrace{p(\theta|\mathcal D, \mathcal M) }_{\text{posterior}}\mathrm{d}\theta
 
-```
-* predictive distribution after observing the data
-
-
-A related concept is **Prior predictive distribution**
+# ```
+# * predictive distribution after observing the data
 
 
-```math
+# A related concept is **Prior predictive distribution**
 
-p(\mathcal D_{pred}|\mathcal M) =  \int p(\mathcal D_{pred} |\theta, \mathcal M) \underbrace{p(\theta|\mathcal M) }_{\text{prior}}\mathrm{d}\theta
 
-```
-* predictive distribution before observing the data
-* can be useful to check your prior assumptions
-"""
+# ```math
+
+# p(\mathcal D_{pred}|\mathcal M) =  \int p(\mathcal D_{pred} |\theta, \mathcal M) \underbrace{p(\theta|\mathcal M) }_{\text{prior}}\mathrm{d}\theta
+
+# ```
+# * predictive distribution before observing the data
+# * can be useful to check your prior assumptions
+# """
 
 # ╔═╡ f2507e03-76e6-4f57-9a38-9323610efa33
-md"""
+# md"""
 
-## Computing predictive distribution
+# ## Computing predictive distribution
 
-The prediction distribution involves the integration 
+# The prediction distribution involves the integration 
 
-```math
+# ```math
 
-p(\mathcal D_{pred}|\mathcal D, \mathcal M) = \int p(\mathcal D_{pred} |\theta, \mathcal M) p(\theta|\mathcal D, \mathcal M) \mathrm{d}\theta
+# p(\mathcal D_{pred}|\mathcal D, \mathcal M) = \int p(\mathcal D_{pred} |\theta, \mathcal M) p(\theta|\mathcal D, \mathcal M) \mathrm{d}\theta
 
-```
+# ```
 
-* which in general is intractable. 
-
-
-
-However, we can use simulation-based (Monte Carlo) methods to approximate the integration
+# * which in general is intractable. 
 
 
-!!! information ""
-	Repeat the following many times:
+
+# However, we can use simulation-based (Monte Carlo) methods to approximate the integration
+
+
+# !!! information ""
+# 	Repeat the following many times:
 	
-	1. Draw one sample from the posterior (or the prior for prior predictive):
+# 	1. Draw one sample from the posterior (or the prior for prior predictive):
 
-	$$\tilde \theta \sim p(\theta|\mathcal D)$$
-	2. Conditioning on ``\tilde \theta``, simulate pseudo observations: 
+# 	$$\tilde \theta \sim p(\theta|\mathcal D)$$
+# 	2. Conditioning on ``\tilde \theta``, simulate pseudo observations: 
 
-	$$\tilde{\mathcal D}\sim p(\mathcal D|\tilde{\theta})$$
+# 	$$\tilde{\mathcal D}\sim p(\mathcal D|\tilde{\theta})$$
 
 
-* the sampled ``\{\tilde{\mathcal D} \}`` are the empirical predictive distribution
-"""
+# * the sampled ``\{\tilde{\mathcal D} \}`` are the empirical predictive distribution
+# """
 
 # ╔═╡ 23e88265-929b-4616-95c0-61e1844c8ae5
-md"""
+# md"""
 
-## Example
-
-
-For the coughing example
+# ## Example
 
 
-!!! warn ""
-	Repeat the following many times:
+# For the coughing example
+
+
+# !!! warn ""
+# 	Repeat the following many times:
 	
-	1. Draw one sample from the posterior (or the prior for prior predictive):
+# 	1. Draw one sample from the posterior (or the prior for prior predictive):
 
-	$$\tilde h \sim p(h|\text{cough})$$
-	2. Conditioning on ``\tilde h``, simulate pseudo observations: 
+# 	$$\tilde h \sim p(h|\text{cough})$$
+# 	2. Conditioning on ``\tilde h``, simulate pseudo observations: 
 
-	$$\texttt{cough}\sim p(\texttt{cough}_{again}|\tilde{h})$$
+# 	$$\texttt{cough}\sim p(\texttt{cough}_{again}|\tilde{h})$$
 
-"""
+# """
 
 # ╔═╡ 18d66c48-be01-4f64-8a89-6b8e8c8444c8
-md"""
-## Example: coin-flipping model
+# md"""
+# ## Example: coin-flipping model
 
-For the conjugate coin-flipping model, the simulation is straightforward 
-
-
-* both the prior and posterior distributions ``p(\theta|\mathcal M)`` (or ``p(\theta|\mathcal M)``) are Beta 
-
-* it is also easy to simulate coin flip observations conditional on the bias ``\theta`` 
+# For the conjugate coin-flipping model, the simulation is straightforward 
 
 
+# * both the prior and posterior distributions ``p(\theta|\mathcal M)`` (or ``p(\theta|\mathcal M)``) are Beta 
 
-For example, one can simulate a tuple ``(\theta, y_{new})`` in Julia by
+# * it is also easy to simulate coin flip observations conditional on the bias ``\theta`` 
 
-```julia
-# draw a coin's bias from a Beta distribution
-θ = rand(Beta(a, b))
-# draw a pseudo coin-flipping sample based on θ
-y_new = rand(Bernoulli(θ))
-```
 
-* one should repeat the above two steps ``R`` (e.g. 2000) times to obtain an approximation of the predictive distribution of future data
-"""
+
+# For example, one can simulate a tuple ``(\theta, y_{new})`` in Julia by
+
+# ```julia
+# # draw a coin's bias from a Beta distribution
+# θ = rand(Beta(a, b))
+# # draw a pseudo coin-flipping sample based on θ
+# y_new = rand(Bernoulli(θ))
+# ```
+
+# * one should repeat the above two steps ``R`` (e.g. 2000) times to obtain an approximation of the predictive distribution of future data
+# """
 
 # ╔═╡ 12fe751d-8ef4-4cdf-b5e5-a901a1556924
-md"""
+# md"""
 
 
-## Demonstration
-"""
+# ## Demonstration
+# """
 
 # ╔═╡ 8cf29145-aed3-47e6-a209-369ac393e0e3
-begin
-	R = 5000
-	a0, b0 = 1, 1
-	# nh, nt = sum(𝒟), length(𝒟) - sum(𝒟)
-	an, bn = a0 + nh, b0 + nt
+# begin
+# 	R = 5000
+# 	a0, b0 = 1, 1
+# 	# nh, nt = sum(𝒟), length(𝒟) - sum(𝒟)
+# 	an, bn = a0 + nh, b0 + nt
 
-	y_pred = zeros(Bool, R)
-	for r in 1:R
-		θ = rand(Beta(an, bn))
-		y_pred[r] = rand(Bernoulli(θ))
-	end
-	y_pred
-end
+# 	y_pred = zeros(Bool, R)
+# 	for r in 1:R
+# 		θ = rand(Beta(an, bn))
+# 		y_pred[r] = rand(Bernoulli(θ))
+# 	end
+# 	y_pred
+# end
 
 # ╔═╡ 0ad979b7-8ecb-44c7-958f-be9a78a22553
-md"""
+# md"""
 
-There is a closed-form solution for the Beta-Bernoulli case
-* this is one of the rare examples that we know how to compute the integration
+# There is a closed-form solution for the Beta-Bernoulli case
+# * this is one of the rare examples that we know how to compute the integration
 
 
-```math
-p(y_{N+1}|\mathcal{D}) = \begin{cases}
-\frac{a_N}{a_N + b_N} & y_{N+1} = \texttt{true}\\
-\frac{b_N}{a_N + b_N} & y_{N+1} = \texttt{false}
-\end{cases}
-```
-"""
+# ```math
+# p(y_{N+1}|\mathcal{D}) = \begin{cases}
+# \frac{a_N}{a_N + b_N} & y_{N+1} = \texttt{true}\\
+# \frac{b_N}{a_N + b_N} & y_{N+1} = \texttt{false}
+# \end{cases}
+# ```
+# """
 
 # ╔═╡ 3cb9bb88-d560-4403-b67e-7469f6eddcac
-md"""
+# md"""
 
 
-The Monte Carlo method should be very close to the ground truth
-"""
+# The Monte Carlo method should be very close to the ground truth
+# """
 
 # ╔═╡ 40c740a4-5385-4211-ac86-3c9f0c17b7ff
-mean(y_pred), an/(an+bn)
+# mean(y_pred), an/(an+bn)
 
 # ╔═╡ cd01a246-5e97-4231-a8dc-b2931d151b2f
-md"""
+# md"""
 
-## Model checks via predictive distributions
-
-
-
-Bayesian inference provides a great amount of modelling freedom to its user
+# ## Model checks via predictive distributions
 
 
-* one can choose prior distribution to incorporate his knowledge
+
+# Bayesian inference provides a great amount of modelling freedom to its user
 
 
-* and also choose a suitable likelihood that best matches the data generation process. 
+# * one can choose prior distribution to incorporate his knowledge
 
 
-* however, greater flexibility comes with a price: the modeller also needs to take full responsibility for the modelling decisions 
+# * and also choose a suitable likelihood that best matches the data generation process. 
 
 
-For example, whether 
-
-* the chosen prior (with its parameters) makes sense;
-* the generative model as a whole (*i.e.* prior plus likelihood) match the observed data? 
+# * however, greater flexibility comes with a price: the modeller also needs to take full responsibility for the modelling decisions 
 
 
-In other words, we need to **validate the model** 
+# For example, whether 
 
-* **Predictive checks** are a great way to empirically validate a model's assumptions.
+# * the chosen prior (with its parameters) makes sense;
+# * the generative model as a whole (*i.e.* prior plus likelihood) match the observed data? 
 
-"""
+
+# In other words, we need to **validate the model** 
+
+# * **Predictive checks** are a great way to empirically validate a model's assumptions.
+
+# """
 
 # ╔═╡ a7fcf38b-05c3-4db8-8615-44b93d6d43aa
-md"""
+# md"""
 
-## Predictive checks
-
-
-The idea of predictive checks is to 
+# ## Predictive checks
 
 
-
-**First**, generate future *pseudo observations* based on the assumed model's (prior or posterior) **prediction distribution**:
-
-$$\mathcal{D}^{(r)} \sim p(\mathcal D_{\textit{pred}}|\mathcal D, \mathcal M), \;\; \text{for }r= 1\ldots, R$$ 
-  * where ``\mathcal D`` is the observed data and ``\mathcal M`` denotes the Bayesian model.  
-
-* note that ``\mathcal{D}^{(r)}`` should be of **the same size** as ``\mathcal{D}``
-
-and 
-
-
-**Then** If the model assumptions are reasonable, 
-
-* we should expect the generated pseudo data "agree with" the observed. 
+# The idea of predictive checks is to 
 
 
 
+# **First**, generate future *pseudo observations* based on the assumed model's (prior or posterior) **prediction distribution**:
 
-**In practice**, we compute the predictive distribution of some summary statistics,     
-* say mean, variance, median, or any meaningful statistic instead
-* and visually check whether the observed statistic falls within the predictions' possible ranges. 
+# $$\mathcal{D}^{(r)} \sim p(\mathcal D_{\textit{pred}}|\mathcal D, \mathcal M), \;\; \text{for }r= 1\ldots, R$$ 
+#   * where ``\mathcal D`` is the observed data and ``\mathcal M`` denotes the Bayesian model.  
 
-## Predictive checks
+# * note that ``\mathcal{D}^{(r)}`` should be of **the same size** as ``\mathcal{D}``
 
-Based on the Monte Carlo principle, after simulating ``R`` pseudo samples,
-
-$$\tilde{\mathcal D}^{(1)}, \tilde{\mathcal D}^{(2)}, \tilde{\mathcal D}^{(3)},\ldots, \tilde{\mathcal D}^{(R)} \sim p(\mathcal D_{pred}|\mathcal D, \mathcal M),$$ 
+# and 
 
 
-The predictive distribution of a summary statistic ``t(\cdot)``: 
+# **Then** If the model assumptions are reasonable, 
 
-$$p(t(D_{pred})|\mathcal D, \mathcal M)$$ 
-* can be approximated by 
-
-$\{t(\tilde{\mathcal D}^{(1)}), t(\tilde{\mathcal D}^{(2)}), \ldots, t(\tilde{\mathcal D}^{(R)})\}$ 
-
-* one can visually check whether the observed statistic ``t(\mathcal{D})`` falls within a credible region of the empirical distribution 
-
-
-## Prior and Posterior predictive checks
-
-If one mainly wants to check the prior assumption, use a **prior predictive distribution** to simulate the *future* data: *i.e.*
-
-$$\mathcal{D}^{(r)} \sim p(\mathcal D_{pred}|\mathcal M), \;\; \text{for }r= 1\ldots, R$$
-
-
-* and the visual check based on the sample 
-* the check is called **prior predictive check
+# * we should expect the generated pseudo data "agree with" the observed. 
 
 
 
-**Posterior predictive checks** 
 
-* checks both prior and likelihood model together
-* a hollistic check
+# **In practice**, we compute the predictive distribution of some summary statistics,     
+# * say mean, variance, median, or any meaningful statistic instead
+# * and visually check whether the observed statistic falls within the predictions' possible ranges. 
 
-"""
+# ## Predictive checks
+
+# Based on the Monte Carlo principle, after simulating ``R`` pseudo samples,
+
+# $$\tilde{\mathcal D}^{(1)}, \tilde{\mathcal D}^{(2)}, \tilde{\mathcal D}^{(3)},\ldots, \tilde{\mathcal D}^{(R)} \sim p(\mathcal D_{pred}|\mathcal D, \mathcal M),$$ 
+
+
+# The predictive distribution of a summary statistic ``t(\cdot)``: 
+
+# $$p(t(D_{pred})|\mathcal D, \mathcal M)$$ 
+# * can be approximated by 
+
+# $\{t(\tilde{\mathcal D}^{(1)}), t(\tilde{\mathcal D}^{(2)}), \ldots, t(\tilde{\mathcal D}^{(R)})\}$ 
+
+# * one can visually check whether the observed statistic ``t(\mathcal{D})`` falls within a credible region of the empirical distribution 
+
+
+# ## Prior and Posterior predictive checks
+
+# If one mainly wants to check the prior assumption, use a **prior predictive distribution** to simulate the *future* data: *i.e.*
+
+# $$\mathcal{D}^{(r)} \sim p(\mathcal D_{pred}|\mathcal M), \;\; \text{for }r= 1\ldots, R$$
+
+
+# * and the visual check based on the sample 
+# * the check is called **prior predictive check
+
+
+
+# **Posterior predictive checks** 
+
+# * checks both prior and likelihood model together
+# * a hollistic check
+
+# """
 
 # ╔═╡ 1975923e-66fb-4aa4-a3d3-370b38d1df34
-md"""
-## Example: coin-flipping model
+# md"""
+# ## Example: coin-flipping model
 
-For predictive checks, we need to simulate ``\mathcal{D}_{pred}`` of **the same length** as ``\mathcal{D}``
-
-
-* we need to simulate **10** coin tosses in the second step
-* instead of just one
+# For predictive checks, we need to simulate ``\mathcal{D}_{pred}`` of **the same length** as ``\mathcal{D}``
 
 
-```julia
-# draw a coin's bias from a Beta distribution
-θ = rand(Beta(a, b))
-# draw a pseudo-coin-flipping sample of 10 tosses
-D = rand(Bernoulli(θ), 10)
-```
+# * we need to simulate **10** coin tosses in the second step
+# * instead of just one
 
-"""
+
+# ```julia
+# # draw a coin's bias from a Beta distribution
+# θ = rand(Beta(a, b))
+# # draw a pseudo-coin-flipping sample of 10 tosses
+# D = rand(Bernoulli(θ), 10)
+# ```
+
+# """
 
 # ╔═╡ 7ca55b5a-086a-4982-bd2a-6be2c7e0299a
-function predictive_simulate(a, b; N=10 , R=2000)
-	θ = rand(Beta(a,b), R)
-	D = rand(N, R) .< θ'
-	return D
-end;
+# function predictive_simulate(a, b; N=10 , R=2000)
+# 	θ = rand(Beta(a,b), R)
+# 	D = rand(N, R) .< θ'
+# 	return D
+# end;
 
 # ╔═╡ d009d1e0-833a-40ea-882d-1b7fdbccf5cc
-md"""
+# md"""
 
-Here we choose to compare **the statistic** of the sum *i.e.* the count of heads
-```math
-t(\mathcal{D}) = N_h= \sum_i d_i
-```
+# Here we choose to compare **the statistic** of the sum *i.e.* the count of heads
+# ```math
+# t(\mathcal{D}) = N_h= \sum_i d_i
+# ```
 
-"""
+# """
 
 # ╔═╡ 3de87316-496e-4413-b7a1-3bd961dc9cc0
-md"""
+# md"""
 
-**Predictive checks** with the model
+# **Predictive checks** with the model
 
 
-* ``a_0, b_0 =1``
-"""
+# * ``a_0, b_0 =1``
+# """
 
 # ╔═╡ 48a972dc-c866-43b2-b74a-b10b0ae343a3
-let
-	Random.seed!(100)
-	D = predictive_simulate(1, 1; N=10 , R=5000)
-	histogram(sum(D, dims=1)[:], bins = 20, xticks=0:10, normed=true, label="Prior predictive on "*L"N_h", legend=:outerbottom, xlabel="number of heads "*L"N_h", title="Prior predictive check with "*L"a_0=b_0=1")
-	vline!([7], lw=4, lc=2, label="Observed "*L"N_h")
-end
+# let
+# 	Random.seed!(100)
+# 	D = predictive_simulate(1, 1; N=10 , R=5000)
+# 	histogram(sum(D, dims=1)[:], bins = 20, xticks=0:10, normed=true, label="Prior predictive on "*L"N_h", legend=:outerbottom, xlabel="number of heads "*L"N_h", title="Prior predictive check with "*L"a_0=b_0=1")
+# 	vline!([7], lw=4, lc=2, label="Observed "*L"N_h")
+# end
 
 # ╔═╡ 1d296694-2ad8-4e30-a1e6-2741afaae2d3
-let
-	Random.seed!(100)
-	D = predictive_simulate(8, 4; N=10 , R=5000)
-	histogram(sum(D, dims=1)[:], normed=true, xticks = 0:10, label="Posterior predictive on "*L"N_h", legend=:outerbottom, xlabel="number of heads "*L"N_h", title="Posterior predictive check with "*L"a_0=b_0=1")
-	# density!(sum(D, dims=1)[:], xlim=[0,10], lc=1, lw=2, label="")
-	vline!([7], lw=4, lc=2, label="Observed "*L"N_h")
-end
+# let
+# 	Random.seed!(100)
+# 	D = predictive_simulate(8, 4; N=10 , R=5000)
+# 	histogram(sum(D, dims=1)[:], normed=true, xticks = 0:10, label="Posterior predictive on "*L"N_h", legend=:outerbottom, xlabel="number of heads "*L"N_h", title="Posterior predictive check with "*L"a_0=b_0=1")
+# 	# density!(sum(D, dims=1)[:], xlim=[0,10], lc=1, lw=2, label="")
+# 	vline!([7], lw=4, lc=2, label="Observed "*L"N_h")
+# end
 
 # ╔═╡ d3ec8762-fd5c-4614-9271-6cd3de4185c3
-md"""
+# md"""
 
-## Example -- coin-flipping model check (cont.)
-**A model with misspecified prior** 
+# ## Example -- coin-flipping model check (cont.)
+# **A model with misspecified prior** 
 
-$$\theta \sim \text{Beta}(a_0=50, b_0=1)$$
+# $$\theta \sim \text{Beta}(a_0=50, b_0=1)$$
 
-* the prior is skewed and very informative
+# * the prior is skewed and very informative
 
-* as a result, the posterior is dominated by the prior: 
+# * as a result, the posterior is dominated by the prior: 
 
-$$\theta \sim \text{Beta}(50+7, 1+3).$$
+# $$\theta \sim \text{Beta}(50+7, 1+3).$$
 
-The prior and posterior plots are shown below for reference
+# The prior and posterior plots are shown below for reference
 
 
-"""
+# """
 
 # ╔═╡ e20c3ef6-e7f4-4fd5-be74-ef46970911d1
-let
-	nh, nt = 7, 3
-	a₀, b₀ = 50, 1
-	plot(Beta(a₀,b₀), xlims=[0.6,1], label=L"p(\theta)= \mathcal{Beta}(50,1)", linewidth=1, xlabel=L"\theta", ylabel=L"p(\theta|\cdot)" ,fill= true, lw=2, alpha=0.2, legend=:outerright, color=1, title="A mis-specified model")	
-	vline!([mean(Beta(a₀,b₀))], label="prior mean", lw=2, lc=1, ls=:dash)
-	plot!(Beta(a₀+nh,b₀+nt), fill= true, lw=2, alpha=0.2, color=2, label=L"p(\theta|\mathcal{D})= \mathcal{Beta}(57,4)", linewidth=2)
-	vline!([mean(Beta(a₀+nh,b₀+nt))], label="posterior mean", lw=2, lc=2, ls=:dash)
-end
+# let
+# 	nh, nt = 7, 3
+# 	a₀, b₀ = 50, 1
+# 	plot(Beta(a₀,b₀), xlims=[0.6,1], label=L"p(\theta)= \mathcal{Beta}(50,1)", linewidth=1, xlabel=L"\theta", ylabel=L"p(\theta|\cdot)" ,fill= true, lw=2, alpha=0.2, legend=:outerright, color=1, title="A mis-specified model")	
+# 	vline!([mean(Beta(a₀,b₀))], label="prior mean", lw=2, lc=1, ls=:dash)
+# 	plot!(Beta(a₀+nh,b₀+nt), fill= true, lw=2, alpha=0.2, color=2, label=L"p(\theta|\mathcal{D})= \mathcal{Beta}(57,4)", linewidth=2)
+# 	vline!([mean(Beta(a₀+nh,b₀+nt))], label="posterior mean", lw=2, lc=2, ls=:dash)
+# end
 
 # ╔═╡ c41fef4e-36eb-4d44-8838-1047f77c7ac2
-md"""
+# md"""
 
 
-Let's see whether **predictive checks** can spot the problem!
-"""
+# Let's see whether **predictive checks** can spot the problem!
+# """
 
 # ╔═╡ 1c9997ad-5573-445c-8029-a57398aa442d
-let
-	Random.seed!(100)
-	D = predictive_simulate(50, 1; N=10 , R=5000)
-	histogram(sum(D, dims=1)[:], xlim = [0,11], xticks=0:10, normed=false, label="Prior predictive on " *L"N_h", legend=:outerbottom, xlabel="number of heads", title="Prior predictive check with "*L"a_0=50, b_0=1", ylabel=L"\#"* " of counts")
-	vline!([7], lw=4, lc=2, label="Observed "*L"N_h")
-end
+# let
+# 	Random.seed!(100)
+# 	D = predictive_simulate(50, 1; N=10 , R=5000)
+# 	histogram(sum(D, dims=1)[:], xlim = [0,11], xticks=0:10, normed=false, label="Prior predictive on " *L"N_h", legend=:outerbottom, xlabel="number of heads", title="Prior predictive check with "*L"a_0=50, b_0=1", ylabel=L"\#"* " of counts")
+# 	vline!([7], lw=4, lc=2, label="Observed "*L"N_h")
+# end
 
 # ╔═╡ 3c18a8e6-7a9f-4e22-b1c9-fc8dad8a822d
-let
-	Random.seed!(100)
-	D = predictive_simulate(50+7, 1+3; N=10 , R=5000)
-	histogram(sum(D, dims=1)[:], xlim = [0,11], xticks=0:10,normed=false, label="Posterior predictive on "*L"N_h", legend=:outerbottom, xlabel="number of heads", title="Posterior predictive check with "*L"a_0=50, b_0=1", ylabel=L"\#"* " of counts")
-	# density!(sum(D, dims=1)[:], xlim=[0,10], lc=1, lw=2, label="")
-	vline!([7], lw=4, lc=2, label="Observed "*L"N_h")
-end
+# let
+# 	Random.seed!(100)
+# 	D = predictive_simulate(50+7, 1+3; N=10 , R=5000)
+# 	histogram(sum(D, dims=1)[:], xlim = [0,11], xticks=0:10,normed=false, label="Posterior predictive on "*L"N_h", legend=:outerbottom, xlabel="number of heads", title="Posterior predictive check with "*L"a_0=50, b_0=1", ylabel=L"\#"* " of counts")
+# 	# density!(sum(D, dims=1)[:], xlim=[0,10], lc=1, lw=2, label="")
+# 	vline!([7], lw=4, lc=2, label="Observed "*L"N_h")
+# end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -2835,7 +2843,7 @@ version = "1.4.1+1"
 # ╟─8cf29145-aed3-47e6-a209-369ac393e0e3
 # ╟─0ad979b7-8ecb-44c7-958f-be9a78a22553
 # ╟─3cb9bb88-d560-4403-b67e-7469f6eddcac
-# ╠═40c740a4-5385-4211-ac86-3c9f0c17b7ff
+# ╟─40c740a4-5385-4211-ac86-3c9f0c17b7ff
 # ╟─cd01a246-5e97-4231-a8dc-b2931d151b2f
 # ╟─a7fcf38b-05c3-4db8-8615-44b93d6d43aa
 # ╟─1975923e-66fb-4aa4-a3d3-370b38d1df34

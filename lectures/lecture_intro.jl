@@ -170,10 +170,12 @@ md"""
   * Hamiltonian and NUTS sampler
 
 
+#### Second day:
+
+
 * **Lecture 4** Practical Bayesian inference with Turing.jl
   * Quick introduction to Julia and *Turing.jl*
 
-#### Second day:
 
 * **Lecture 5** Bayesian linear regression 
   * and their extensions and variants
@@ -185,7 +187,7 @@ md"""
 
 
 
-## Afternoon sessions:
+#### Afternoon session:
 
 A mix of applied and theoretical problems (all applied)
 
@@ -1141,6 +1143,93 @@ For _multiple_ independent random variables,
 P(X_1, X_2, \ldots, X_n) = \prod_{i=1}^n P(X_i)
 ```
 """
+
+# ╔═╡ 5c0a6bf7-7ada-4122-ae09-1963969e4aa9
+# let
+
+# 	layout = @layout [a            _
+# 	                  b{0.8w,0.8h} c]
+# 	plot(layout = layout)
+# 	plot(marg_py, joint_plt, marg_px, layout = layout)
+# 	# plot!(joint_plt, subplot = 2, framestyle = :box)
+# 	# plot!(marg_px, subplot = 1, framestyle = :box)
+# 	# plot!(joint_plt)
+# 	# plot!(marg_px)
+# 	# plot!(marg_py)
+	
+# end
+
+# ╔═╡ 2ed5995f-26dd-4f3e-92fb-a04b334cfb99
+md"""
+
+## Independence -- ``P(X|Y) =P(X)``
+
+
+
+##### If ``X, Y`` are *independent*, 
+
+> ##### then $P(X|Y=y)$ does NOT depend on ``Y``
+"""
+
+# ╔═╡ 61106a36-e880-499b-a442-f42d3c196e6b
+md"Toggle independence: $(@bind indep CheckBox(default=false))"
+
+# ╔═╡ 4c6d3d79-22d1-4aae-b538-87aac73787d9
+begin
+	# joint_P = [0 0 0 1 2 4 5 3 1; 2 5 6 6 4 2 0 0 0]
+	if indep
+	# joint_P = [0 0 0 1 2 4 5 3 1; 2 5 6 6 4 2 0 0 0]
+		joint_P = [0.1 0.2 0.3 1 2 4 5 3 1; 2.8 * [0.1 0.2 0.3 1 2 4 5 3 1]]
+	else
+		joint_P = [0 0 0 1 2 4 5 3 1; 2 5 6 6 4 2 0 0 0]
+	end
+	joint_P = joint_P ./ sum(joint_P) 
+end;
+
+# ╔═╡ 05cadada-1ace-4c57-8364-5f2cfe4abb42
+joint_plt = let
+	gr()
+ 	plt = plot(xlim=[1,10], ylim=[1, 2], yticks=[1,2], xticks=1:9, zlim = [0, maximum(joint_P)], zaxis=false, framestyle=:origin, camera=(15,10), size=(800, 600), xlabel=L"y", ylabel=L"x", zlabel="", title=L"P(X,Y)")
+	for i in 1:size(joint_P)[1]
+		for j in 1:size(joint_P)[2]
+			quiver!([j], [i], [0], quiver=([0], [0], [joint_P[i,j]]), lw=5)
+		end
+	end
+	plt
+end;
+
+# ╔═╡ b2c691a2-903a-45c4-a174-215d6fd2a220
+marg_py= let
+	bar(sum(joint_P, dims=1)[:], xticks=1:9, title=L"P(Y)", label="")
+end;
+
+# ╔═╡ fc585bb1-73c0-4077-a2fe-ac9c86cc8fca
+marg_px = let
+	bar(sum(joint_P, dims=2)[:], yticks=1:2, orientation=:h, yflip=true, label="", title=L"P(X)")
+end;
+
+# ╔═╡ 544c0d4e-97eb-4d4e-bc40-05a5c1e56bff
+md"``Y=``$(@bind yⱼ Slider(1:9; default=4, show_value=true))"
+
+# ╔═╡ 646ae2a5-6e16-4202-b175-b0b1616b2d65
+let
+	jindx = yⱼ
+	gr()
+
+	layout = @layout [a{0.7w, 1.0h}  b]
+ 	plt = plot(xlim=[1,10], ylim=[1, 2], yticks=[1,2], xticks=1:9, zlim = [0, maximum(joint_P)], zaxis=false, framestyle=:origin, camera=(5,8),  xlabel=L"y", ylabel=L"x", zlabel="", title=L"P(X,Y)")
+	for i in 1:size(joint_P)[1]
+		for j in 1:size(joint_P)[2]
+			cl = j == jindx ? :lightsalmon : Symbol(gray)
+			lw_ = j == jindx ? 4 : 2
+			al_ = j == jindx ? 1 : 0.5
+			quiver!([j], [i], [0], quiver=([0], [0], [joint_P[i,j]]), lw=lw_, color=cl, alpha=al_)
+		end
+	end
+
+	plt2 = bar(joint_P[:, jindx] / sum(joint_P[:, jindx]), xlabel=L"X", title=L"P(X|Y=%$(jindx))", label="", xticks=1:2, r=0.5)
+	plot(plt, plt2, layout=layout)
+end
 
 # ╔═╡ 776649a0-d8ef-4fcb-a9ea-69e956dbd637
 md"""
@@ -3560,6 +3649,15 @@ version = "1.4.1+1"
 # ╟─7652aa5c-47c7-4263-a673-00f073f91018
 # ╟─0198a401-ed47-4f5c-8aca-441cccff472b
 # ╟─6db0a9fa-0137-413e-b122-24a51c4319e0
+# ╟─05cadada-1ace-4c57-8364-5f2cfe4abb42
+# ╟─b2c691a2-903a-45c4-a174-215d6fd2a220
+# ╟─fc585bb1-73c0-4077-a2fe-ac9c86cc8fca
+# ╟─4c6d3d79-22d1-4aae-b538-87aac73787d9
+# ╟─5c0a6bf7-7ada-4122-ae09-1963969e4aa9
+# ╟─2ed5995f-26dd-4f3e-92fb-a04b334cfb99
+# ╟─61106a36-e880-499b-a442-f42d3c196e6b
+# ╟─544c0d4e-97eb-4d4e-bc40-05a5c1e56bff
+# ╟─646ae2a5-6e16-4202-b175-b0b1616b2d65
 # ╟─776649a0-d8ef-4fcb-a9ea-69e956dbd637
 # ╟─0c78067b-e2cc-4866-b12e-abebe09cf564
 # ╟─ef748d34-071b-4e59-a96c-2d606d483ee9

@@ -192,7 +192,7 @@ A Turing model can be specified with arbitrary Julia code
 
 * `=` assignment: can be used to assign a deterministic value to a variable; e.g.
   > ```μ = 0; data ~ Normal(μ, 1)```
-  * a Gaussian distribution with a fixed mean of 1
+  * a Gaussian distribution with a fixed mean of zero
   * note `=` is different from `~` operator; `~` is used to specify a distribution assumption for a random variable; `=` is a deterministic non-random assignment 
 
 """

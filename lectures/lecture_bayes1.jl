@@ -166,7 +166,7 @@ md"""
 ## Prior and Likelihood Specification
 
 
-**The prior**: ``\theta\in [0,1]``
+#### *The prior*: ``\theta\in [0,1]``
 
 * discretize it to ``[0, 0.1, 0.2, \ldots, 1.0]`` 11 grid values
 * and a uniform prior
@@ -177,7 +177,7 @@ P(\theta) = \begin{cases} \frac{1}{11} & \theta \in \{0, 0.1, \ldots, 1.0\} \\
 ```
 
 
-**The likelihood**: Bernoulli distribution
+#### *The likelihood*: Bernoulli distribution
 
 ```math
 P(Y_i|\theta) = \begin{cases} 1-\theta & Y_i = 0 \\ \theta & Y_i = 1\end{cases}
@@ -189,16 +189,17 @@ P(Y_i|\theta) = \begin{cases} 1-\theta & Y_i = 0 \\ \theta & Y_i = 1\end{cases}
 md"""
 
 
-To be more specific, ``\mathcal{D} =\{1,0,0,1,1,1,1,1,1,0\}``
+To be more specific, ``\large\mathcal{D} =\{1,0,0,1,1,1,1,1,1,0\}``
 
 
 ```math
-P(\mathcal{D}|\theta) = \theta (1-\theta)(1-\theta) \theta \ldots (1-\theta) = \theta^{7}(1-\theta)^{3}
+\large P(\mathcal{D}|\theta) = \theta (1-\theta)(1-\theta) \theta \ldots (1-\theta) = \theta^{7}(1-\theta)^{3}
 ```
 
 More generally,
 
 ```math
+\large
 P(\mathcal{D}|\theta) = \theta^{N^+}(1-\theta)^{N-N^+}
 ```
 * ``N^+ = \sum_{i=1}^N Y_i``: the total number of heads 
@@ -215,7 +216,11 @@ md"""
 
 # ╔═╡ 15571edc-32d7-4ac5-9c53-d49f595f84b1
 md"""
-
+#### _Likelihood function_:
+```math
+\large
+P(\mathcal{D}|\theta) = \theta^{N^+}(1-\theta)^{N-N^+}
+```
 > What is the maximum likelihood estimator for ``\theta``?
 
 """
@@ -226,10 +231,10 @@ md"""
 The MLE can be shown to be  
 
 ```math
-	\theta_{ML} = \frac{N^+}{N}
+\large
+	\theta_{ML} = \frac{N^+}{N} = \frac{7}{10}
 ```
 
-* what if the observed data is ``\mathcal{D}= \{0, 0\}``
 """
 
 # ╔═╡ f06264f4-f020-48f6-9ff3-cac308518eac
@@ -240,8 +245,8 @@ md"""
 
 # ╔═╡ 9308405d-36d0-41a1-8c73-e93b8d699320
 begin
-	# 𝒟 = [1, 0, 0, 1, 1, 1, 1, 1, 1, 0]
-	𝒟 = [0, 0]
+	𝒟 = [1, 0, 0, 1, 1, 1, 1, 1, 1, 0]
+	# 𝒟 = [0, 0]
 end
 
 # ╔═╡ 0da00057-6bf1-407d-a15f-af24ee549182
@@ -281,8 +286,8 @@ md"""
 
 ## Aside: Maximum likelihood estimator (conti.)
 
-What if we observed ``\mathcal{D}=\{0,0\}`` ? 
-* ``N⁺ =0, N=2``
+#### _What if:_ ``\mathcal{D}=\{0,0\}`` ? 
+* *i.e.* ``N⁺ =0, N=2``
 
 
 
@@ -316,11 +321,11 @@ md"""
 ## Frequentist approach
 
 
-To draw a comparison with the frequentist method, let's see 
+#### To draw a comparison with the _frequentist method_
 
 * how **frequentist** would approach the problem
-* we will use the *confidence interval* method 
-* note that this is not the best frequentist practice
+* we will use the **confidence interval** method 
+  * not the best frequentist method
   * for comparison purposes
 
 
@@ -331,26 +336,29 @@ md"""
 
 ## Frequentist approach
 
-The fundamental difference
+> #### **Frequentist** does **NOT** treat the unknown parameter ``\theta`` a random variable **but** something fixed but unknown
 
-> **frequentist** does **NOT** treat the unknown parameter ``\theta`` a random variable **but** an unknown fixed constant
+* ##### Implication: frequentist has no prior ``P(\theta)`` nor posterior  ``P(\theta|\mathcal{D})``
 
-  * therefore, frequentist has neither prior ``P(\theta)`` nor posterior  ``P(\theta|\mathcal{D})``
+## Frequentist approach
 
-The only random variables are the data ``\mathcal{D}`` 
+> #### **Frequentist** does **NOT** treat the unknown parameter ``\theta`` a random variable **but** something fixed but unknown
+
+* ##### Implication: frequentist has no prior ``P(\theta)`` nor posterior  ``P(\theta|\mathcal{D})``
+
+* ##### The only random variables are the data ``\mathcal{D}`` 
   * frequentists only need the likelihood ``P(\mathcal{D}|\theta)``
-  * MLEs are usually random variables (therefore, with sampling distribution)
 
 ## Frequentist approach
 
 
 A **confidence interval** can be calculated as 
 
-$$(\hat{\theta} - z_{\alpha/2} \hat{\texttt{se}}, \hat{\theta} + z_{\alpha/2} \hat{\texttt{se}}), \text{where}$$ 
+$$\Large (\hat{\theta} - z_{\alpha/2} \hat{\texttt{se}}, \hat{\theta} + z_{\alpha/2} \hat{\texttt{se}}), \text{where}$$ 
 
-$$\hat{\texttt{se}}= \sqrt{\frac{\hat{\theta}(1-\hat{\theta})}{N}}.$$
+$$\large\hat{\texttt{se}}= \sqrt{\frac{\hat{\theta}(1-\hat{\theta})}{N}}.$$
 
-* ##### ``\hat{\theta}, \hat{\texttt{se}}`` are random variables
+* ##### ``\hat{\theta}=N^+/N,\; \hat{\texttt{se}}`` are random
 * ##### the intervals themselves are random but $\theta$ is fixed
 """
 
@@ -360,17 +368,17 @@ md"""
 ## Confidence interval
 
 
-For our problem, a 90% frequentist **confidence interval** is
+#### For our problem, a 90% frequentist **confidence interval** is
 
 $$\large (0.46, 0.94)$$
 
 
 > #### But how shall we interpret this interval?
 
-* ``\theta`` is not a random variable
-  * ##### not an uncertainty statement  about ``\theta`` in the Bayesian sense
+* ##### ``\theta`` is not a random variable
+  * not an uncertainty statement  about ``\theta`` in the Bayesian sense
 
-* ##### but the intervals are random 
+* ##### but the intervals $$(\hat{\theta} - z_{\alpha/2} \hat{\texttt{se}}, \hat{\theta} + z_{\alpha/2} \hat{\texttt{se}})$$ are _random_!
 
 ## Confidence interval
 !!! danger ""
@@ -402,20 +410,21 @@ md"""
 
 ## Frequentist sampling theory method
 
-If you think the Frequentist's confidence interval is confusing
+#### If you think Frequentist's confidence interval is _confusing_
 
-* I agree with you. 
+* #### I agree with you!
 
+##
 
-But the frequentist method is suitable for controlled experiment settings 
+##### But the frequentist method is very suitable for controlled experiment settings 
 
-* we are truly interested in the long term frequency pattern under repeated experiments
+* we are interested in the long term frequency pattern under repeated experiments
 
-But Bayesian inference give you a more **direct answer** to the inference question
+##### But Bayesian inference give you a more **direct answer** to the question
 
 > "*In light of the observed data, what ``\theta`` is more credible, i.e. what is ``p(\theta|\mathcal D)``?*''
 
-And Bayesian inference is procedurally simple and uniform
+##### And Bayesian inference is procedurally simple and uniform
 
 * forward modelling + inference computation
 * frequentist methods need different tests for different purposes
@@ -536,17 +545,11 @@ md"""
 
 
 The difference: the observations are ``N^+`` directly
-* note that ``N⁺`` is defined as the total count of successes of ``N`` tosses:
 
-```math
-N⁺\triangleq \sum_i Y_i 
-```
-* the likelihood is binomial distributed
+* the likelihood is Binomial 
 ```math
 P(N⁺ |\theta, N) = \text{Binom}(N⁺; N, \theta) = \binom{N}{N⁺} \theta^{N⁺} (1-\theta)^{N-N⁺}
 ```  
-  * ``N=10`` is a hyperparameter, omitted here 
-
 """
 
 # ╔═╡ 4f6232be-dbd1-4e1a-a28c-5fc60964bb9f
@@ -586,7 +589,7 @@ end
 # ╔═╡ fde1b917-9d81-4a29-b553-caad3c736682
 md"""
 
-## Two resellers
+## Two resellers ?
 
 * The two unknowns: ``\theta_A,\theta_B``. 
 * The likelihood are the counts of "heads" (or positive reviews): ``\mathcal{D} = \{N_{A}^+, N_{B}^+\}``.
@@ -603,7 +606,7 @@ html"""<center><img src="https://leo.host.cs.st-andrews.ac.uk/figs/bayes/twosell
 # ╔═╡ 278bb5cb-6734-499c-b954-0590f559af1f
 md"""
 
-We have assumed 
+We have assumed here
 
 * the two sellers' biases are independent 
 * the reviews counts are also independent 
@@ -619,11 +622,12 @@ end
 md"""
 ## Two reseller: likelihood ``p(\mathcal{D}|\theta_A, \theta_B)``
 
-The two resellers' performance are assumed independent
+#### The two resellers' performance are assumed independent
 
 ```math
 \begin{align}
-p(\mathcal{D}|\theta_A, \theta_B) &= p(N_A^+|\theta_A, N_A=10) p(N_B^+|\theta_B, N_B=100)\\
+\large
+p(\mathcal{D}|\theta_A, \theta_B) &= p(N_A^+|\theta_A, N_A=10) p(N_B^+|\theta_B, N_B=1000)\\
 
 &=\binom{N_A}{N_A^+}\theta_A^{N_A^+}(1-\theta_A)^{N_A- N_A^+}\times \binom{N_B}{N_B^+}\theta_B^{N_B^+}(1-\theta_B)^{N_B- N_B^+}
 \end{align}
@@ -638,10 +642,11 @@ md"""
 
 ## Two reseller: posterior
 
-Apply Bayes' rule to find the posterior
+Find the posterior
 
 
 $$\begin{align}
+\Large
 p(\theta_A, \theta_B|\mathcal D) &\propto p(\theta_A, \theta_B)\cdot p(\mathcal D|\theta_A, \theta_B)\\
 &\propto \theta_A^{N_A^+}(1-\theta_A)^{N_A- N_A^+}\times \theta_B^{N_B^+}(1-\theta_B)^{N_B- N_B^+}
 \end{align}$$
@@ -654,8 +659,6 @@ And the normalising constant $p(\mathcal D)$ is
 
 $$p(\mathcal D) = \sum_{\theta_A\in \{0.0, \ldots,1.0\}}\sum_{\theta_B\in \{0.0,\ldots, 1.0\}} \theta_A^{N_A^+}(1-\theta_A)^{N_A- N_A^+}\times \theta_B^{N_B^+}(1-\theta_B)^{N_B- N_B^+}$$ 
 
-* the updated posterior is plotted below
-
 
 """
 
@@ -667,8 +670,8 @@ md"""
 
 # ╔═╡ 022c5b56-e683-4f66-aba9-8b2e89f11e24
 md"""
-* the posterior now centres around (0.8, 0.79); 
-* however, the ``\theta_A``'s marginal distribution is wider than the other, which makes perfect sense. 
+* ##### the posterior peaks around (0.8, 0.79); 
+* ##### however, the ``\theta_A``'s marginal distribution is wider than the other, which makes perfect sense. 
 
 """
 
@@ -699,10 +702,9 @@ md"""
 
 A uniform prior 
 
-$$p(\theta_A, \theta_B) = \begin{cases} 1/101^2, & \theta_A,\theta_B \in \{0, 0.01, \ldots, 1.0\}^2 \\
+$$\large p(\theta_A, \theta_B) = \begin{cases} 1/101^2, & \theta_A,\theta_B \in \{0, 0.01, \ldots, 1.0\}^2 \\
 0, & \text{otherwise}; \end{cases}$$
 
-The prior distribution is shown below:
 
 $(begin
 gr()
@@ -720,7 +722,6 @@ end
 
 # ╔═╡ 9c49b056-7329-49af-838b-3e8b28826157
 md"""
-The heatmap of the posterior density is also plotted for reference.
 
 $(begin
 gr()
@@ -734,10 +735,10 @@ md"""
 
 ## Lastly: answer the question
 
-The question boils down to a posterior probability:
+#### #The question boils down to a posterior probability
 
 ```math
-P(\theta_A > \theta_B|\mathcal{D}).
+\large P(\theta_A > \theta_B|\mathcal{D}).
 ```
 * *In light of the data, how likely coin ``A`` has a higher bias than coin ``B``?*, 
 * geometrically, calculate the probability below the shaded area
@@ -768,10 +769,12 @@ post_AmoreB = let
 end;
 
 # ╔═╡ fdfa9423-e09e-42b6-bce3-ebbc681f3c93
-md"For our problem,"
+md"
+
+##### For our problem,"
 
 # ╔═╡ bca20d87-e453-4106-a5cf-bd99d25021ab
-L"p(\theta_A > \theta_B|\mathcal{D}) \approx %$(round(post_AmoreB, digits=2))"
+L"\large p(\theta_A > \theta_B|\mathcal{D}) \approx %$(round(post_AmoreB, digits=2))"
 
 # ╔═╡ da59ebaa-e366-4753-8329-27119be19d9a
 md"""
@@ -873,19 +876,19 @@ end
 md"""
 ## Report the posterior
 
-The posterior distribution ``P(\theta|\mathcal{D})`` provides what we need to know
+##### The posterior distribution ``P(\theta|\mathcal{D})`` provides all the information
 
-* the **mode** of the posterior is around 0.7
+\
+\
 
 
-
-To **summarise the uncertainty**, we often report **highest probability density interval (HPDI)** 
+Sometimes, we still want to **summarise the distribution**, one possibility is **highest probability density interval (HPDI)** 
 
 * Bayesian **credible interval** (c.f. confidence interval)
 
 * an interval that the encloses probability *e.g.* 90% of the posterior
 
-$$p(l \leq \theta \leq u|\mathcal D) = 90 \%.$$
+$$\large p(l \leq \theta \leq u|\mathcal D) = 90 \%.$$
 
 * however, the wide tail suggests it is not very certain; we only have observed 10 tosses after all
   * ##### the 90% region for ``\theta`` is ($(θs_refined[l2]), $(θs_refined[u2]))
@@ -2433,7 +2436,7 @@ version = "1.4.1+1"
 # ╟─1d835b12-f1d7-4ce4-a62e-2cfa7a7b3a21
 # ╟─5cbd933e-db0e-49fb-b9d0-267dc93efdb7
 # ╟─f06264f4-f020-48f6-9ff3-cac308518eac
-# ╠═9308405d-36d0-41a1-8c73-e93b8d699320
+# ╟─9308405d-36d0-41a1-8c73-e93b8d699320
 # ╟─be0fe9aa-32e6-4c18-8bad-2213e05bca1c
 # ╟─0da00057-6bf1-407d-a15f-af24ee549182
 # ╟─f593d1c9-7382-4d5c-9c99-5709123af43d
@@ -2470,8 +2473,8 @@ version = "1.4.1+1"
 # ╟─cb09680f-ae53-45b1-aa61-e73f81a4bcce
 # ╟─022c5b56-e683-4f66-aba9-8b2e89f11e24
 # ╟─5649bcda-2ab5-4bb7-b0dc-c132c5fb0a0d
-# ╟─9c49b056-7329-49af-838b-3e8b28826157
 # ╠═56893f7f-e59c-434d-b8cf-2dd553111707
+# ╟─9c49b056-7329-49af-838b-3e8b28826157
 # ╟─0cd24282-74a4-4261-aa33-019d3afac248
 # ╟─1cf90ba3-2f9a-4d58-bdd3-7b57e43fe307
 # ╟─5a58f305-4af0-40ae-830a-a318576bf85d

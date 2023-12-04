@@ -4,432 +4,145 @@
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ ef539e62-95ae-42c2-9ce5-3fd11e09a38e
-using Turing
-
-# ╔═╡ 68018998-17d7-11ed-2d5e-2b2d5f8b0301
+# ╔═╡ 51887944-e8dc-48b1-b266-d7d764c8d722
 begin
     using PlutoUI
 	using StatsPlots
 	using Plots; default(fontfamily="Computer Modern", framestyle=:box) # LaTex-style
-	# using Turing
 	using Random
+	using LogExpFunctions
+    using LinearAlgebra
+	# using ForwardDiff
+	using MCMCChains
+    # using DataFrames
 	using LaTeXStrings
 	using HypertextLiteral
-	using Logging; 
+	using Logging; Logging.disable_logging(Logging.Info);
 end;
 
-# ╔═╡ ec23cd37-94df-489f-b892-24bffd755b50
-Logging.disable_logging(Logging.Warn);
+# ╔═╡ 05ebaf87-5cb4-4bc9-b9ba-1e37e5055fe6
+using Turing
 
-# ╔═╡ a89d9509-7564-4b6e-bba6-0de1f3f7d64e
+# ╔═╡ 03069b91-36f7-4b8d-9e5b-d333db87006b
+using MLDatasets
+
+# ╔═╡ 2d444231-0791-424e-ab4f-1fe3aa095733
+using DataFrames
+
+# ╔═╡ 69d55cde-e933-4d5d-a921-e5747b5eaba5
+using StatsBase
+
+# ╔═╡ f0f99876-f3cf-448d-b9ce-6b990da34663
 TableOfContents()
 
-# ╔═╡ b879d404-343c-4de4-91e1-5dcf6031ad3f
-md"[**↩ Home**](https://lf28.github.io/BayesianModelling/) 
-
-
-[**↪ Next Chapter**](./section5_regressions.html)
-"
-
-# ╔═╡ 82b6f501-bada-4bf3-a7a7-c325bc48e754
+# ╔═╡ 6faf2aac-d32e-11ed-3513-53b8f498e6da
 md"""
 
-# Bayesian inference with `Turing.jl`
-"""
 
-# ╔═╡ 4b2fc478-b825-4758-b384-d7b7186b8e21
-md"""
 
-In the previous chapters, we have introduced some basic concepts of Bayesian inference and MCMC samplers. In a nutshell, Bayesian inference requires a full generative model which includes both prior assumptions for the unknown and the likelihood function for the observed. After the modelling step, efficient algorithms, such as MCMC, are used to compute the posterior distribution. 
 
-So far, we have implemented all of the Bayesian models and their inference algorithms manually. Writing programs from scratch requires prior programming experience and effort. Therefore, starting everything from scratch is not practical for general applied practitioners. 
+# Exercise
 
-Fortunately, with the help of probabilistic programming languages (PPL), such as `Turing.jl` or `Stan`, one can do Bayesian inferences easily without worrying too much about the technical details. A PPL is a programming language to specify and infer general-purpose probabilistic models. They provide a high-level and intuitive-to-use way of specifying Bayesian models. Moreover, a PPL unifies the modelling and computation blocks. Bayesian computations, such as MCMC, can be (almost) carried out automatically once a model is specified. 
 
-In this chapter, we are going to learn how to use `Turing.jl`, a popular PPL implemented in Julia, to run Bayesian inferences. `Turing.jl` is very easy to use. The user writes Turing models in the same way as they would write on their paper, which makes it intuitive to use. Together with other helper packages, such as `MCMCChains.jl` (for MCMC chain summary) and `Plots.jl` (for visualisation), the packages provide an ecosystem to do full Bayesian inference.
+$(Resource("https://www.st-andrews.ac.uk/assets/university/brand/logos/standard-vertical-black.png", :width=>130, :align=>"right"))
+
+Lei Fang (lf28@st-andrews.ac.uk)
+
+*School of Computer Science*
+
+*University of St Andrews, UK*
+
+*March 2023*
 
 """
 
-# ╔═╡ 67d93f23-899b-4ddf-83f1-5d320c23f22f
+# ╔═╡ 37448302-cad4-48d2-baea-9194de5091b9
 md"""
 
-## Install Julia and `Turing.jl`
+## Question 1
 
 
-Install Julia (1.8 over greater)
-* If you have not yet done so, download and install Julia by following the instructions at [https://julialang.org/downloads/](https://julialang.org/downloads/).
-* Choose either the latest stable version (v1.8) or long-term support version v1.6
-
-Add relevant packages by using Julia's package manager
-* Step 1: Open the Julia Command-Line 
-  * either by double-clicking the Julia executable or 
-  * running Julia from the command line
-And you should see a command line interface like this
-
-```
-$ julia
-               _
-   _       _ _(_)_     |  Documentation: https://docs.julialang.org
-  (_)     | (_) (_)    |
-   _ _   _| |_  __ _   |  Type "?" for help, "]?" for Pkg help.
-  | | | | | | |/ _` |  |
-  | | |_| | | | (_| |  |  Version 1.8.0 (2022-08-17)
- _/ |\__'_|_|_|\__'_|  |  Official https://julialang.org/ release
-|__/                   |
-
-julia> 
-```
-
-  
-* Step 2: Install `Turing.jl` (and other packages if needed) by using Julia's package manager
-```juliarepl
-julia> Using Pkg
-julia> Pkg.add("Turing")
-```
-
-* Step 3: you can now add `Turing` and start using it with the command line interface (not recommended; check Pluto's instructions below for details)
-
-```juliarepl
-julia> add Turing
-```
-
+A coin with a unknown bias ``\theta`` was tossed 30 times and the tossing results are recorded and stored in `coin_flip_data`.
 """
 
-# ╔═╡ b2980969-462c-44fe-bb66-fb5d968fc5f6
-md"""
-
-### Run `Turing` models with Pluto
-It is recommended that you run `Turing` models in your browser rather than Julia's REPL command line interface. 
-
-* Step 1: Install `Pluto.jl`; 
-```juliarepl
-julia> Using Pkg
-julia> Pkg.add("Pluto")
-```
-
-
-* Step 2: Use Pluto 
-```juliarepl
-julia> using Pluto
-julia> Pluto.run()
-```
-
-* Step 3: To get started, you can either run this notebook (recommended) or start your own new notebook
-  * if you start a new notebook, you need to add `Turing` and `StatsPlots` packages first in a cell of your notebook (**not** in REPL but in the Pluto notebook)
-  * then check the notes below for further details.
-```
+# ╔═╡ 7df2e2fa-f9bd-49bb-9c24-bf042a392651
 begin
-	using Pluto, StatsPlots
-end
-```
-"""
+	Random.seed!(234567)
+	nn = 30
+	trueθ = 0.25
+	coin_flip_data = rand(nn) .<  trueθ
+end;
 
-# ╔═╡ aaeb3a9d-d655-427d-a397-62cab819e346
-md"""
-## `Turing.jl` basics
-
-"""
-
-# ╔═╡ d4a8b997-5dff-49b1-aa09-017051405790
+# ╔═╡ 4ac1a33c-0dcb-44be-acf4-23e1f994371e
 md"""
 
-### Model specification
-
-In a nutshell, a model in Turing is implemented as a Julia function wrapped with a `@model` macro. Intuitively, the macro rewrites the wrapped Julia function to a probabilistic model such that downstream model operations can be carried out.
-
-A general Turing model is listed below:
-
-```julia
-@model function my_model(data)
-  ...
-  # random variable `θ` with prior distribution `prior_dist`
-  θ ~ prior_dist
-  ...
-  # optional deterministic transformations 
-  ϕ = fun(θ)
-  ...
-
-  # observation `data` with likelihood distribution `likelihood_dist`
-  data ~ likelihood_dist
-  ...
-end
-```
-
-Two important constructs of `Turing.jl` are
-
-* macro "`@model`": a macro that rewrites a Julia function to a probabilistic program that can be inferred later on; all model assumptions are encapsulated within the macro
-  
-* operator "`~`": the tilde operator is used to specify a variable that follows some probability distribution: e.g.
-  > ```θ ~ Beta(1,1); data ~ Bernoulli(θ)```
-  * where we assume `data` is a random draw from a Bernoulli with bias `θ`; and the bias `θ` follows a flat Beta prior
-  * check [`Distributions.jl`](https://juliastats.org/Distributions.jl/stable/starting/) for available probability distributions and their interfaces.
+##### Task 1. find how many `heads` and `tails` are there in `coin_flip_data` respectively?
 
 
-A Turing model can be specified with arbitrary Julia code. For example,
-* `for, while` loop: can be used to specify some repeated distribution assumptions, 
-  * convenient for `i.i.d` assumption for the observed the data
-
-* `=` assignment: can be used to assign a deterministic value to a variable; e.g.
-  > ```μ = 0; data ~ Normal(μ, 1)```
-  * a Gaussian distribution with a fixed mean of zero
-  * note `=` is different from `~` operator; `~` is used to specify a distribution assumption for a random variable; `=` is a deterministic non-random assignment 
-
+!!! hint "hint"
+	use `sum()` method
 """
 
-# ╔═╡ 0e5f3c06-8e3e-4b66-a42e-78a1db358987
-md"""
-### Inference
+# ╔═╡ affbc16d-781f-4772-b92c-076a559c2418
+# nhead = ? 
 
-Recall that MCMC provides us with a general and scalable method to draw samples from the posterior distribution which usually cannot be computed exactly:
-
-$$\theta^{(r)} \sim p(\theta|\mathcal D)$$
-
-Instead of writing one's own MCMC algorithms, `Turing.jl` provides an easy-to-use interface: `sample()`:
-
-
-```julia
-chain = sample(model, mcmc_algorithm, mc; 
-			discard_initial = 100, 
-			thinning=10, 
-			chain_type=Chains
-		)
-
-```
-
-The first three compulsory arguments are  
-* `model`: a Turing model should be the first argument, e.g. `cf_model`
-* `mcmc_algorithm`: can be one of the available MCMC samplers, such as a Hamiltonian sampler with a certain step length and size: `HMC(0.05, 10)`; or HMC's more user-friendly extension No-U-turn sampler: `NUTS()` (which automatically choose the step size and length)
-* `mc`: how many MCMC samples to draw, e.g. `3000`
-
-The optional arguments (by Julia's convention optional arguments are specified after `;`) are
-* `discard_initial`: discard the specified number of samples as burn-in
-* `thinning`: thin the chain to reduce temporal correlations between MCMC iterations
-* `chain_type`: return the sample as an object of `Chains` of `MCMCChains.jl`;
-
-"""
-
-# ╔═╡ 45a74e6a-ae59-49bd-8b41-ee1c73153f15
+# ╔═╡ 042b955f-a298-49ef-9940-0af184b81b8f
 md"""
 
-**Run multiple chains in parallel.** To make use of modern computers' parallel processing power, we usually simulate multiple chains in parallel. One can also simulate multiple MCMC chains in parallel by calling
-
-```julia
-sample(model, mcmc_algorithm, parallel_type, n, n_chains)
-```
-
-where 
-
-* `parallel_type` can be e.g. `MCMCThreads()` 
-* `n_chains` is the number of parallel chains to simulate at the same time
+##### Task 2. assume a `Beta` prior for ``\theta``, *i.e.* $p(\theta)= \texttt{Beta}(\theta; a_0, b_0)$, what is the posterior? draw ``1000`` samples from the posterior and plot the sample.
 """
 
-# ╔═╡ 8fbef2d5-9591-46fc-a35e-f44a0d492748
+# ╔═╡ c9b4cc44-b9fa-4280-858f-8619afafbad5
+# your code here
+
+# ╔═╡ ffb3bad6-b498-41b4-8da5-793560af0a2a
 md"""
 
-### [Auto-differentiation](https://turing.ml/dev/docs/using-turing/autodiff) backend
+##### Task 3. check the `coin_flipping` code below. The model implements a Bayesian model for the coin flipping problem. Draw 5000 samples from the posterior ``p(\theta|\mathcal{D})``
 """
 
-# ╔═╡ c8863691-ffdc-4629-b0b6-acd61d6d905f
-md"""
-
-Some MCMC algorithms such as Hamiltonian Monte Carlo (HMC) or No-U-Turn sampler (NUTS) require the gradient of the log probability density functions.
-
-As shown in chapter 3, packages such as `ForwardDiff.jl` can automatically differentiate a Julia program. With the auto-differentiation (AD) packages serving as backends, `Turing` can compute the gradient automatically. Different backends and algorithms supported in `Turing.jl` include:
-- [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl): forward-mode AD, the default backend
-- [Tracker.jl](https://github.com/FluxML/Tracker.jl): reverse-mode AD
-- [ReverseDiff.jl](https://github.com/JuliaDiff/ReverseDiff.jl): reverse-mode AD, has to be loaded explicitly (optional cache for some models)
-- [Zygote.jl](https://github.com/FluxML/Zygote.jl): reverse-mode AD, has to be loaded explicitly
-"""
-
-# ╔═╡ fefbf8e9-8920-4555-87bc-daf2e2a231f1
-md"""
-By default, `Turing` uses `ForwardDiff`. One can change the AD backend by `setadbackend(:backend)`, e.g. `setadbackend(:forwarddiff)`, `setadbackend(:tracker)`, `setadbackend(:reversediff)`, or `setadbackend(:zygote)`.
-
-As a rule of thumb, use forward-mode AD for models with few parameters (say less than 50) and reverse-mode AD for models with many parameters. If you use reverse-mode AD, in particular with Tracker or Zygote, you should avoid
-    loops and use vectorized operations.
-"""
-
-# ╔═╡ f56ea0d7-c4e8-469e-9863-adc2d9c917be
-md"""
-
-## Coin-flipping revisited
-
-Recall the coin-flipping problem in chapter one.
-
-> A coin 🪙 is tossed 10 times. And the tossing results are recorded: 
-> $$\mathcal D=\{1, 1, 1, 0, 1, 0, 1, 1, 1, 0\}$$; 
-> i.e. seven out of the ten tosses are heads (ones). Is the coin **fair**?
-
-"""
-
-# ╔═╡ a86ed206-aed8-40b4-89aa-1abf0d16fbb2
-md"""
-
-
-**Bayesian conjugate model**
-The Bayesian model starts with a generation process for the unknown (or prior) and then the model for the observed data (the likelihood).
-
-1. prior for the bias ``\theta``: 
-
-```math
-\theta \sim \texttt{Beta}(a_0, b_0);
-```
-
-2. then a total 10 coin tosses are drawn from the coin with the bias ``\theta``. for ``n = 1,\ldots, 10``
-
-```math
-d_n \sim \texttt{Bernoulli}(\theta).
-```
-
-"""
-
-# ╔═╡ b49725d0-8239-4129-b0d6-982f998be91f
-md"""
-### Inference with `Turing.jl`
-
-"""
-
-# ╔═╡ ecf86444-1565-406c-8aa2-275ee3a44fae
-md"""
-
-**Model specification:** The coin-flipping model can be specified by `Turing.jl` as
-
-"""
-
-
-# ╔═╡ a2b84c25-bf58-411d-893b-48c8384cae04
+# ╔═╡ e02b2772-bddf-4518-805a-38f2c3f6894d
 @model function coin_flipping(data; a₀=1.0, b₀=1.0)
     # Our prior belief about the probability of heads in a coin toss.
     θ ~ Beta(a₀, b₀)
-
     # each observation in `data` is an independent draw from the coin, which is Bernoulli distributed
 	for i in eachindex(data)
     	data[i] ~ Bernoulli(θ)
 	end
 end;
 
-# ╔═╡ f2dd09fa-9204-4f1e-80da-2f1bb185b3a8
-md"""
-In the above model, 
-* `a₀, b₀` (of the prior's parameters) are treated as input parameters to allow some flexibility 
-* `for` loop is used to repeatedly specify the independent tosses; `data` here is assumed to be an array of tossing realisations (of `true` or `false`)
-
-
-To realise a concrete model for our problem, we only need to create ``\mathcal D`` as the required array and feed it into the Turing model.
-
-"""
-
-# ╔═╡ 77a9ca64-87ad-465c-bec7-fe406145de40
+# ╔═╡ 1f1b19b2-1b2b-45d6-b90e-47a57e4dcd03
 begin
-	# create the data as observed
-	coin_flipping_data = [true, true, true, false, true, false, true, true, true, false]
-	# create the model by feeding the data as observed
-	cf_model = coin_flipping(coin_flipping_data; a₀=1.0, b₀=1.0)
-end;
-
-# ╔═╡ 139a1d54-b018-4de4-9a9f-ec9cf429b3a1
-md"""
-
-**Inference:** To infer the model, we run a MCMC algorithm to sample from the posterior
-
-* all random variables specified with `~` (except the observed `data`) will be sampled in the MCMC algorithm
-
-For example, the following command can be used to draw 2000 samples with a HMC sampler.
-"""
-
-# ╔═╡ 7d13ddd9-fb5f-4843-b1d5-176d505acd57
-begin
-	Random.seed!(100)
-	cf_chain = sample(cf_model, HMC(0.05, 20), MCMCThreads(), 2000, 3; discard_initial = 1000)
-end;
-
-# ╔═╡ a2278d07-f857-4910-afa8-bf484ef0dc10
-md"""
-
-In particular, the HMC sampler has
-  * a step length of the Leapfrog: ``\epsilon = 0.05``
-  * and Leapfrog algorithm's step count: ``{T}=20``
-"""
-
-# ╔═╡ 400b77d6-dc69-4ea9-ab45-5daeaa6e4bcc
-md"""**Use other MCMC samplers:** A more convenient sampling choice is No-U-Turn (NUTS) sampler [^1]:
-
-```julia
-sample(cf_model, NUTS(0.65), 2000; discard_initial = 500);
-```
-NUTS is a user-friendly extension of HMC 
-* where Hamiltonian dynamics' parameters are automatically tuned 
-  * such that a pre-specified `accept_rate` is achieved (an acceptance rate around 0.65 is recommended)
-* user does not need to manually set the HMC's parameters
-
-
-Similarly, one may also choose Metropolis-Hastings:
-```julia
-sample(cf_model, MH(), 2000; discard_initial = 500);
-```
-However, HMC and NUTS are the go-to choices due to their better sampling efficiency. Check chapter 2 for a comparison between the samplers.
-"""
-
-# ╔═╡ 9f119bba-fbd2-4c3a-93c2-22567c781e5f
-md"""
-
-**Chain diagnostics:** We should always check the quality of the chain before proceeding to report the findings.
-
-
-In particular, we need to visually inspect the trace plot to spot any potential divergence. The following command shows the chain trace against the MCMC iterations. The chain seems to mix well (check chapter 2 for more details about visual inspection).
-
-"""
-
-# ╔═╡ 4bb24996-24d0-4910-9996-83f0b34a005f
-plot(cf_chain)
-
-# ╔═╡ 6f7ecf38-3017-408e-9a8a-6d218bddc2d1
-md"""
-
-We can also check chain diagnostic statistics such as 
-* `rhat` ``\approx 0.99``; as a rule of thumb `rhat` should be smaller than 1.01
-* `ess` ``\approx 1920``; (essential sample size) signals efficiency of the sampler
-
-Both statistics show the sampler has mixed well.
-"""
-
-# ╔═╡ 4e9ac22f-a895-4d87-b1a9-2cd8a6da83fb
-describe(cf_chain)
-
-# ╔═╡ 5cd3314b-dff2-478f-9a1a-73545b26f797
-md"""
-
-### Compare with the exact posterior
-
-For this toy example, we know the posterior distribution exactly:
-
-$$p(\theta|\mathcal D) = \texttt{Beta}(8,4).$$
-
-Therefore, we can compare the performance between the exact posterior and the approximating distribution returned by `Turing.jl`. The following plot shows the comparison. It can be observed that Turing has done a very good job at approximating the posterior.
-
-Recall that one can use `density()` to plot the density of an MCMC chain.
-"""
-
-# ╔═╡ 5678e483-1292-440d-83de-462cd249c511
-let
-	plot(Beta(8,4), fill=true, alpha=0.5, lw=2, label=L"\texttt{Beta}(8,4)")
-	density!(cf_chain, xlim=[0,1], legend=:topleft, w=2)
+# Your code here
 end
 
-# ╔═╡ 7c6e1185-4fe4-4d2b-9b0a-f6268a75b682
+# ╔═╡ dd963e78-99fe-45c1-9566-713f4cb8c0df
 md"""
-## Seven scientists re-visited
 
+##### Task 4. we have tossed the coin 300 times and the data is stored in `coin_flip_data2`; repeat the inference, what do you observe?
+"""
+
+# ╔═╡ 1e80cc97-f1d7-4824-b730-4a63e7d4e8bb
+begin
+	Random.seed!(234567)
+	nn2 = 300
+	# trueθ = 0.25
+	coin_flip_data2 = rand(nn2) .<  trueθ
+end
+
+# ╔═╡ bf128db7-eaff-4d19-8d6b-32dea8f3bf8b
+md"""
+
+## Question 2
 
 """
 
-# ╔═╡ acbc4dcc-3352-4de0-a145-d4aa51975036
+# ╔═╡ bdb0989d-3b83-419c-a4f5-6f0cbb4a513d
 md"""
 
-Recall the seven-scientist problem which was introduced in chapter 2.
+Recall the seven scientist problem
 !!! question "Seven scientist problem"
-	[*The question is adapted from [^1]*] Seven scientists (A, B, C, D, E, F, G) with widely-differing experimental skills measure some signal ``\mu``. You expect some of them to do accurate work (i.e. to have small observation variance ``\sigma^2``, and some of them to turn in wildly inaccurate answers (i.e. to have enormous measurement error). What is the unknown signal ``\mu``?
+	[*The question is adapted from [^1]*] Seven scientists (A, B, C, D, E, F, G) with widely-differing experimental skills measure some signal ``\mu``. You expect some of them to do accurate work (*i.e.* to have small observation variance ``\sigma^2``, and some of them to turn in wildly inaccurate answers (*i.e.* to have enormous measurement error). What is the unknown signal ``\mu``?
 
 	The seven measurements are:
 
@@ -438,16 +151,16 @@ Recall the seven-scientist problem which was introduced in chapter 2.
 	| ``d_n``    | -27.020| 3.570| 8.191| 9.898| 9.603| 9.945| 10.056|
 """
 
-# ╔═╡ f06c5735-6a4a-4a91-8517-ec57a674225a
+# ╔═╡ 58d52c04-9fbf-40fa-843f-e05e90e9d914
 begin
 	scientist_data = [-27.020, 3.57, 8.191, 9.898, 9.603, 9.945, 10.056]
 	μ̄ = mean(scientist_data)
 end;
 
-# ╔═╡ 782e9234-c02b-4abb-a72f-110d2fcabc33
+# ╔═╡ 62daf110-bf01-4e8a-b212-6fad7b92c0c9
 let
 	ylocations = range(0, 2, length=7) .+ 0.5
-	plt = plot(ylim = [0., 3.0], xminorticks =5, xlabel=L"d", yticks=false, showaxis=:x, size=(620,250))
+	plt = plot(ylim = [0., 3.0], xminorticks =5, yticks=false, showaxis=:x, size=(600,200))
 	scientists = 'A':'G'
 	δ = 0.1
 	for i in 1:7
@@ -455,334 +168,202 @@ let
 		annotate!([scientist_data[i]].+7*(-1)^i * δ, [ylocations[i]].+ δ, scientists[i], 8)
 	end
 	vline!([μ̄], lw=2, ls=:dash, label="sample mean", legend=:topleft)
+	# density!(scientist_data, label="")
 	plt
 end
 
-# ╔═╡ a662232b-524b-4918-93e9-204ab908a14d
+# ╔═╡ cf8f2889-8010-4fba-8607-81c6c5a38395
 md"""
 
-### Inference with `Turing.jl`
-To reflect the fact that each scientist has different experimental skills, we modify the usual i.i.d. assumption for the data. In chapter 2, we assume each observation is an independent realisation of the signal plus some subject-specific observation noise. That is each scientist makes observations with his/her noise level ``\sigma^2_n`` for ``n = 1,2,\ldots, 7``.
 
-Here we make a small adjustment to the above assumption. Instead of assuming 7 different levels of skill, we assume scientists A and B have a similar level of skill whereas scientists C, D, E, F, and G are another group with better measurement skills. We have reduced the number of observation noise parameters from 7 to 2.
+* ###### Create a Bayesian model for this problem
+  * what are the random variables?
+  * what is the data-generating process
 
-The proposed Bayesian model becomes:
-```math
-\begin{align}
-\text{prior}: \mu &\sim \mathcal N(m_0=0, v_0=10000)\\
-\lambda_1 &\sim \texttt{Gamma}(a_0=0.5, b_0=0.5)\\
-\lambda_2 &\sim \texttt{Gamma}(a_0=0.5, b_0=0.5)\\
-\text{likelihood}: d_1, d_2 &\sim \mathcal N(\mu, 1/\lambda_1) \\
-d_n &\sim \mathcal N(\mu, 1/\lambda_2), \;\; \text{for }n = 3, \ldots, 7.
-\end{align}
-```
+* ###### Draw the corresponding directed graphical model
 
-Note that the first observations now share one observation precision while the rest 5 share another. The model can be translated to `Turing.jl` easily.
+* ###### Specify the model by using `Turing.jl` and make inference on the unknown parameters
+
 """
 
-# ╔═╡ 4043d410-e338-45cc-a528-5afc5a23aea1
+# ╔═╡ 88c3e51e-3671-4181-b274-85805d453db1
+md"""
+
+* ###### *suppose we have 700 scientists now (the data is generated below); how can we modify the model?
+"""
+
+# ╔═╡ 68707d3d-02c4-4cda-b040-98b1f0818055
 begin
-
-	@model function seven_scientist(data; m₀=0, v₀=10_000, a₀ = .5, b₀ =.5)
-		# prior for μ
-		μ ~ Normal(m₀, sqrt(v₀))
-		# prior for the two precisions
-		λ1 ~ Gamma(a₀, 1/b₀)
-		λ2 ~ Gamma(a₀, 1/b₀)
-		σ1 = sqrt(1/λ1)
-		σ2 = sqrt(1/λ2)
-		# likelihood for scientists A and B
-		data[1] ~ Normal(μ, σ1)
-		data[2] ~ Normal(μ, σ1)
-		# likelihood for the other scientists
-		for i in 3:length(data)
-			data[i] ~ Normal(μ, σ2)
-		end
-	end
-end
-
-# ╔═╡ 0572a686-2a09-4c9e-9f33-51a390d5e66f
-md"""
-
-After specifying the model, the inference is very straightforward. The model is initialised with the observed data; the we infer the model with a `NUTS()` sampler.
-"""
-
-# ╔═╡ 0096e848-46b0-4c85-8526-0302b03c4682
-seven_scientist_model = seven_scientist(scientist_data)
-
-# ╔═╡ 04a162c0-3c7c-4056-8f2d-48d83df3d6e7
-seven_sci_chain = let 
-	Random.seed!(100)
-	sample(seven_scientist_model, 
-		NUTS(), 
-		MCMCThreads(),
-		2000,       #2000 iterations per chain
-		3; 			#three chains in parallel
-		discard_initial = 1000, 
-		thinning=4)
+	Random.seed!(123)
+	σ1 = sqrt(1/1.5)
+	σ2 = sqrt(1/0.05)
+	good_scientists_data = randn(650) * σ1 .+ 9.5
+	bad_scientists_data = randn(50) * σ2 .+ 9.5
+	scientists_data_700 = shuffle([good_scientists_data; bad_scientists_data])
 end;
 
-# ╔═╡ cea1df62-2e5a-4cac-a30b-3506ecb9b879
-md"""
-We can summarise the posterior by using `describe(.)` and `plot(.)`. By checking `rhat` and `ess` and also visual inspection, the chain seems to have mixed well. 
+# ╔═╡ 9b5ceaea-5a98-458b-b1ed-d56326b967fe
+scientists_data_700
 
-The MCMC's summary statistics also tell us a 95% credible range for ``\mu`` is between 8.59 and 10.45.
-
-"""
-
-# ╔═╡ 2af9eda0-a5f6-4b3c-b973-ea3c2ca03290
-describe(seven_sci_chain)
-
-# ╔═╡ a0671aeb-32dc-42f1-919f-a32f1c365a9a
-plot(seven_sci_chain)
-
-# ╔═╡ c266890f-da07-44be-b98f-cc129463ca6c
-density(seven_sci_chain[:μ], fill=(0, 0.1), label="", xlabel=L"\mu", ylabel="density", title="Posterior "*L"p(\mu|\mathcal{D})")
-
-# ╔═╡ 5bd72181-aa58-43b6-837e-47414c7152a1
-md"""
-
-## Predictive check with `Turing.jl`
-
-
-
-"""
-
-# ╔═╡ 7f16ec4f-ea2f-4990-9a6b-e473b997d786
-md"""
-
-Predictive checks are effective tools to evaluate whether the assumptions we make in the modelling stage are a good fit with the real data-generation process. The idea behind the checks is to generate simulated data using samples based on the prior or posterior distribution and compare them to the observed data. And the two checks are called **prior predictive check** and **posterior predictive check**. 
-
-The data simulation process is listed below:
-!!! information ""
-	Repeat the following many times:
-	
-	1. First draw one sample from the posterior (or the prior for prior predictive check): 
-	  
-	$$\tilde \theta \sim p(\theta|\mathcal D)$$
-	2. Second, conditioning on ``\tilde \theta``, simulates the pseudo observations: 
-	
-	$$\tilde{\mathcal D}\sim p(\mathcal D|\tilde{\theta})$$
-
-In chapter 2, we have done the simulation manually. For more complicated models, the process soon becomes tedious and overly-complicated. Fortunately, `Turing.jl` provides an easy-to-use tool called `predict()` to semi-automate the process.
-
-Recall that when `Turing.jl` carries out the sampling procedure, all random variables (specified on the left-hand side of `~`) will be sampled except those being passed as concrete observations, such as `data` in the coin flipping example. To trigger the program to sample the observation, one can pass an array of `missing` type instead of the observed data. `missing` is a special data type in Julia to indicate the value of a variable is missing. For `Turing`, all `missing` type of variables which are on the left side of `~` expression will be sampled.
-
-
-To be more specific, to simulate data ``\mathcal D_{pred}`` based on a predictive distribution, one should carry out the following steps:
-1. create a data array with ``N`` `missing` elements, e.g. `D_missing = Vector{Union{Missing, Bool}}(undef, N)`
-2. initialise a `Turing` model with the missing data as an augment, e.g. `missing_model = turing_model(D_missing)`
-3. use `predict(missing_model, chain)` to simulate predictive data, where `chain` should be MCMC samples from the posterior or prior depending on the check
-
-
-"""
-
-# ╔═╡ fb668940-ebf8-44d0-bb57-93fedfcb9892
-md"""
-
-"""
-
-# ╔═╡ 15a73e90-c4b5-4cdf-bd9d-1ec4e02e0f2e
-md"""
-### Example: predictive checks of coin-flipping model
-
-"""
-
-# ╔═╡ dd24a62d-dc0b-4ea1-a9dd-a65527d08776
-md"""
-**Posterior predictive check.** The following block of code shows how to simulate future data based on the posterior distribution of the coin-flipping example.
-"""
-
-# ╔═╡ 35ddd253-e28c-4f30-a2a1-ef81a61a740a
-begin
-	# initialise an array of missing types
-	# Union{Missing, Bool} is union type of Missing and Boolean
-	# D_missing_coin_flipping is an array of 10 missing elements
-	D_missing_coin_flipping = Vector{Union{Missing, Bool}}(undef, 10)
-	cf_pred_model = coin_flipping(D_missing_coin_flipping)
-	# D_pred as an MCMCChain object. 
-	post_pred_chain = predict(cf_pred_model, cf_chain)
-end
-
-# ╔═╡ 5b01a0b7-affd-465d-b9f1-422d76ce6dca
-md"""Remember `cf_chain` is the posterior MCMC chain sampled earlier. The prediction method will return another `MCMCChain` object of ``\mathcal D_{pred}``. For this case, it should contain 6000 simulated ``\mathcal D_{pred}`` (and each sample contains 10 tosses), since `cf_chain` were simulated with 3 parallel chains and each chain with 2000 iterations. 
-
-
-To summarise the simulated data, we sum each ``\mathcal D^{(r)}_{pred}`` to find the simulated ``\tilde{N}_h^{(r)}`` and use histogram to do visual check. 
-
-
-"""
-
-# ╔═╡ 846d2693-b644-4cd7-af2a-5ce6b843cb7d
+# ╔═╡ 54107ea4-337c-4698-a4c9-237dbfc49514
 let
-	histogram(sum(Array(post_pred_chain), dims=2)[:], normed=true, xticks = 0:10, label="Posterior predictive on "*L"N_h", legend=:outerbottom, xlabel="number of heads "*L"N_h", title="Posterior predictive check with "*L"a_0=b_0=1")
-	vline!([7], lw=4, lc=2, label="Observed "*L"N_h")
-end
-
-# ╔═╡ 11989831-8179-4978-adfa-480f9a962f5f
-md"""
-
-**Prior predictive check.** To carry out prior predictive check, one only needs to replace the posterior chain with a prior chain. To sample from the prior distribution, one can use command like `sample(model, Prior(), 5000)`. The rest is the same as posterior predictive check.
-
-"""
-
-# ╔═╡ 8c1e3f71-bae6-41be-a496-24dceaebc672
-begin
-	Random.seed!(100)
-	# sample from the prior distribution
-	coinflip_prior_chain = sample(cf_model, Prior(), 5000)
-	# simulate data based on the prior chain
-	prior_pred_chain = predict(cf_pred_model, coinflip_prior_chain)
-	# lastly, summarise and visualise the data
-	histogram(sum(Array(prior_pred_chain), dims=2)[:], bins = 20, xticks=0:10, normed=true, label="Prior predictive on Nₕ", legend=:outerbottom, xlabel="number of heads "*L"N_h", title="Prior predictive check with "*L"a_0=b_0=1")
-	vline!([7], lw=4, lc=2, label="Observed Nₕ")
-end
-
-# ╔═╡ b21c5a1f-9ba4-40f3-b58a-d9f635d36dbf
-md"""
-### Exercise: seven scientists
-
-Carry out posterior predictive check on the seven-scientist problem by using `Turing.jl`. Replicate the KDE check in chapter 2 (as shown below).
-"""
-
-# ╔═╡ 15b3cfae-dc5a-4f5a-ad3a-e3f152c88e7a
-md"""
-
-!!! hint "Solution"
-	Simulate posterior predictive data
-	```julia
-		D_missing_scientist = Vector{Union{Missing, Float64}}(undef, 7)
-		seven_sci_pred_model = seven_scientist(D_missing_scientist)
-		D_pred_seven_sci = predict(seven_sci_pred_model, seven_sci_chain)
-	```
-	Plot KDEs of the observed and simulated.
-	```julia
-		D_pred = Array(D_pred_seven_sci)
-		R = 30
-		plt = density(scientist_data, label="Observed", lw=2, xlim=[-32,30], ylim=[0, 0.25], xlabel=L"d", ylabel="density", title="Posterior predictive check on the correct model")
-		for i in 1: R
-			density!(D_pred[i, :], label="", lw=0.4)
-		end
-		plt
-	```
-
-"""
-
-# ╔═╡ 23b3faad-daf0-4573-b8e5-175748ccbea8
-md"[**↩ Home**](https://lf28.github.io/BayesianModelling/) 
-
-
-[**↪ Next Chapter**](./section5_regressions.html)
-"
-
-# ╔═╡ 9ac490e1-2b15-40f1-a07a-543ce9dd95be
-md"""
-
-## Appendix
-"""
-
-# ╔═╡ 91471258-6620-448c-981c-b7202790f014
-md"""
-**Foldable details**
-"""
-
-# ╔═╡ 44a7215f-ae44-4379-a2e6-a6ebfe45bc8e
-
-begin
-	struct Foldable{C}
-		title::String
-		content::C
+	ylocations = range(0, 2, length=length(scientists_data_700)) .+ 0.5
+	plt = plot(ylim = [0., 3.0], xminorticks =5, yticks=false, showaxis=:x, size=(600,200))
+	# scientists = 'A':'G'
+	δ = 0.1
+	for i in 1:length(scientists_data_700)
+		plot!([scientists_data_700[i]], [ylocations[i]], label="", markershape =:circle, markersize=1, markerstrokewidth=1, st=:sticks, c=1, alpha=0.5)
+		# annotate!([scientists_data_700[i]].+7*(-1)^i * δ, [ylocations[i]].+ δ, scientists[i], 8)
 	end
+	# vline!([μ̄], lw=2, ls=:dash, label="sample mean", legend=:topleft)
+	# density!(scientist_data, label="")
+	plt
+end
+
+# ╔═╡ 3931624c-5dcc-4ff3-89f6-07ea85adae08
+md"""
+
+## Question 3. (Bayesian logistic regression)
+
+"""
+
+# ╔═╡ 62091dc2-553f-4e73-bedd-6589b824309a
+md"""
+
+##### Task 1. Replicate the analysis (given in the logistic regression lecture) based on the data given below.
+"""
+
+# ╔═╡ d59c81a1-9479-44c4-80b0-b1249ede43d4
+begin
+	D1 = [
+	    7 4;
+	    5 6;
+	    8 6;
+	    9.5 5;
+	    9 7
+	]
 	
-	function Base.show(io, mime::MIME"text/html", fld::Foldable)
-		write(io,"<details><summary>$(fld.title)</summary><p>")
-		show(io, mime, fld.content)
-		write(io,"</p></details>")
-	end
-end
+	D2 = [
+	    2 3;
+	    3 2;
+	    3 6;
+	    5.5 4.5;
+	    5 3;
+	]
 
-
-# ╔═╡ 55f5190d-d3dc-43e4-8e4f-1f42115fb6b2
-Foldable("Exact Bayesian computation with the conjugate prior model.", md"
-Since a conjugate prior is used, the posterior computation is very straightforward. Apply Baye's rule, we find the posterior is 
-
-
-```math
-p(\theta|\mathcal D) = \texttt{Beta}(\theta; a_N, b_N) = \frac{1}{\text{B}(a_N, b_N)} \theta^{a_N-1}(1-\theta)^{b_N-1},
-```
-
-where ``a_N= a_0 + N_h`` and ``b_N = b_0 + N - N_h``; and ``N_h = \sum_i d_i`` is the total number of heads observed in the ``N`` tosses.
-
-Apply Baye's rule, we have 
-
-```math
-\begin{align}
-p(\theta|\mathcal D) &\propto p(\theta) p(\mathcal D|\theta) \\
-&= \frac{1}{\text{B}(a_0, b_0)} \theta^{a_0-1}(1-\theta)^{b_0-1} \theta^{\sum_n d_n} (1-\theta)^{N-\sum_n d_n}\\
-&= \theta^{a_0+ \sum_{n} d_n -1}(1-\theta)^{b_0+N-\sum_n d_n -1}\\
-&= \theta^{a_N -1}(1-\theta)^{b_N -1},
-\end{align} 
-```
-where ``a_N= a_0 + N_h`` and ``b_N = b_0 + N - N_h``.
-Next we needs to normalise the non-normalised posterior to find the exact posterior distribution. The normalising constant is:
-
-$$\int_{0}^1 \theta^{a_N -1}(1-\theta)^{b_N -1} d\theta$$
-
-We recognise the unnormalised distribution is a Beta distribution with the updated parameters ``a_N= a_0 + N_h`` and ``b_N = b_0 + N - N_h``; the normalising constant must be ``B(a_N, b_N)``. Therefore, 
-
-$$p(\theta|\mathcal D) =\text{Beta}(a_N, b_N).$$
-
-To demonstrate the idea, we choose a noninformative flat prior ``a_0=b_0 =1``; the posterior is of a Beta form with updated counts of heads and tails: 
-
-$$p(\theta|\mathcal D) = \texttt{Beta}(8, 4).$$ The corresponding prior and update posterior is shown below. The posterior (light orange curve) updates the flat prior (blue curve) by incorporating the likelihood. Since 7 out of the 10 tosses are head, the posterior correctly reflects this observed information. 
-")
-
-# ╔═╡ e896351f-ae21-48ae-a0a2-e53e9b54cd9a
-Foldable("Julia code explanation.", md"`sum(Array(post_pred_chain), dims=2)[:]` 
-* `Array(post_pred_chain)` casts an `MCMCChain` object to `Array` object so it can be processed later 
-* `sum(., dims=2)` sums the first argument (a matrix here) by rows and return a row array
-* `[:]` reduces a row array to a column vector
-")
-
-# ╔═╡ 5202ef8d-dcd5-4882-a18e-b1d2d4769387
-begin
-	D_missing_scientist = Vector{Union{Missing, Float64}}(undef, 7)
-	seven_sci_pred_model = seven_scientist(D_missing_scientist)
-	D_pred_seven_sci = predict(seven_sci_pred_model, seven_sci_chain)
+	D = [D1; D2]
+	targets = [ones(5); zeros(5)]
 end;
 
-# ╔═╡ 645b1343-6717-4920-a319-d9da7e14b29f
+# ╔═╡ f6db21ae-2ac7-4c87-81c8-73e296380b40
 begin
-	D_pred_seven = Array(D_pred_seven_sci)
-	plt_seven = density(scientist_data, label="Observed", lw=2, xlim=[-32,30], ylim=[0, 0.25], xlabel=L"d", ylabel="density", title="Posterior predictive check on the seven-scientist")
-	for i in 1: 30
-		density!(D_pred_seven[i, :], label="", lw=0.4)
-	end
+	scatter(D[targets .== 0, 1], D[targets .==0, 2], label=L"y=0",xlabel =L"x_1", ylabel=L"x_2")
+	scatter!(D[targets .== 1, 1], D[targets .==1, 2], label=L"y=1")
+end
+
+# ╔═╡ 29a04770-95c3-4ac4-bad3-95f61c6857ca
+md"""
+
+##### Task 2. find and plot the Bayesian predictions for new ``\mathbf{x}_{test}``
+
+```math
+p(y_{test}|\mathbf{x}_{test}, \mathcal{D})
+```
+
+* assume ``\mathbf{x}_{test} \in [0, 10]^2``
+"""
+
+# ╔═╡ 1a9f1e6d-b16f-42b8-9860-95574e076a64
+md"""
+
+
+## Question 4. (Bayesian linear regression)
+"""
+
+# ╔═╡ d0314449-12da-432f-9af8-5d2fd453c192
+md"""
+
+import `MLDatasets.jl` and `DataFrames.jl` packages
+"""
+
+# ╔═╡ fce8998d-ab9a-4e88-bf28-262f139cfefb
+md"""
+
+* import the House dataset
+"""
+
+# ╔═╡ 4a69738c-2366-4d5d-9798-6a4a1dfe36b7
+df_house = MLDatasets.BostonHousing().dataframe 
+
+# ╔═╡ 9ab32aaf-960c-43e7-b85c-952682549d70
+md"""
+
+Visually inspect the dataset, more details about the data can be found here [https://www.cs.toronto.edu/~delve/data/boston/bostonDetail.html](https://www.cs.toronto.edu/~delve/data/boston/bostonDetail.html)
+
+* we are trying to predict the MEDV (Median value of a house) 
+* based on predictors: CRIM (crime rate), RM (room number), AGE and DIS (distance to city centre)
+"""
+
+# ╔═╡ f43956c9-3be6-4af4-b3a4-a158fdec480f
+@df df_house corrplot([:CRIM :RM :AGE :DIS :MEDV], grid = false)
+
+# ╔═╡ e4e45393-c0ef-4884-8a98-852c715b1c5b
+md"""
+The following code standardises the features such that 
+* the means are zero
+* and variances are one 
+"""
+
+# ╔═╡ d6baedd5-da3c-4ad7-bc7b-7d0793359744
+begin
+	XX = df_house[!, [:CRIM, :RM, :AGE, :DIS]] |> Matrix
+	yy = df_house[!, :MEDV] |> Vector
+	feature_scalar = fit(ZScoreTransform, XX, dims=1)	
+	XX = StatsBase.transform(feature_scalar, XX)
 end;
 
-# ╔═╡ dda506eb-db21-436b-ad9f-3b95450347c7
-let
-	plt_seven
-end
+# ╔═╡ f18239c9-5106-4375-ba1b-c413b6add1db
+md"""
+
+
+##### Task 1. run Bayesian linear regression analysis on the data
+"""
+
+# ╔═╡ a26fa1a4-0a4c-4786-8720-4eb261410f33
+md"""
+
+##### Task 2. visually inspect the results  
+"""
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 HypertextLiteral = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+LogExpFunctions = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
+MCMCChains = "c7f686f2-ff18-58e9-bc7b-31028e88f75d"
+MLDatasets = "eb30cadb-4394-5ae3-aed4-317e484a6458"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
 Turing = "fce5fe82-541a-59a6-adf8-730c64b5f9a0"
 
 [compat]
+DataFrames = "~1.5.0"
 HypertextLiteral = "~0.9.4"
 LaTeXStrings = "~1.3.0"
+LogExpFunctions = "~0.3.26"
+MCMCChains = "~6.0.4"
+MLDatasets = "~0.7.9"
 Plots = "~1.39.0"
-PlutoUI = "~0.7.39"
-StatsPlots = "~0.15.1"
+PlutoUI = "~0.7.50"
+StatsBase = "~0.33.21"
+StatsPlots = "~0.15.4"
 Turing = "~0.29.3"
 """
 
@@ -792,7 +373,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.4"
 manifest_format = "2.0"
-project_hash = "b83c00608c7c877d9cea04e033d0f6f0b4a6cf06"
+project_hash = "0758c8082fe66ad437270642d5f50d66e644322d"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "332e5d7baeff8497b923b730b994fa480601efc7"
@@ -954,6 +535,12 @@ git-tree-sha1 = "c06a868224ecba914baa6942988e2f2aade419be"
 uuid = "a9b6321e-bd34-4604-b9c9-b65b8de01458"
 version = "0.1.0"
 
+[[deps.AtomsBase]]
+deps = ["LinearAlgebra", "PeriodicTable", "Printf", "Requires", "StaticArrays", "Unitful", "UnitfulAtomic"]
+git-tree-sha1 = "995c2b6b17840cd87b722ce9c6cdd72f47bab545"
+uuid = "a963bdd2-2df7-4f54-a1ee-49d51e6be12a"
+version = "0.3.5"
+
 [[deps.AxisAlgorithms]]
 deps = ["LinearAlgebra", "Random", "SparseArrays", "WoodburyMatrices"]
 git-tree-sha1 = "66771c8d21c8ff5e3a93379480a2307ac36863f7"
@@ -965,6 +552,12 @@ deps = ["Dates", "IntervalSets", "IterTools", "RangeArrays"]
 git-tree-sha1 = "16351be62963a67ac4083f748fdb3cca58bfd52f"
 uuid = "39de3d68-74b9-583c-8d2d-e117c070f3a9"
 version = "0.4.7"
+
+[[deps.BFloat16s]]
+deps = ["LinearAlgebra", "Printf", "Random", "Test"]
+git-tree-sha1 = "dbf84058d0a8cbbadee18d25cf606934b22d7c66"
+uuid = "ab4f0b2a-ad5b-11e8-123f-65d77653426b"
+version = "0.4.2"
 
 [[deps.BangBang]]
 deps = ["Compat", "ConstructionBase", "InitialValues", "LinearAlgebra", "Requires", "Setfield", "Tables"]
@@ -1021,6 +614,11 @@ git-tree-sha1 = "2dc09997850d68179b69dafb58ae806167a32b1b"
 uuid = "d1d4a3ce-64b1-5f1a-9ba4-7e7e69966f35"
 version = "0.1.8"
 
+[[deps.BufferedStreams]]
+git-tree-sha1 = "4ae47f9a4b1dc19897d3743ff13685925c5202ec"
+uuid = "e1450e63-4bb3-523b-b2a4-4ffa8c0fd77d"
+version = "1.2.1"
+
 [[deps.Bzip2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "19a35467a82e236ff51bc17a3a44b69ef35185a2"
@@ -1031,6 +629,12 @@ version = "1.0.8+0"
 git-tree-sha1 = "eb4cb44a499229b3b8426dcfb5dd85333951ff90"
 uuid = "fa961155-64e5-5f13-b03f-caf6b980ea82"
 version = "0.4.2"
+
+[[deps.CSV]]
+deps = ["CodecZlib", "Dates", "FilePathsBase", "InlineStrings", "Mmap", "Parsers", "PooledArrays", "PrecompileTools", "SentinelArrays", "Tables", "Unicode", "WeakRefStrings", "WorkerUtilities"]
+git-tree-sha1 = "44dbf560808d49041989b8a96cae4cffbeb7966a"
+uuid = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+version = "0.10.11"
 
 [[deps.Cairo_jll]]
 deps = ["Artifacts", "Bzip2_jll", "CompilerSupportLibraries_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "JLLWrappers", "LZO_jll", "Libdl", "Pixman_jll", "Pkg", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Zlib_jll", "libpng_jll"]
@@ -1069,6 +673,18 @@ weakdeps = ["InverseFunctions"]
 
     [deps.ChangesOfVariables.extensions]
     ChangesOfVariablesInverseFunctionsExt = "InverseFunctions"
+
+[[deps.Chemfiles]]
+deps = ["AtomsBase", "Chemfiles_jll", "DocStringExtensions", "PeriodicTable", "Unitful", "UnitfulAtomic"]
+git-tree-sha1 = "82fe5e341c793cb51149d993307da9543824b206"
+uuid = "46823bd8-5fb3-5f92-9aa0-96921f3dd015"
+version = "0.10.41"
+
+[[deps.Chemfiles_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl"]
+git-tree-sha1 = "f3743181e30d87c23d9c8ebd493b77f43d8f1890"
+uuid = "78a364fa-1a3c-552a-b4bb-8fa0f9c1fcca"
+version = "0.10.4+0"
 
 [[deps.Clustering]]
 deps = ["Distances", "LinearAlgebra", "NearestNeighbors", "Printf", "Random", "SparseArrays", "Statistics", "StatsBase"]
@@ -1128,9 +744,9 @@ version = "0.3.0"
 
 [[deps.Compat]]
 deps = ["UUIDs"]
-git-tree-sha1 = "8a62af3e248a8c4bad6b32cbbe663ae02275e32c"
+git-tree-sha1 = "886826d76ea9e72b35fcd000e535588f7b60f21d"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "4.10.0"
+version = "4.10.1"
 weakdeps = ["Dates", "LinearAlgebra"]
 
     [deps.Compat.extensions]
@@ -1178,6 +794,12 @@ weakdeps = ["IntervalSets", "StaticArrays"]
     ConstructionBaseIntervalSetsExt = "IntervalSets"
     ConstructionBaseStaticArraysExt = "StaticArrays"
 
+[[deps.ContextVariablesX]]
+deps = ["Compat", "Logging", "UUIDs"]
+git-tree-sha1 = "25cc3803f1030ab855e383129dcd3dc294e322cc"
+uuid = "6add18c4-b38d-439d-96f6-d6bc489c04c5"
+version = "0.1.3"
+
 [[deps.Contour]]
 git-tree-sha1 = "d05d9e7b7aedff4e5b51a029dced05cfb6125781"
 uuid = "d38c429a-6771-53c6-b99e-75d170b6e991"
@@ -1192,6 +814,18 @@ version = "4.1.1"
 git-tree-sha1 = "8da84edb865b0b5b0100c0666a9bc9a0b71c553c"
 uuid = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
 version = "1.15.0"
+
+[[deps.DataDeps]]
+deps = ["HTTP", "Libdl", "Reexport", "SHA", "p7zip_jll"]
+git-tree-sha1 = "6e8d74545d34528c30ccd3fa0f3c00f8ed49584c"
+uuid = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
+version = "0.7.11"
+
+[[deps.DataFrames]]
+deps = ["Compat", "DataAPI", "Future", "InlineStrings", "InvertedIndices", "IteratorInterfaceExtensions", "LinearAlgebra", "Markdown", "Missings", "PooledArrays", "PrettyTables", "Printf", "REPL", "Random", "Reexport", "SentinelArrays", "SnoopPrecompile", "SortingAlgorithms", "Statistics", "TableTraits", "Tables", "Unicode"]
+git-tree-sha1 = "aa51303df86f8626a962fccb878430cdb0a97eee"
+uuid = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+version = "1.5.0"
 
 [[deps.DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
@@ -1239,9 +873,9 @@ version = "1.15.1"
 
 [[deps.Distances]]
 deps = ["LinearAlgebra", "Statistics", "StatsAPI"]
-git-tree-sha1 = "5225c965635d8c21168e32a12954675e7bea1151"
+git-tree-sha1 = "66c4c81f259586e8f002eacebc177e1fb06363b0"
 uuid = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
-version = "0.10.10"
+version = "0.10.11"
 weakdeps = ["ChainRulesCore", "SparseArrays"]
 
     [deps.Distances.extensions]
@@ -1367,6 +1001,30 @@ git-tree-sha1 = "c6033cc3892d0ef5bb9cd29b7f2f0331ea5184ea"
 uuid = "f5851436-0d7a-5f13-b9de-f02708fd171a"
 version = "3.3.10+0"
 
+[[deps.FLoops]]
+deps = ["BangBang", "Compat", "FLoopsBase", "InitialValues", "JuliaVariables", "MLStyle", "Serialization", "Setfield", "Transducers"]
+git-tree-sha1 = "ffb97765602e3cbe59a0589d237bf07f245a8576"
+uuid = "cc61a311-1640-44b5-9fba-1b764f453329"
+version = "0.2.1"
+
+[[deps.FLoopsBase]]
+deps = ["ContextVariablesX"]
+git-tree-sha1 = "656f7a6859be8673bf1f35da5670246b923964f7"
+uuid = "b9860ae5-e623-471e-878b-f6a53c775ea6"
+version = "0.1.1"
+
+[[deps.FileIO]]
+deps = ["Pkg", "Requires", "UUIDs"]
+git-tree-sha1 = "299dc33549f68299137e51e6d49a13b5b1da9673"
+uuid = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
+version = "1.16.1"
+
+[[deps.FilePathsBase]]
+deps = ["Compat", "Dates", "Mmap", "Printf", "Test", "UUIDs"]
+git-tree-sha1 = "9f00e42f8d99fdde64d40c8ea5d14269a2e2c1aa"
+uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
+version = "0.9.21"
+
 [[deps.FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 
@@ -1467,6 +1125,12 @@ git-tree-sha1 = "025d171a2847f616becc0f84c8dc62fe18f0f6dd"
 uuid = "d2c73de3-f751-5644-a686-071e5b155ba9"
 version = "0.72.10+0"
 
+[[deps.GZip]]
+deps = ["Libdl", "Zlib_jll"]
+git-tree-sha1 = "6388a2d8e409ce23de7d03a7c73d83c5753b3eb2"
+uuid = "92fee26a-97fe-5a0c-ad85-20a5f3185b63"
+version = "0.6.1"
+
 [[deps.Gettext_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Libiconv_jll", "Pkg", "XML2_jll"]
 git-tree-sha1 = "9b02998aba7bf074d14de89f9d37ca24a1a0b046"
@@ -1479,6 +1143,11 @@ git-tree-sha1 = "e94c92c7bf4819685eb80186d51c43e71d4afa17"
 uuid = "7746bdde-850d-59dc-9ae8-88ece973131d"
 version = "2.76.5+0"
 
+[[deps.Glob]]
+git-tree-sha1 = "97285bbd5230dd766e9ef6749b80fc617126d496"
+uuid = "c27321d9-0574-5035-807b-f59d2c89b15c"
+version = "1.3.1"
+
 [[deps.Graphite2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "344bf40dcab1073aca04aa0df4fb092f920e4011"
@@ -1490,17 +1159,41 @@ git-tree-sha1 = "53bb909d1151e57e2484c3d1b53e19552b887fb2"
 uuid = "42e2da0e-8278-4e71-bc24-59509adca0fe"
 version = "1.0.2"
 
+[[deps.HDF5]]
+deps = ["Compat", "HDF5_jll", "Libdl", "MPIPreferences", "Mmap", "Preferences", "Printf", "Random", "Requires", "UUIDs"]
+git-tree-sha1 = "26407bd1c60129062cec9da63dc7d08251544d53"
+uuid = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
+version = "0.17.1"
+
+    [deps.HDF5.extensions]
+    MPIExt = "MPI"
+
+    [deps.HDF5.weakdeps]
+    MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
+
+[[deps.HDF5_jll]]
+deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "LLVMOpenMP_jll", "LazyArtifacts", "LibCURL_jll", "Libdl", "MPICH_jll", "MPIPreferences", "MPItrampoline_jll", "MicrosoftMPI_jll", "OpenMPI_jll", "OpenSSL_jll", "TOML", "Zlib_jll", "libaec_jll"]
+git-tree-sha1 = "38c8874692d48d5440d5752d6c74b0c6b0b60739"
+uuid = "0234f1f7-429e-5d53-9886-15a909be8d59"
+version = "1.14.2+1"
+
 [[deps.HTTP]]
 deps = ["Base64", "CodecZlib", "ConcurrentUtilities", "Dates", "ExceptionUnwrapping", "Logging", "LoggingExtras", "MbedTLS", "NetworkOptions", "OpenSSL", "Random", "SimpleBufferStream", "Sockets", "URIs", "UUIDs"]
-git-tree-sha1 = "5eab648309e2e060198b45820af1a37182de3cce"
+git-tree-sha1 = "abbbb9ec3afd783a7cbd82ef01dcd088ea051398"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "1.10.0"
+version = "1.10.1"
 
 [[deps.HarfBuzz_jll]]
 deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "Graphite2_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Pkg"]
 git-tree-sha1 = "129acf094d168394e80ee1dc4bc06ec835e510a3"
 uuid = "2e76f6c2-a576-52d4-95c1-20adfe4de566"
 version = "2.8.1+1"
+
+[[deps.Hwloc_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl"]
+git-tree-sha1 = "8ecb0b34472a3c98f945e3c75fc7d5428d165511"
+uuid = "e33a78d0-f292-5ffc-b300-72abe9b543c8"
+version = "2.9.3+0"
 
 [[deps.HypergeometricFunctions]]
 deps = ["DualNumbers", "LinearAlgebra", "OpenLibm_jll", "SpecialFunctions"]
@@ -1526,10 +1219,34 @@ git-tree-sha1 = "d75853a0bdbfb1ac815478bacd89cd27b550ace6"
 uuid = "b5f81e59-6552-4d32-b1f0-c071b021bf89"
 version = "0.2.3"
 
+[[deps.ImageBase]]
+deps = ["ImageCore", "Reexport"]
+git-tree-sha1 = "eb49b82c172811fd2c86759fa0553a2221feb909"
+uuid = "c817782e-172a-44cc-b673-b171935fbb9e"
+version = "0.1.7"
+
+[[deps.ImageCore]]
+deps = ["AbstractFFTs", "ColorVectorSpace", "Colors", "FixedPointNumbers", "MappedArrays", "MosaicViews", "OffsetArrays", "PaddedViews", "PrecompileTools", "Reexport"]
+git-tree-sha1 = "fc5d1d3443a124fde6e92d0260cd9e064eba69f8"
+uuid = "a09fc81d-aa75-5fe9-8630-4744c3626534"
+version = "0.10.1"
+
+[[deps.ImageShow]]
+deps = ["Base64", "ColorSchemes", "FileIO", "ImageBase", "ImageCore", "OffsetArrays", "StackViews"]
+git-tree-sha1 = "3b5344bcdbdc11ad58f3b1956709b5b9345355de"
+uuid = "4e3cecfd-b093-5904-9786-8bbb286a6a31"
+version = "0.3.8"
+
 [[deps.InitialValues]]
 git-tree-sha1 = "4da0f88e9a39111c2fa3add390ab15f3a44f3ca3"
 uuid = "22cec73e-a1b8-11e9-2c92-598750a2cf9c"
 version = "0.3.1"
+
+[[deps.InlineStrings]]
+deps = ["Parsers"]
+git-tree-sha1 = "9cc2baf75c6d09f9da536ddf58eb2f29dedaf461"
+uuid = "842dd82b-1e85-43dc-bf29-5d0ee9dffc48"
+version = "1.4.0"
 
 [[deps.InplaceOps]]
 deps = ["LinearAlgebra", "Test"]
@@ -1551,6 +1268,12 @@ version = "2023.2.0+0"
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
+
+[[deps.InternedStrings]]
+deps = ["Random", "Test"]
+git-tree-sha1 = "eb05b5625bc5d821b8075a77e4c421933e20c76b"
+uuid = "7d512f48-7fb1-5a58-b986-67e6dc259f01"
+version = "0.7.0"
 
 [[deps.Interpolations]]
 deps = ["Adapt", "AxisAlgorithms", "ChainRulesCore", "LinearAlgebra", "OffsetArrays", "Random", "Ratios", "Requires", "SharedArrays", "SparseArrays", "StaticArrays", "WoodburyMatrices"]
@@ -1594,6 +1317,12 @@ git-tree-sha1 = "a3f24677c21f5bbe9d2a714f95dcd58337fb2856"
 uuid = "82899510-4779-5014-852e-03e436cf321d"
 version = "1.0.0"
 
+[[deps.JLD2]]
+deps = ["FileIO", "MacroTools", "Mmap", "OrderedCollections", "Pkg", "PrecompileTools", "Printf", "Reexport", "Requires", "TranscodingStreams", "UUIDs"]
+git-tree-sha1 = "9bbb5130d3b4fa52846546bca4791ecbdfb52730"
+uuid = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+version = "0.4.38"
+
 [[deps.JLFzf]]
 deps = ["Pipe", "REPL", "Random", "fzf_jll"]
 git-tree-sha1 = "a53ebe394b71470c7f97c2e7e170d51df21b17af"
@@ -1612,11 +1341,23 @@ git-tree-sha1 = "31e996f0a15c7b280ba9f76636b3ff9e2ae58c9a"
 uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.21.4"
 
+[[deps.JSON3]]
+deps = ["Dates", "Mmap", "Parsers", "PrecompileTools", "StructTypes", "UUIDs"]
+git-tree-sha1 = "95220473901735a0f4df9d1ca5b171b568b2daa3"
+uuid = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
+version = "1.13.2"
+
 [[deps.JpegTurbo_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
 git-tree-sha1 = "6f2675ef130a300a112286de91973805fcc5ffbc"
 uuid = "aacddb02-875f-59d6-b918-886e6ef4fbf8"
 version = "2.1.91+0"
+
+[[deps.JuliaVariables]]
+deps = ["MLStyle", "NameResolution"]
+git-tree-sha1 = "49fb3cb53362ddadb4415e9b73926d6b40709e70"
+uuid = "b14d175d-62b4-44ba-8fb7-3064adc8c3ec"
+version = "0.2.4"
 
 [[deps.KernelAbstractions]]
 deps = ["Adapt", "Atomix", "InteractiveUtils", "LinearAlgebra", "MacroTools", "PrecompileTools", "Requires", "SparseArrays", "StaticArrays", "UUIDs", "UnsafeAtomics", "UnsafeAtomicsLLVM"]
@@ -1653,12 +1394,10 @@ deps = ["CEnum", "LLVMExtra_jll", "Libdl", "Preferences", "Printf", "Requires", 
 git-tree-sha1 = "c879e47398a7ab671c782e02b51a4456794a7fa3"
 uuid = "929cbde3-209d-540e-8aea-75f648917ca0"
 version = "6.4.0"
+weakdeps = ["BFloat16s"]
 
     [deps.LLVM.extensions]
     BFloat16sExt = "BFloat16s"
-
-    [deps.LLVM.weakdeps]
-    BFloat16s = "ab4f0b2a-ad5b-11e8-123f-65d77653426b"
 
 [[deps.LLVMExtra_jll]]
 deps = ["Artifacts", "JLLWrappers", "LazyArtifacts", "Libdl", "TOML"]
@@ -1717,6 +1456,11 @@ version = "0.15.1"
 [[deps.LazyArtifacts]]
 deps = ["Artifacts", "Pkg"]
 uuid = "4af54fe1-eca0-43a8-85a7-787d91b784e3"
+
+[[deps.LazyModules]]
+git-tree-sha1 = "a560dd966b386ac9ae60bdd3a3d3a326062d3c3e"
+uuid = "8cdb02fc-e678-4876-92c5-9defec4f444e"
+version = "0.3.1"
 
 [[deps.LeftChildRightSiblingTrees]]
 deps = ["AbstractTrees"]
@@ -1853,9 +1597,15 @@ uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 
 [[deps.LoggingExtras]]
 deps = ["Dates", "Logging"]
-git-tree-sha1 = "5d4d2d9904227b8bd66386c1138cf4d5ffa826bf"
+git-tree-sha1 = "c1dd6d7978c12545b4179fb6153b9250c96b0075"
 uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
-version = "0.4.9"
+version = "1.0.3"
+
+[[deps.MAT]]
+deps = ["BufferedStreams", "CodecZlib", "HDF5", "SparseArrays"]
+git-tree-sha1 = "ed1cf0a322d78cee07718bed5fd945e2218c35a1"
+uuid = "23992714-dd62-5051-b70f-ba57cb901cac"
+version = "0.10.6"
 
 [[deps.MCMCChains]]
 deps = ["AbstractMCMC", "AxisArrays", "Dates", "Distributions", "Formatting", "IteratorInterfaceExtensions", "KernelDensity", "LinearAlgebra", "MCMCDiagnosticTools", "MLJModelInterface", "NaturalSort", "OrderedCollections", "PrettyTables", "Random", "RecipesBase", "Statistics", "StatsBase", "StatsFuns", "TableTraits", "Tables"]
@@ -1880,11 +1630,46 @@ git-tree-sha1 = "eb006abbd7041c28e0d16260e50a24f8f9104913"
 uuid = "856f044c-d86e-5d09-b602-aeab76dc8ba7"
 version = "2023.2.0+0"
 
+[[deps.MLDatasets]]
+deps = ["CSV", "Chemfiles", "DataDeps", "DataFrames", "DelimitedFiles", "FileIO", "FixedPointNumbers", "GZip", "Glob", "HDF5", "ImageShow", "JLD2", "JSON3", "LazyModules", "MAT", "MLUtils", "NPZ", "Pickle", "Printf", "Requires", "SparseArrays", "Statistics", "Tables"]
+git-tree-sha1 = "aab72207b3c687086a400be710650a57494992bd"
+uuid = "eb30cadb-4394-5ae3-aed4-317e484a6458"
+version = "0.7.14"
+
 [[deps.MLJModelInterface]]
 deps = ["Random", "ScientificTypesBase", "StatisticalTraits"]
 git-tree-sha1 = "381d99f0af76d98f50bd5512dcf96a99c13f8223"
 uuid = "e80e1ace-859a-464e-9ed9-23947d8ae3ea"
 version = "1.9.3"
+
+[[deps.MLStyle]]
+git-tree-sha1 = "bc38dff0548128765760c79eb7388a4b37fae2c8"
+uuid = "d8e11817-5142-5d16-987a-aa16d5891078"
+version = "0.4.17"
+
+[[deps.MLUtils]]
+deps = ["ChainRulesCore", "Compat", "DataAPI", "DelimitedFiles", "FLoops", "NNlib", "Random", "ShowCases", "SimpleTraits", "Statistics", "StatsBase", "Tables", "Transducers"]
+git-tree-sha1 = "3504cdb8c2bc05bde4d4b09a81b01df88fcbbba0"
+uuid = "f1d291b0-491e-4a28-83b9-f70985020b54"
+version = "0.4.3"
+
+[[deps.MPICH_jll]]
+deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "MPIPreferences", "TOML"]
+git-tree-sha1 = "8a5b4d2220377d1ece13f49438d71ad20cf1ba83"
+uuid = "7cb0a576-ebde-5e09-9194-50597f1243b4"
+version = "4.1.2+0"
+
+[[deps.MPIPreferences]]
+deps = ["Libdl", "Preferences"]
+git-tree-sha1 = "8f6af051b9e8ec597fa09d8885ed79fd582f33c9"
+uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+version = "0.1.10"
+
+[[deps.MPItrampoline_jll]]
+deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "MPIPreferences", "TOML"]
+git-tree-sha1 = "6979eccb6a9edbbb62681e158443e79ecc0d056a"
+uuid = "f1f71cc9-e9ae-5b93-9b94-4fe0e1ad3748"
+version = "5.3.1+0"
 
 [[deps.MacroTools]]
 deps = ["Markdown", "Random"]
@@ -1923,6 +1708,12 @@ git-tree-sha1 = "629afd7d10dbc6935ec59b32daeb33bc4460a42e"
 uuid = "128add7d-3638-4c79-886c-908ea0c25c34"
 version = "0.1.4"
 
+[[deps.MicrosoftMPI_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "b01beb91d20b0d1312a9471a36017b5b339d26de"
+uuid = "9237b28f-5490-5468-be7b-bb81f5f5e6cf"
+version = "10.1.4+1"
+
 [[deps.Missings]]
 deps = ["DataAPI"]
 git-tree-sha1 = "f66bdc5de519e8f8ae43bdc598782d35a25b1272"
@@ -1931,6 +1722,12 @@ version = "1.1.0"
 
 [[deps.Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
+
+[[deps.MosaicViews]]
+deps = ["MappedArrays", "OffsetArrays", "PaddedViews", "StackViews"]
+git-tree-sha1 = "7b86a5d4d70a9f5cdf2dacb3cbe6d251d1a61dbe"
+uuid = "e94cdb99-869f-56ef-bcf0-1ae2bcbe0389"
+version = "0.3.4"
 
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
@@ -1960,11 +1757,23 @@ version = "0.9.8"
     EnzymeCore = "f151be2c-9106-41f4-ab19-57ee4f262869"
     cuDNN = "02a925ec-e4fe-4b08-9a7e-0d78e3d38ccd"
 
+[[deps.NPZ]]
+deps = ["FileIO", "ZipFile"]
+git-tree-sha1 = "60a8e272fe0c5079363b28b0953831e2dd7b7e6f"
+uuid = "15e1cf62-19b3-5cfa-8e77-841668bca605"
+version = "0.4.3"
+
 [[deps.NaNMath]]
 deps = ["OpenLibm_jll"]
 git-tree-sha1 = "0877504529a3e5c3343c6f8b4c0381e57e4387e4"
 uuid = "77ba4419-2d1f-58cd-9bb1-8ffee604a2e3"
 version = "1.0.2"
+
+[[deps.NameResolution]]
+deps = ["PrettyPrint"]
+git-tree-sha1 = "1a0fa0e9613f46c9b8c11eee38ebb4f590013c5e"
+uuid = "71a1bf82-56d0-4bbc-8a3c-48b961074391"
+version = "0.1.5"
 
 [[deps.NamedArrays]]
 deps = ["Combinatorics", "DataStructures", "DelimitedFiles", "InvertedIndices", "LinearAlgebra", "Random", "Requires", "SparseArrays", "Statistics"]
@@ -2014,6 +1823,12 @@ deps = ["Artifacts", "Libdl"]
 uuid = "05823500-19ac-5b8b-9628-191a04bc5112"
 version = "0.8.1+0"
 
+[[deps.OpenMPI_jll]]
+deps = ["Artifacts", "CompilerSupportLibraries_jll", "Hwloc_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "MPIPreferences", "PMIx_jll", "TOML", "Zlib_jll", "libevent_jll", "prrte_jll"]
+git-tree-sha1 = "694458ae803b684f09c07f90459cb79655fb377d"
+uuid = "fe0851c0-eecd-5654-98d4-656369965a5c"
+version = "5.0.0+0"
+
 [[deps.OpenSSL]]
 deps = ["BitFlags", "Dates", "MozillaCACerts_jll", "OpenSSL_jll", "Sockets"]
 git-tree-sha1 = "51901a49222b09e3743c65b8847687ae5fc78eb2"
@@ -2060,11 +1875,35 @@ git-tree-sha1 = "4e5be6bb265d33669f98eb55d2a57addd1eeb72c"
 uuid = "90014a1f-27ba-587c-ab20-58faa44d9150"
 version = "0.11.30"
 
+[[deps.PMIx_jll]]
+deps = ["Artifacts", "Hwloc_jll", "JLLWrappers", "Libdl", "Zlib_jll", "libevent_jll"]
+git-tree-sha1 = "8b3b19351fa24791f94d7ae85faf845ca1362541"
+uuid = "32165bc3-0280-59bc-8c0b-c33b6203efab"
+version = "4.2.7+0"
+
+[[deps.PaddedViews]]
+deps = ["OffsetArrays"]
+git-tree-sha1 = "0fac6313486baae819364c52b4f483450a9d793f"
+uuid = "5432bcbf-9aad-5242-b902-cca2824c8663"
+version = "0.5.12"
+
 [[deps.Parsers]]
 deps = ["Dates", "PrecompileTools", "UUIDs"]
 git-tree-sha1 = "a935806434c9d4c506ba941871b327b96d41f2bf"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
 version = "2.8.0"
+
+[[deps.PeriodicTable]]
+deps = ["Base64", "Test", "Unitful"]
+git-tree-sha1 = "9a9731f346797126271405971dfdf4709947718b"
+uuid = "7b2266bf-644c-5ea3-82d8-af4bbd25a884"
+version = "1.1.4"
+
+[[deps.Pickle]]
+deps = ["BFloat16s", "DataStructures", "InternedStrings", "Serialization", "SparseArrays", "Strided", "StringEncodings", "ZipFile"]
+git-tree-sha1 = "2e71d7dbcab8dc47306c0ed6ac6018fbc1a7070f"
+uuid = "fbb45041-c46e-462f-888f-7c521cafbc2c"
+version = "0.3.3"
 
 [[deps.Pipe]]
 git-tree-sha1 = "6842804e7867b115ca9de748a0cf6b364523c16d"
@@ -2120,6 +1959,12 @@ git-tree-sha1 = "bd7c69c7f7173097e7b5e1be07cee2b8b7447f51"
 uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 version = "0.7.54"
 
+[[deps.PooledArrays]]
+deps = ["DataAPI", "Future"]
+git-tree-sha1 = "36d8b4b899628fb92c2749eb488d884a926614d3"
+uuid = "2dfb63ee-cc39-5dd5-95bd-886bf059d720"
+version = "1.4.3"
+
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
 git-tree-sha1 = "03b4c25b43cb84cee5c90aa9b5ea0a78fd848d2f"
@@ -2132,11 +1977,16 @@ git-tree-sha1 = "00805cd429dcb4870060ff49ef443486c262e38e"
 uuid = "21216c6a-2e73-6563-6e65-726566657250"
 version = "1.4.1"
 
+[[deps.PrettyPrint]]
+git-tree-sha1 = "632eb4abab3449ab30c5e1afaa874f0b98b586e4"
+uuid = "8162dcfd-2161-5ef2-ae6c-7681170c5f98"
+version = "0.2.0"
+
 [[deps.PrettyTables]]
 deps = ["Crayons", "LaTeXStrings", "Markdown", "PrecompileTools", "Printf", "Reexport", "StringManipulation", "Tables"]
-git-tree-sha1 = "3f43c2aae6aa4a2503b05587ab74f4f6aeff9fd0"
+git-tree-sha1 = "88b895d13d53b5577fd53379d913b9ab9ac82660"
 uuid = "08abe8d2-0d0c-5749-adfa-8a2ac140af0d"
-version = "2.3.0"
+version = "2.3.1"
 
 [[deps.Primes]]
 deps = ["IntegerMathUtils"]
@@ -2312,9 +2162,9 @@ version = "0.7.0"
 
 [[deps.SciMLBase]]
 deps = ["ADTypes", "ArrayInterface", "CommonSolve", "ConstructionBase", "Distributed", "DocStringExtensions", "EnumX", "FillArrays", "FunctionWrappersWrappers", "IteratorInterfaceExtensions", "LinearAlgebra", "Logging", "Markdown", "PrecompileTools", "Preferences", "Printf", "QuasiMonteCarlo", "RecipesBase", "RecursiveArrayTools", "Reexport", "RuntimeGeneratedFunctions", "SciMLOperators", "StaticArraysCore", "Statistics", "SymbolicIndexingInterface", "Tables", "TruncatedStacktraces"]
-git-tree-sha1 = "164773badb9ee8c62af2ff1a7778fd4867142a07"
+git-tree-sha1 = "d432b4c4cc922fb7b21b555c138aa87f9fb7beb8"
 uuid = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
-version = "2.9.0"
+version = "2.9.1"
 
     [deps.SciMLBase.extensions]
     SciMLBaseChainRulesCoreExt = "ChainRulesCore"
@@ -2369,6 +2219,11 @@ version = "1.1.1"
 deps = ["Distributed", "Mmap", "Random", "Serialization"]
 uuid = "1a1011a3-84de-559e-8e89-a11a2f7dc383"
 
+[[deps.ShowCases]]
+git-tree-sha1 = "7f534ad62ab2bd48591bdeac81994ea8c445e4a5"
+uuid = "605ecd9f-84a6-4c9e-81e2-4798472b76a3"
+version = "0.1.0"
+
 [[deps.Showoff]]
 deps = ["Dates", "Grisu"]
 git-tree-sha1 = "91eddf657aca81df9ae6ceb20b959ae5653ad1de"
@@ -2380,10 +2235,22 @@ git-tree-sha1 = "874e8867b33a00e784c8a7e4b60afe9e037b74e1"
 uuid = "777ac1f9-54b0-4bf8-805c-2214025038e7"
 version = "1.1.0"
 
+[[deps.SimpleTraits]]
+deps = ["InteractiveUtils", "MacroTools"]
+git-tree-sha1 = "5d7e3f4e11935503d3ecaf7186eac40602e7d231"
+uuid = "699a6c99-e7fa-54fc-8d76-47d257e15c1d"
+version = "0.9.4"
+
 [[deps.SimpleUnPack]]
 git-tree-sha1 = "58e6353e72cde29b90a69527e56df1b5c3d8c437"
 uuid = "ce78b400-467f-4804-87d8-8f486da07d0a"
 version = "1.1.0"
+
+[[deps.SnoopPrecompile]]
+deps = ["Preferences"]
+git-tree-sha1 = "e760a70afdcd461cf01a575947738d359234665c"
+uuid = "66db9d55-30c0-4569-8b51-7e840670fc0c"
+version = "1.0.3"
 
 [[deps.Sobol]]
 deps = ["DelimitedFiles", "Random"]
@@ -2425,6 +2292,12 @@ deps = ["Setfield", "Test"]
 git-tree-sha1 = "e08a62abc517eb79667d0a29dc08a3b589516bb5"
 uuid = "171d559e-b47b-412a-8079-5efa626c420e"
 version = "0.1.15"
+
+[[deps.StackViews]]
+deps = ["OffsetArrays"]
+git-tree-sha1 = "46e589465204cd0c08b4bd97385e4fa79a0c770c"
+uuid = "cae243ae-269e-4f55-b966-ac2d0dc13c15"
+version = "0.1.1"
 
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "PrecompileTools", "Random", "StaticArraysCore"]
@@ -2481,6 +2354,18 @@ git-tree-sha1 = "9115a29e6c2cf66cf213ccc17ffd61e27e743b24"
 uuid = "f3b207a7-027a-5e70-b257-86293d7955fd"
 version = "0.15.6"
 
+[[deps.Strided]]
+deps = ["LinearAlgebra", "TupleTools"]
+git-tree-sha1 = "a7a664c91104329c88222aa20264e1a05b6ad138"
+uuid = "5e0ebb24-38b0-5f93-81fe-25c709ecae67"
+version = "1.2.3"
+
+[[deps.StringEncodings]]
+deps = ["Libiconv_jll"]
+git-tree-sha1 = "b765e46ba27ecf6b44faf70df40c57aa3a547dcb"
+uuid = "69024149-9ee7-55f6-a4c4-859efe599b68"
+version = "0.3.7"
+
 [[deps.StringManipulation]]
 deps = ["PrecompileTools"]
 git-tree-sha1 = "a04cabe79c5f01f4d723cc6704070ada0b9d46d5"
@@ -2492,6 +2377,12 @@ deps = ["Adapt", "ConstructionBase", "DataAPI", "GPUArraysCore", "StaticArraysCo
 git-tree-sha1 = "0a3db38e4cce3c54fe7a71f831cd7b6194a54213"
 uuid = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
 version = "0.6.16"
+
+[[deps.StructTypes]]
+deps = ["Dates", "UUIDs"]
+git-tree-sha1 = "ca4bccb03acf9faaf4137a9abc1881ed1841aa70"
+uuid = "856f2bd8-1eba-4b0a-8007-ebc267875bd4"
+version = "1.10.0"
 
 [[deps.SuiteSparse]]
 deps = ["Libdl", "LinearAlgebra", "Serialization", "SparseArrays"]
@@ -2602,6 +2493,11 @@ git-tree-sha1 = "ea3e54c2bdde39062abf5a9758a23735558705e1"
 uuid = "781d530d-4396-4725-bb49-402e4bee1e77"
 version = "1.4.0"
 
+[[deps.TupleTools]]
+git-tree-sha1 = "155515ed4c4236db30049ac1495e2969cc06be9d"
+uuid = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
+version = "1.4.3"
+
 [[deps.Turing]]
 deps = ["AbstractMCMC", "AdvancedHMC", "AdvancedMH", "AdvancedPS", "AdvancedVI", "BangBang", "Bijectors", "DataStructures", "Distributions", "DistributionsAD", "DocStringExtensions", "DynamicPPL", "EllipticalSliceSampling", "ForwardDiff", "Libtask", "LinearAlgebra", "LogDensityProblems", "LogDensityProblemsAD", "MCMCChains", "NamedArrays", "Printf", "Random", "Reexport", "Requires", "SciMLBase", "Setfield", "SpecialFunctions", "Statistics", "StatsAPI", "StatsBase", "StatsFuns"]
 git-tree-sha1 = "7cf779c99fbf6b2adfd3b5650ffdac21c0165489"
@@ -2636,14 +2532,20 @@ version = "0.4.1"
 
 [[deps.Unitful]]
 deps = ["Dates", "LinearAlgebra", "Random"]
-git-tree-sha1 = "242982d62ff0d1671e9029b52743062739255c7e"
+git-tree-sha1 = "3c793be6df9dd77a0cf49d80984ef9ff996948fa"
 uuid = "1986cc42-f94f-5a68-af5c-568840ba703d"
-version = "1.18.0"
+version = "1.19.0"
 weakdeps = ["ConstructionBase", "InverseFunctions"]
 
     [deps.Unitful.extensions]
     ConstructionBaseUnitfulExt = "ConstructionBase"
     InverseFunctionsUnitfulExt = "InverseFunctions"
+
+[[deps.UnitfulAtomic]]
+deps = ["Unitful"]
+git-tree-sha1 = "903be579194534af1c4b4778d1ace676ca042238"
+uuid = "a7773ee8-282e-5fa2-be4e-bd808c38a91a"
+version = "1.0.0"
 
 [[deps.UnitfulLatexify]]
 deps = ["LaTeXStrings", "Latexify", "Unitful"]
@@ -2685,6 +2587,12 @@ git-tree-sha1 = "4528479aa01ee1b3b4cd0e6faef0e04cf16466da"
 uuid = "2381bf8a-dfd0-557d-9999-79630e7b1b91"
 version = "1.25.0+0"
 
+[[deps.WeakRefStrings]]
+deps = ["DataAPI", "InlineStrings", "Parsers"]
+git-tree-sha1 = "b1be2855ed9ed8eac54e5caff2afcdb442d52c23"
+uuid = "ea10d353-3f73-51f8-a26c-33c1cb351aa5"
+version = "1.4.2"
+
 [[deps.Widgets]]
 deps = ["Colors", "Dates", "Observables", "OrderedCollections"]
 git-tree-sha1 = "fcdae142c1cfc7d89de2d11e08721d0f2f86c98a"
@@ -2696,6 +2604,11 @@ deps = ["LinearAlgebra", "SparseArrays"]
 git-tree-sha1 = "5f24e158cf4cee437052371455fe361f526da062"
 uuid = "efce3f68-66dc-5838-9240-27a6d6f5f9b6"
 version = "0.5.6"
+
+[[deps.WorkerUtilities]]
+git-tree-sha1 = "cd1659ba0d57b71a464a29e64dbc67cfe83d54e7"
+uuid = "76eceee3-57b5-4d4a-8e66-0e911cebbf60"
+version = "1.6.1"
 
 [[deps.XML2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libiconv_jll", "Zlib_jll"]
@@ -2859,6 +2772,12 @@ git-tree-sha1 = "e92a1a012a10506618f10b7047e478403a046c77"
 uuid = "c5fb5394-a638-5e4d-96e5-b29de1b5cf10"
 version = "1.5.0+0"
 
+[[deps.ZipFile]]
+deps = ["Libdl", "Printf", "Zlib_jll"]
+git-tree-sha1 = "f492b7fe1698e623024e873244f10d89c95c340a"
+uuid = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
+version = "0.10.1"
+
 [[deps.Zlib_jll]]
 deps = ["Libdl"]
 uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
@@ -2894,6 +2813,12 @@ git-tree-sha1 = "3516a5630f741c9eecb3720b1ec9d8edc3ecc033"
 uuid = "1a1c6b14-54f6-533d-8383-74cd7377aa70"
 version = "3.1.1+0"
 
+[[deps.libaec_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl"]
+git-tree-sha1 = "eddd19a8dea6b139ea97bdc8a0e2667d4b661720"
+uuid = "477f73a3-ac25-53e9-8cc3-50b2fa2566f0"
+version = "1.0.6+1"
+
 [[deps.libaom_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "3a2ea60308f0996d26f1e5354e10c24e9ef905d4"
@@ -2916,6 +2841,12 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "141fe65dc3efabb0b1d5ba74e91f6ad26f84cc22"
 uuid = "2db6ffa8-e38f-5e21-84af-90c45d0032cc"
 version = "1.11.0+0"
+
+[[deps.libevent_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "OpenSSL_jll"]
+git-tree-sha1 = "f04ec6d9a186115fb38f858f05c0c4e1b7fc9dcb"
+uuid = "1080aeaf-3a6a-583e-a51c-c537b09f60ec"
+version = "2.1.13+1"
 
 [[deps.libfdk_aac_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -2957,6 +2888,12 @@ deps = ["Artifacts", "Libdl"]
 uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 version = "17.4.0+0"
 
+[[deps.prrte_jll]]
+deps = ["Artifacts", "Hwloc_jll", "JLLWrappers", "Libdl", "PMIx_jll", "libevent_jll"]
+git-tree-sha1 = "5adb2d7a18a30280feb66cad6f1a1dfdca2dc7b0"
+uuid = "eb928a42-fffd-568d-ab9c-3f5d54fc65b9"
+version = "3.0.2+0"
+
 [[deps.x264_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "4fea590b89e6ec504593146bf8b988b2c00922b2"
@@ -2977,72 +2914,47 @@ version = "1.4.1+1"
 """
 
 # ╔═╡ Cell order:
-# ╟─ef539e62-95ae-42c2-9ce5-3fd11e09a38e
-# ╟─68018998-17d7-11ed-2d5e-2b2d5f8b0301
-# ╟─ec23cd37-94df-489f-b892-24bffd755b50
-# ╟─a89d9509-7564-4b6e-bba6-0de1f3f7d64e
-# ╟─b879d404-343c-4de4-91e1-5dcf6031ad3f
-# ╟─82b6f501-bada-4bf3-a7a7-c325bc48e754
-# ╟─4b2fc478-b825-4758-b384-d7b7186b8e21
-# ╟─67d93f23-899b-4ddf-83f1-5d320c23f22f
-# ╟─b2980969-462c-44fe-bb66-fb5d968fc5f6
-# ╟─aaeb3a9d-d655-427d-a397-62cab819e346
-# ╟─d4a8b997-5dff-49b1-aa09-017051405790
-# ╟─0e5f3c06-8e3e-4b66-a42e-78a1db358987
-# ╟─45a74e6a-ae59-49bd-8b41-ee1c73153f15
-# ╟─8fbef2d5-9591-46fc-a35e-f44a0d492748
-# ╟─c8863691-ffdc-4629-b0b6-acd61d6d905f
-# ╟─fefbf8e9-8920-4555-87bc-daf2e2a231f1
-# ╟─f56ea0d7-c4e8-469e-9863-adc2d9c917be
-# ╟─a86ed206-aed8-40b4-89aa-1abf0d16fbb2
-# ╟─55f5190d-d3dc-43e4-8e4f-1f42115fb6b2
-# ╟─b49725d0-8239-4129-b0d6-982f998be91f
-# ╟─ecf86444-1565-406c-8aa2-275ee3a44fae
-# ╠═a2b84c25-bf58-411d-893b-48c8384cae04
-# ╟─f2dd09fa-9204-4f1e-80da-2f1bb185b3a8
-# ╠═77a9ca64-87ad-465c-bec7-fe406145de40
-# ╟─139a1d54-b018-4de4-9a9f-ec9cf429b3a1
-# ╠═7d13ddd9-fb5f-4843-b1d5-176d505acd57
-# ╟─a2278d07-f857-4910-afa8-bf484ef0dc10
-# ╟─400b77d6-dc69-4ea9-ab45-5daeaa6e4bcc
-# ╟─9f119bba-fbd2-4c3a-93c2-22567c781e5f
-# ╟─4bb24996-24d0-4910-9996-83f0b34a005f
-# ╟─6f7ecf38-3017-408e-9a8a-6d218bddc2d1
-# ╠═4e9ac22f-a895-4d87-b1a9-2cd8a6da83fb
-# ╟─5cd3314b-dff2-478f-9a1a-73545b26f797
-# ╟─5678e483-1292-440d-83de-462cd249c511
-# ╟─7c6e1185-4fe4-4d2b-9b0a-f6268a75b682
-# ╟─acbc4dcc-3352-4de0-a145-d4aa51975036
-# ╟─f06c5735-6a4a-4a91-8517-ec57a674225a
-# ╟─782e9234-c02b-4abb-a72f-110d2fcabc33
-# ╟─a662232b-524b-4918-93e9-204ab908a14d
-# ╠═4043d410-e338-45cc-a528-5afc5a23aea1
-# ╟─0572a686-2a09-4c9e-9f33-51a390d5e66f
-# ╠═0096e848-46b0-4c85-8526-0302b03c4682
-# ╠═04a162c0-3c7c-4056-8f2d-48d83df3d6e7
-# ╟─cea1df62-2e5a-4cac-a30b-3506ecb9b879
-# ╠═2af9eda0-a5f6-4b3c-b973-ea3c2ca03290
-# ╠═a0671aeb-32dc-42f1-919f-a32f1c365a9a
-# ╟─c266890f-da07-44be-b98f-cc129463ca6c
-# ╟─5bd72181-aa58-43b6-837e-47414c7152a1
-# ╟─7f16ec4f-ea2f-4990-9a6b-e473b997d786
-# ╟─fb668940-ebf8-44d0-bb57-93fedfcb9892
-# ╟─15a73e90-c4b5-4cdf-bd9d-1ec4e02e0f2e
-# ╟─dd24a62d-dc0b-4ea1-a9dd-a65527d08776
-# ╠═35ddd253-e28c-4f30-a2a1-ef81a61a740a
-# ╟─5b01a0b7-affd-465d-b9f1-422d76ce6dca
-# ╟─846d2693-b644-4cd7-af2a-5ce6b843cb7d
-# ╟─e896351f-ae21-48ae-a0a2-e53e9b54cd9a
-# ╟─11989831-8179-4978-adfa-480f9a962f5f
-# ╟─8c1e3f71-bae6-41be-a496-24dceaebc672
-# ╟─b21c5a1f-9ba4-40f3-b58a-d9f635d36dbf
-# ╟─dda506eb-db21-436b-ad9f-3b95450347c7
-# ╟─15b3cfae-dc5a-4f5a-ad3a-e3f152c88e7a
-# ╟─23b3faad-daf0-4573-b8e5-175748ccbea8
-# ╟─9ac490e1-2b15-40f1-a07a-543ce9dd95be
-# ╟─91471258-6620-448c-981c-b7202790f014
-# ╠═44a7215f-ae44-4379-a2e6-a6ebfe45bc8e
-# ╠═5202ef8d-dcd5-4882-a18e-b1d2d4769387
-# ╠═645b1343-6717-4920-a319-d9da7e14b29f
+# ╟─51887944-e8dc-48b1-b266-d7d764c8d722
+# ╟─f0f99876-f3cf-448d-b9ce-6b990da34663
+# ╟─6faf2aac-d32e-11ed-3513-53b8f498e6da
+# ╟─37448302-cad4-48d2-baea-9194de5091b9
+# ╠═7df2e2fa-f9bd-49bb-9c24-bf042a392651
+# ╟─4ac1a33c-0dcb-44be-acf4-23e1f994371e
+# ╠═affbc16d-781f-4772-b92c-076a559c2418
+# ╟─042b955f-a298-49ef-9940-0af184b81b8f
+# ╠═c9b4cc44-b9fa-4280-858f-8619afafbad5
+# ╟─ffb3bad6-b498-41b4-8da5-793560af0a2a
+# ╠═05ebaf87-5cb4-4bc9-b9ba-1e37e5055fe6
+# ╠═e02b2772-bddf-4518-805a-38f2c3f6894d
+# ╠═1f1b19b2-1b2b-45d6-b90e-47a57e4dcd03
+# ╟─dd963e78-99fe-45c1-9566-713f4cb8c0df
+# ╠═1e80cc97-f1d7-4824-b730-4a63e7d4e8bb
+# ╟─bf128db7-eaff-4d19-8d6b-32dea8f3bf8b
+# ╟─bdb0989d-3b83-419c-a4f5-6f0cbb4a513d
+# ╠═58d52c04-9fbf-40fa-843f-e05e90e9d914
+# ╠═62daf110-bf01-4e8a-b212-6fad7b92c0c9
+# ╟─cf8f2889-8010-4fba-8607-81c6c5a38395
+# ╟─88c3e51e-3671-4181-b274-85805d453db1
+# ╠═9b5ceaea-5a98-458b-b1ed-d56326b967fe
+# ╟─54107ea4-337c-4698-a4c9-237dbfc49514
+# ╟─68707d3d-02c4-4cda-b040-98b1f0818055
+# ╟─3931624c-5dcc-4ff3-89f6-07ea85adae08
+# ╟─62091dc2-553f-4e73-bedd-6589b824309a
+# ╠═d59c81a1-9479-44c4-80b0-b1249ede43d4
+# ╟─f6db21ae-2ac7-4c87-81c8-73e296380b40
+# ╟─29a04770-95c3-4ac4-bad3-95f61c6857ca
+# ╟─1a9f1e6d-b16f-42b8-9860-95574e076a64
+# ╟─d0314449-12da-432f-9af8-5d2fd453c192
+# ╠═03069b91-36f7-4b8d-9e5b-d333db87006b
+# ╠═2d444231-0791-424e-ab4f-1fe3aa095733
+# ╟─fce8998d-ab9a-4e88-bf28-262f139cfefb
+# ╟─4a69738c-2366-4d5d-9798-6a4a1dfe36b7
+# ╟─9ab32aaf-960c-43e7-b85c-952682549d70
+# ╠═f43956c9-3be6-4af4-b3a4-a158fdec480f
+# ╠═69d55cde-e933-4d5d-a921-e5747b5eaba5
+# ╟─e4e45393-c0ef-4884-8a98-852c715b1c5b
+# ╠═d6baedd5-da3c-4ad7-bc7b-7d0793359744
+# ╟─f18239c9-5106-4375-ba1b-c413b6add1db
+# ╟─a26fa1a4-0a4c-4786-8720-4eb261410f33
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
