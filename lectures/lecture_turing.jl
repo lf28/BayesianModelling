@@ -58,25 +58,21 @@ In the previous lectures, we introduced some basic concepts of Bayesian inferenc
 * prior, likelihood models
 * and MCMC samplers. 
 
-In a nutshell, Bayesian inference requires 
+##### In a nutshell, Bayesian inference requires 
 
-* a full generative model which includes both prior and the likelihood function 
-* efficient sampling algorithms, such as MCMC, are used to approximate the posterior
+* ###### a full generative model (prior and the likelihood)
+* ###### efficient sampling algorithms, such as MCMC, are used to approximate the posterior
 
-So far, we have implemented all algorithms manually
-
-* writing everything from scratch is not practical 
 
 
 ## Probabilistic programming language (PPL)
 
 Fortunately, we have probabilistic programming languages (PPL)
 
-
 * such as `Turing.jl` or `Stan`, 
 * `PyMC`
 
-One can do Bayesian inferences easily 
+One can do Bayesian inferences easily without much coding
 
 * a PPL is a programming language to specify probabilistic models
 * they provide a high-level syntax to specify the models
@@ -148,14 +144,8 @@ md"""
 
 ## Model specification
 
-In a nutshell, a model in Turing is implemented as 
+#### A model in Turing looks like
 
-* a Julia function wrapped with a `@model` macro
-
-
-* the macro rewrites the function to a probabilistic model for downstream tasks
-
-A general Turing model is listed below:
 
 ```julia
 @model function my_model(data)
@@ -173,12 +163,33 @@ A general Turing model is listed below:
 end
 ```
 
+* ##### a function wrapped with a `@model` macro
+  * the macro rewrites the function to a probabilistic model for downstream tasks
 
-Two important constructs of `Turing.jl` are
 
-* macro "`@model`": a macro that rewrites a Julia function to a probabilistic program 
+##
+
+```julia
+@model function my_model(data)
+  ...
+  # random variable `θ` with prior distribution `prior_dist`
+  θ ~ prior_dist
+  ...
+  # optional deterministic transformations 
+  ϕ = fun(θ)
+  ...
+
+  # observation `data` with likelihood distribution `likelihood_dist`
+  data ~ likelihood_dist
+  ...
+end
+```
+
+##### Two important constructs of `Turing.jl` are
+
+* ##### macro "`@model`": a macro that rewrites a Julia function to a probabilistic program 
   
-* operator "`~`": the tilde operator is used to specify random variables: e.g.
+* ##### operator "`~`": *distributed as*: e.g.
   > ```θ ~ Beta(1,1); data ~ Bernoulli(θ)```
   * where we assume `data` is a random draw from a Bernoulli with bias `θ`; 
   * and the bias `θ` follows a flat Beta prior
@@ -186,29 +197,130 @@ Two important constructs of `Turing.jl` are
 
 ## Julia code with `Turing.jl`
 
-A Turing model can be specified with arbitrary Julia code 
+##### A `Turing.jl` model can be specified with any *Julia code*
+
+
 * `for, while` loop: can be used to specify some repeated distribution assumptions, 
   * convenient for `i.i.d` assumption for the observed the data
+
+
+```julia
+@model function my_model(data)
+  ...
+  # random variable `θ` with prior distribution `prior_dist`
+  θ ~ prior_dist
+  # each observation `data` with likelihood distribution `likelihood_dist`
+  for i in eachindex(data)
+    data[i] ~ likelihood_dist
+  end
+  ...
+end
+```
+
+##
+
+
 
 * `=` assignment: can be used to assign a deterministic value to a variable; e.g.
   > ```μ = 0; data ~ Normal(μ, 1)```
   * a Gaussian distribution with a fixed mean of zero
-  * note `=` is different from `~` operator; `~` is used to specify a distribution assumption for a random variable; `=` is a deterministic non-random assignment 
+  * note `=` is different from `~` operator; `~` is used to specify a distribution assumption for a random variable; `=` is a deterministic transformation/assignment
+
+
+```julia
+@model function my_model(data)
+  ...
+  # random variable `θ` with prior distribution `prior_dist`
+  θ ~ prior_dist
+  ...
+  # optional deterministic transformations 
+  ϕ = fun(θ)
+  ...
+
+  # observation `data` with likelihood distribution `likelihood_dist`
+  data ~ likelihood_dist(ϕ)
+  ...
+end
+```
 
 """
 
+# ╔═╡ f56ea0d7-c4e8-469e-9863-adc2d9c917be
+md"""
+
+## Coin-flipping example
+
+
+> A coin 🪙 is tossed 10 times. And the tossing results are recorded: 
+> $$\mathcal D=\{1, 1, 1, 0, 1, 0, 1, 1, 1, 0\}$$; 
+> i.e. seven out of the ten tosses are heads (ones). Is the coin **fair**?
+
+"""
+
+# ╔═╡ a86ed206-aed8-40b4-89aa-1abf0d16fbb2
+md"""
+
+
+**Bayesian conjugate model**
+1. prior for the bias ``\theta``: 
+
+```math
+\theta \sim \texttt{Beta}(a_0, b_0);
+```
+
+2. then a total 10 coin tosses are drawn from the coin with the bias ``\theta``. for ``n = 1,\ldots, 10``
+
+```math
+d_n \sim \texttt{Bernoulli}(\theta).
+```
+
+"""
+
+# ╔═╡ b49725d0-8239-4129-b0d6-982f998be91f
+md"""
+## Coin-flipping `Turing.jl` model
+
+"""
+
+# ╔═╡ a2b84c25-bf58-411d-893b-48c8384cae04
+@model function coin_flipping(data; a₀=1.0, b₀=1.0)
+    # Our prior belief about the probability of heads in a coin toss.
+    θ ~ Beta(a₀, b₀)
+
+    # each observation in `data` is an independent draw from the coin, which is Bernoulli distributed
+	for i in eachindex(data)
+    	data[i] ~ Bernoulli(θ)
+	end
+end;
+
+# ╔═╡ f2dd09fa-9204-4f1e-80da-2f1bb185b3a8
+md"""
+In the above model, 
+* `a₀, b₀` (of the prior's parameters) are treated as input parameters 
+* `for` loop is used to repeatedly specify the independent tosses; 
+.
+
+"""
+
+# ╔═╡ 1f73beec-e77f-44db-8b96-7ce2ad6c603f
+md"""
+## Instantiate the model with data
+"""
+
+# ╔═╡ 77a9ca64-87ad-465c-bec7-fe406145de40
+begin
+	# create the data as observed
+	coin_flipping_data = [true, true, true, false, true, false, true, true, true, false]
+	# create the model by feeding the data as observed
+	cf_model = coin_flipping(coin_flipping_data; a₀=1.0, b₀=1.0)
+end;
+
 # ╔═╡ 0e5f3c06-8e3e-4b66-a42e-78a1db358987
 md"""
-## Inference
+## Inference -- MCMC with `Turing.jl`
 
 
-
-MCMC aims at drawing samples from the posterior distribution 
-
-$$\theta^{(r)} \sim p(\theta|\mathcal D)$$
-
-
-`Turing.jl` provides an easy-to-use interface: `sample()` to run MCMC algorithms
+#### Use `sample()` to run MCMC algorithms
 
 ```julia
 chain = sample(model, mcmc_algorithm, mc; 
@@ -236,6 +348,7 @@ The optional arguments (specified after `;`) are
 # ╔═╡ 45a74e6a-ae59-49bd-8b41-ee1c73153f15
 md"""
 
+## Parallel chains
 **Run multiple chains in parallel:** simulate multiple MCMC chains in parallel by calling
 
 ```julia
@@ -248,119 +361,10 @@ where
 * `n_chains` is the number of parallel chains to simulate at the same time
 """
 
-# ╔═╡ 8fbef2d5-9591-46fc-a35e-f44a0d492748
-md"""
-
-## [Auto-differentiation](https://turing.ml/dev/docs/using-turing/autodiff) backend
-"""
-
-# ╔═╡ c8863691-ffdc-4629-b0b6-acd61d6d905f
-md"""
-
-Hamiltonian Monte Carlo (HMC) or No-U-Turn sampler (NUTS) 
-
-* require the gradients of the target distribution
-
-
-Julia has a few auto-differentiation (AD) packages and `Turing` provide them as backends
-- [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl): forward-mode AD, the default backend
-- [Tracker.jl](https://github.com/FluxML/Tracker.jl): reverse-mode AD
-- [ReverseDiff.jl](https://github.com/JuliaDiff/ReverseDiff.jl): reverse-mode AD, has to be loaded explicitly (optional cache for some models)
-- [Zygote.jl](https://github.com/FluxML/Zygote.jl): reverse-mode AD, has to be loaded explicitly
-"""
-
-# ╔═╡ fefbf8e9-8920-4555-87bc-daf2e2a231f1
-md"""
-## Change auto-diff backend
-
-By default, `Turing` uses `ForwardDiff`
-
-
-One can change the AD backend by 
-
-```julia
-setadbackend(:forwarddiff)
-setadbackend(:reversediff) 
-setadbackend(:zygote)
-```
-* as a rule of thumb, use forward-mode AD for models with few parameters (say less than 50) 
-
-* and reverse-mode AD (`Zygote.jl` is recommended) for models with many parameters. 
-
-"""
-
-# ╔═╡ f56ea0d7-c4e8-469e-9863-adc2d9c917be
-md"""
-
-# Coin-flipping example
-
-Recall the coin-flipping problem in chapter one.
-
-> A coin 🪙 is tossed 10 times. And the tossing results are recorded: 
-> $$\mathcal D=\{1, 1, 1, 0, 1, 0, 1, 1, 1, 0\}$$; 
-> i.e. seven out of the ten tosses are heads (ones). Is the coin **fair**?
-
-"""
-
-# ╔═╡ a86ed206-aed8-40b4-89aa-1abf0d16fbb2
-md"""
-
-
-**Bayesian conjugate model**
-The Bayesian model starts with a generation process for the unknown (or prior) and then the model for the observed data (the likelihood).
-
-1. prior for the bias ``\theta``: 
-
-```math
-\theta \sim \texttt{Beta}(a_0, b_0);
-```
-
-2. then a total 10 coin tosses are drawn from the coin with the bias ``\theta``. for ``n = 1,\ldots, 10``
-
-```math
-d_n \sim \texttt{Bernoulli}(\theta).
-```
-
-"""
-
-# ╔═╡ b49725d0-8239-4129-b0d6-982f998be91f
-md"""
-## `Turing.jl` model
-
-"""
-
-# ╔═╡ a2b84c25-bf58-411d-893b-48c8384cae04
-@model function coin_flipping(data; a₀=1.0, b₀=1.0)
-    # Our prior belief about the probability of heads in a coin toss.
-    θ ~ Beta(a₀, b₀)
-
-    # each observation in `data` is an independent draw from the coin, which is Bernoulli distributed
-	for i in eachindex(data)
-    	data[i] ~ Bernoulli(θ)
-	end
-end;
-
-# ╔═╡ f2dd09fa-9204-4f1e-80da-2f1bb185b3a8
-md"""
-In the above model, 
-* `a₀, b₀` (of the prior's parameters) are treated as input parameters 
-* `for` loop is used to repeatedly specify the independent tosses; 
-.
-
-"""
-
 # ╔═╡ d005c6e6-2f18-4466-aec3-97497b6b874e
 md"""
 ## Demon
 """
-
-# ╔═╡ 77a9ca64-87ad-465c-bec7-fe406145de40
-begin
-	# create the data as observed
-	coin_flipping_data = [true, true, true, false, true, false, true, true, true, false]
-	# create the model by feeding the data as observed
-	cf_model = coin_flipping(coin_flipping_data; a₀=1.0, b₀=1.0)
-end;
 
 # ╔═╡ 139a1d54-b018-4de4-9a9f-ec9cf429b3a1
 md"""
@@ -453,6 +457,47 @@ let
 	density!(cf_chain, xlim=[0,1], legend=:topleft, w=2)
 end
 
+# ╔═╡ 8fbef2d5-9591-46fc-a35e-f44a0d492748
+md"""
+
+## [Auto-differentiation](https://turing.ml/dev/docs/using-turing/autodiff) backend
+"""
+
+# ╔═╡ c8863691-ffdc-4629-b0b6-acd61d6d905f
+md"""
+
+Hamiltonian Monte Carlo (HMC) or No-U-Turn sampler (NUTS) 
+
+* require the gradients of the target distribution
+
+
+Julia has a few auto-differentiation (AD) packages and `Turing` provide them as backends
+- [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl): forward-mode AD, the default backend
+- [Tracker.jl](https://github.com/FluxML/Tracker.jl): reverse-mode AD
+- [ReverseDiff.jl](https://github.com/JuliaDiff/ReverseDiff.jl): reverse-mode AD, has to be loaded explicitly (optional cache for some models)
+- [Zygote.jl](https://github.com/FluxML/Zygote.jl): reverse-mode AD, has to be loaded explicitly
+"""
+
+# ╔═╡ fefbf8e9-8920-4555-87bc-daf2e2a231f1
+md"""
+## Change auto-diff backend
+
+By default, `Turing` uses `ForwardDiff`
+
+
+One can change the AD backend by 
+
+```julia
+setadbackend(:forwarddiff)
+setadbackend(:reversediff) 
+setadbackend(:zygote)
+```
+* as a rule of thumb, use forward-mode AD for models with few parameters (say less than 50) 
+
+* and reverse-mode AD (`Zygote.jl` is recommended) for models with many parameters. 
+
+"""
+
 # ╔═╡ 7c6e1185-4fe4-4d2b-9b0a-f6268a75b682
 md"""
 # Seven scientists example
@@ -463,7 +508,6 @@ md"""
 # ╔═╡ acbc4dcc-3352-4de0-a145-d4aa51975036
 md"""
 
-Recall the seven-scientist problem which was introduced in chapter 2.
 !!! question "Seven scientist problem"
 	[*The question is adapted from [^1]*] Seven scientists (A, B, C, D, E, F, G) with widely-differing experimental skills measure some signal ``\mu``. You expect some of them to do accurate work (i.e. to have small observation variance ``\sigma^2``, and some of them to turn in wildly inaccurate answers (i.e. to have enormous measurement error). What is the unknown signal ``\mu``?
 
@@ -501,14 +545,12 @@ md"""
 
 To reflect the fact that each scientist has different experimental skills
 
-* we modify the usual i.i.d. assumption for the data. 
+* scientists A and B have a similar level of skill 
 
-* we assume scientists A and B have a similar level of skill 
-
-* whereas scientists C, D, E, F, and G are another group with better measurement skills
+* scientists C, D, E, F, and G are another group with better skills
 
 
-The proposed Bayesian model becomes:
+##### The proposed Bayesian model becomes:
 ```math
 \begin{align}
 \text{prior}: \mu &\sim \mathcal N(m_0=0, v_0=10000)\\
@@ -545,7 +587,6 @@ end
 # ╔═╡ 0572a686-2a09-4c9e-9f33-51a390d5e66f
 md"""
 ## Inference
-We infer the model with a `NUTS()` sampler.
 """
 
 # ╔═╡ 0096e848-46b0-4c85-8526-0302b03c4682
@@ -565,12 +606,9 @@ end;
 
 # ╔═╡ cea1df62-2e5a-4cac-a30b-3506ecb9b879
 md"""
+## Visualise the chain
 
-
-Chain inspection `describe(.)` and `plot(.)`. 
-
-
-The MCMC's summary statistics also tell us a 95% credible range for ``\mu`` is between 8.59 and 10.45.
+#### Chain inspection `describe(.)` and `plot(.)`. 
 
 """
 
@@ -584,7 +622,7 @@ let
 end
 
 # ╔═╡ c266890f-da07-44be-b98f-cc129463ca6c
-density(seven_sci_chain[:μ], fill=(0, 0.1), label="", xlabel=L"\mu", ylabel="density", title="Posterior "*L"p(\mu|\mathcal{D})")
+density(seven_sci_chain[:μ], fill=(0, 0.2), label="", xlabel=L"\mu", ylabel="density", title="Posterior "*L"p(\mu|\mathcal{D})")
 
 # ╔═╡ 5bd72181-aa58-43b6-837e-47414c7152a1
 md"""
@@ -621,6 +659,11 @@ When `Turing.jl` carries out the sampling algorithm
 * and also those `missing` observations
 
 
+## With `Turing.jl`
+
+
+
+
 To simulate data ``\mathcal D_{pred}`` by `Turing.jl` , one should carry out the following steps:
 1. create a data array with ``N`` `missing` elements, e.g. `D_missing = Vector{Union{Missing, Bool}}(undef, N)`
 2. initialise a `Turing` model with the missing data as an augment, e.g. `missing_model = turing_model(D_missing)`
@@ -644,7 +687,7 @@ md"""
 
 # ╔═╡ ac926469-a1fb-4b8a-808e-cf8153a09edb
 md"""
-Create the "missing" data of the same size as ``\mathcal{D}``
+##### Create the "missing" data of the same size as ``\mathcal{D}``
 """
 
 # ╔═╡ 6683d20c-21ca-412e-9e04-0fbc6fe33927
@@ -655,7 +698,7 @@ D_missing_coin_flipping = Vector{Union{Missing, Bool}}(undef, 10)
 
 # ╔═╡ 87b3b839-5fac-46e6-b080-ed7c22d7bb63
 md"""
-Initialise the Turing model with `missing` data
+##### Initialise the Turing model with `missing` data
 """
 
 # ╔═╡ 2c0de4c9-0498-4ae3-ab28-79816d1532ac
@@ -663,7 +706,7 @@ cf_pred_model = coin_flipping(D_missing_coin_flipping)
 
 # ╔═╡ e7798191-fb9e-405c-9c5b-e5a52b26238f
 md"""
-Sample the predictive distribution
+##### Sample the predictive distribution
 """
 
 # ╔═╡ 35ddd253-e28c-4f30-a2a1-ef81a61a740a
@@ -672,15 +715,18 @@ begin
 	post_pred_chain = predict(cf_pred_model, cf_chain)
 end
 
+# ╔═╡ 9d8f94c6-a32e-4f64-b7f3-83baf4eeb656
+aside(tip(md"""Remember `cf_chain` is the posterior MCMC chain sampled earlier
+
+* for this case, it should contain 6000 simulated ``\mathcal D_{pred}`` (and each sample contains 10 tosses)
+* as `cf_chain` were simulated with 3 parallel chains and each chain with 2000 iterations
+"""))
+
 # ╔═╡ 5b01a0b7-affd-465d-b9f1-422d76ce6dca
 md"""
 
 ## Posterior predictive check
 
-Remember `cf_chain` is the posterior MCMC chain sampled earlier
-
-* for this case, it should contain 6000 simulated ``\mathcal D_{pred}`` (and each sample contains 10 tosses)
-* as `cf_chain` were simulated with 3 parallel chains and each chain with 2000 iterations
 
 
 To summarise the simulated data, we sum each ``\mathcal D^{(r)}_{pred}`` to find the simulated ``\tilde{N}_h^{(r)}`` and use histogram to do visual check. 
@@ -722,10 +768,16 @@ end
 
 # ╔═╡ b21c5a1f-9ba4-40f3-b58a-d9f635d36dbf
 md"""
-## Exercise: predictive checks with the seven scientists
+## Predictive checks with the seven scientists
 
-Carry out posterior predictive check on the seven-scientist problem by using `Turing.jl`. Replicate the KDE check in chapter 2 (as shown below).
+##### For continuous data, we can also use _Kernel Density Estimation_ to do visual check
 """
+
+# ╔═╡ 7a957e3f-9729-4583-8274-291f115285f0
+let
+	plt = density(scientist_data, label="Observed", lw=2, xlabel=L"d", ylabel="density", title="KDE visual check")
+	scatter!(scientist_data, zeros(7), ms=5, markerstrokewidth=2,m=:vline, c=1, label="data")
+end
 
 # ╔═╡ 15b3cfae-dc5a-4f5a-ad3a-e3f152c88e7a
 md"""
@@ -795,7 +847,7 @@ end;
 begin
 	D_pred_seven = Array(D_pred_seven_sci)
 	plt_seven = density(scientist_data, label="Observed", lw=2, xlim=[-32,30], ylim=[0, 0.25], xlabel=L"d", ylabel="density", title="Posterior predictive check on the seven-scientist")
-	for i in 1: 30
+	for i in shuffle(1:1000)[1:30]
 		density!(D_pred_seven[i, :], label="", lw=0.4)
 	end
 end;
@@ -3073,18 +3125,16 @@ version = "1.4.1+1"
 # ╟─b2980969-462c-44fe-bb66-fb5d968fc5f6
 # ╟─aaeb3a9d-d655-427d-a397-62cab819e346
 # ╟─d4a8b997-5dff-49b1-aa09-017051405790
-# ╟─0e5f3c06-8e3e-4b66-a42e-78a1db358987
-# ╟─45a74e6a-ae59-49bd-8b41-ee1c73153f15
-# ╟─8fbef2d5-9591-46fc-a35e-f44a0d492748
-# ╟─c8863691-ffdc-4629-b0b6-acd61d6d905f
-# ╟─fefbf8e9-8920-4555-87bc-daf2e2a231f1
 # ╟─f56ea0d7-c4e8-469e-9863-adc2d9c917be
 # ╟─a86ed206-aed8-40b4-89aa-1abf0d16fbb2
 # ╟─b49725d0-8239-4129-b0d6-982f998be91f
 # ╠═a2b84c25-bf58-411d-893b-48c8384cae04
 # ╟─f2dd09fa-9204-4f1e-80da-2f1bb185b3a8
-# ╟─d005c6e6-2f18-4466-aec3-97497b6b874e
+# ╟─1f73beec-e77f-44db-8b96-7ce2ad6c603f
 # ╠═77a9ca64-87ad-465c-bec7-fe406145de40
+# ╟─0e5f3c06-8e3e-4b66-a42e-78a1db358987
+# ╟─45a74e6a-ae59-49bd-8b41-ee1c73153f15
+# ╟─d005c6e6-2f18-4466-aec3-97497b6b874e
 # ╟─139a1d54-b018-4de4-9a9f-ec9cf429b3a1
 # ╠═7d13ddd9-fb5f-4843-b1d5-176d505acd57
 # ╟─a2278d07-f857-4910-afa8-bf484ef0dc10
@@ -3095,6 +3145,9 @@ version = "1.4.1+1"
 # ╠═4e9ac22f-a895-4d87-b1a9-2cd8a6da83fb
 # ╟─5cd3314b-dff2-478f-9a1a-73545b26f797
 # ╟─5678e483-1292-440d-83de-462cd249c511
+# ╟─8fbef2d5-9591-46fc-a35e-f44a0d492748
+# ╟─c8863691-ffdc-4629-b0b6-acd61d6d905f
+# ╟─fefbf8e9-8920-4555-87bc-daf2e2a231f1
 # ╟─7c6e1185-4fe4-4d2b-9b0a-f6268a75b682
 # ╟─acbc4dcc-3352-4de0-a145-d4aa51975036
 # ╟─f06c5735-6a4a-4a91-8517-ec57a674225a
@@ -3106,7 +3159,7 @@ version = "1.4.1+1"
 # ╠═04a162c0-3c7c-4056-8f2d-48d83df3d6e7
 # ╟─cea1df62-2e5a-4cac-a30b-3506ecb9b879
 # ╠═2af9eda0-a5f6-4b3c-b973-ea3c2ca03290
-# ╟─a0671aeb-32dc-42f1-919f-a32f1c365a9a
+# ╠═a0671aeb-32dc-42f1-919f-a32f1c365a9a
 # ╟─c266890f-da07-44be-b98f-cc129463ca6c
 # ╟─5bd72181-aa58-43b6-837e-47414c7152a1
 # ╟─7f16ec4f-ea2f-4990-9a6b-e473b997d786
@@ -3118,12 +3171,14 @@ version = "1.4.1+1"
 # ╠═2c0de4c9-0498-4ae3-ab28-79816d1532ac
 # ╟─e7798191-fb9e-405c-9c5b-e5a52b26238f
 # ╠═35ddd253-e28c-4f30-a2a1-ef81a61a740a
+# ╟─9d8f94c6-a32e-4f64-b7f3-83baf4eeb656
 # ╟─5b01a0b7-affd-465d-b9f1-422d76ce6dca
 # ╟─846d2693-b644-4cd7-af2a-5ce6b843cb7d
 # ╟─e896351f-ae21-48ae-a0a2-e53e9b54cd9a
 # ╟─11989831-8179-4978-adfa-480f9a962f5f
-# ╟─8c1e3f71-bae6-41be-a496-24dceaebc672
+# ╠═8c1e3f71-bae6-41be-a496-24dceaebc672
 # ╟─b21c5a1f-9ba4-40f3-b58a-d9f635d36dbf
+# ╟─7a957e3f-9729-4583-8274-291f115285f0
 # ╟─dda506eb-db21-436b-ad9f-3b95450347c7
 # ╟─15b3cfae-dc5a-4f5a-ad3a-e3f152c88e7a
 # ╟─9ac490e1-2b15-40f1-a07a-543ce9dd95be

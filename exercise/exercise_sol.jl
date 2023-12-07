@@ -84,7 +84,10 @@ md"""
 """
 
 # ╔═╡ affbc16d-781f-4772-b92c-076a559c2418
-# nhead = ? 
+nhead = sum(coin_flip_data)
+
+# ╔═╡ a0c1b0e4-02c0-44a8-881c-e4a343e63bd5
+ntail = sum(.!coin_flip_data)
 
 # ╔═╡ 042b955f-a298-49ef-9940-0af184b81b8f
 md"""
@@ -93,7 +96,19 @@ md"""
 """
 
 # ╔═╡ c9b4cc44-b9fa-4280-858f-8619afafbad5
-# your code here
+begin
+	a0 = b0 = 1
+
+	an = a0 + nhead
+	bn = b0 + ntail
+
+	postθ = Beta(an, bn)
+	θsamples = rand(postθ, 1000)
+	# plot(postθ)
+end
+
+# ╔═╡ 13360989-ce25-40be-915f-6d8de09775a5
+plot(θsamples, st=:hist, label=L"\theta \sim p(\theta|\mathcal{D})", xlabel=L"\theta")
 
 # ╔═╡ ffb3bad6-b498-41b4-8da5-793560af0a2a
 md"""
@@ -114,7 +129,14 @@ end;
 # ╔═╡ 1f1b19b2-1b2b-45d6-b90e-47a57e4dcd03
 begin
 # Your code here
-end
+	cf_chain = sample(coin_flipping(coin_flip_data), NUTS(), MCMCThreads(), 5000,4)
+end;
+
+# ╔═╡ 5108a09d-05f6-4372-ae09-265a02caf7ec
+plot(cf_chain)
+
+# ╔═╡ 23d2ed84-426d-45b2-8cab-81f27e0d5817
+describe(cf_chain)
 
 # ╔═╡ dd963e78-99fe-45c1-9566-713f4cb8c0df
 md"""
@@ -128,6 +150,13 @@ begin
 	nn2 = 300
 	# trueθ = 0.25
 	coin_flip_data2 = rand(nn2) .<  trueθ
+end
+
+# ╔═╡ a2a2d806-0d1d-4118-8464-5c8c0431c2e1
+begin
+	cf_chain2 = sample(coin_flipping(coin_flip_data2), NUTS(), MCMCThreads(), 5000,4)
+	density(cf_chain2, fill=(0, 0.2))
+	density!(cf_chain, fill=(0, 0.1))
 end
 
 # ╔═╡ bf128db7-eaff-4d19-8d6b-32dea8f3bf8b
@@ -186,6 +215,36 @@ md"""
 
 """
 
+# ╔═╡ 2e427ab0-49ff-4c3a-b1c9-af01eb49163d
+begin
+
+	@model function seven_scientist(data; m₀=0, v₀=10_000, a₀ = .5, b₀ =.5)
+		# prior for μ
+		μ ~ Normal(m₀, sqrt(v₀))
+		# prior for the two precisions
+		λ₁ ~ Gamma(a₀, 1/b₀)
+		λ₂ ~ Gamma(a₀, 1/b₀)
+		σ₁ = sqrt(1/λ₁)
+		σ₂ = sqrt(1/λ₂)
+		# likelihood for scientists A and B
+		data[1] ~ Normal(μ, σ₁)
+		data[2] ~ Normal(μ, σ₁)
+		# likelihood for the other scientists
+		for i in 3:length(data)
+			data[i] ~ Normal(μ, σ₂)
+		end
+	end
+end
+
+# ╔═╡ b05fbb4f-0791-4c33-ae4a-7a606f29d8a4
+svn_chain = sample(seven_scientist(scientist_data), NUTS(), MCMCThreads(), 3000, 3; discard_initial=1000)
+
+# ╔═╡ 8fab229c-f273-428e-80f5-6de08921f22f
+plot(svn_chain)
+
+# ╔═╡ a1023fba-2d41-46b0-8fce-39be055fd2c0
+describe(svn_chain)
+
 # ╔═╡ 88c3e51e-3671-4181-b274-85805d453db1
 md"""
 
@@ -200,6 +259,8 @@ begin
 	good_scientists_data = randn(650) * σ1 .+ 9.5
 	bad_scientists_data = randn(50) * σ2 .+ 9.5
 	scientists_data_700 = shuffle([good_scientists_data; bad_scientists_data])
+
+	scientists_data_2000 = [randn(1200) * σ1 .+ 9.5 ; randn(800) * σ2 .+ 9.5]
 end;
 
 # ╔═╡ 9b5ceaea-5a98-458b-b1ed-d56326b967fe
@@ -220,17 +281,34 @@ let
 	plt
 end
 
+# ╔═╡ 7e639d0a-e1d8-46e8-968f-f278bc9397a8
+md"""
+One possible model is to introduce hidden nodes ``z_i \in\{0, 1\}`` to indicate whether a scientist good or bad; and the model becomes a mixture model. The PGM becomes:
+
+
+
+
+"""
+
+# ╔═╡ 14e91cff-b759-4964-b89f-7ccd343de42f
+html"<center><img src='https://leo.host.cs.st-andrews.ac.uk/figs/sevenhundred1.svg
+' width = '200' /></center>"
+
+# ╔═╡ 1c8c5fd4-bf3a-42e6-bb4a-c4ea8697c4be
+md"""
+``\pi \sim \texttt{Beta}(c_0, d_0)`` is the proportion of good scientist. And the rest are similar to the original problem. However, a better model for this problem is listed below:
+
+"""
+
+# ╔═╡ 8f417b92-8430-4024-ae60-7a7f0e214721
+# html"<center><img src='https://leo.host.cs.st-andrews.ac.uk/figs/sevenhundred2.svg
+# ' width = '200' /></center>"
+
 # ╔═╡ 3931624c-5dcc-4ff3-89f6-07ea85adae08
 md"""
 
 ## Question 3. (Bayesian logistic regression)
 
-"""
-
-# ╔═╡ 62091dc2-553f-4e73-bedd-6589b824309a
-md"""
-
-##### Task 1. Replicate the analysis (given in the logistic regression lecture) based on the data given below.
 """
 
 # ╔═╡ d59c81a1-9479-44c4-80b0-b1249ede43d4
@@ -261,6 +339,44 @@ begin
 	scatter!(D[targets .== 1, 1], D[targets .==1, 2], label=L"y=1")
 end
 
+# ╔═╡ 62091dc2-553f-4e73-bedd-6589b824309a
+md"""
+
+##### Task 1. Replicate the analysis (given in the logistic regression lecture) based on the data given below.
+"""
+
+# ╔═╡ 242b008e-af85-4d43-90cf-f65401020294
+begin
+	@model function bayesian_logistic_reg(X, y; v₀=10^2, V₀ = 10^2)
+		# priors
+		β0 ~ Normal(0, sqrt(v₀))
+		nfeatures = size(X)[2]
+		β ~ MvNormal(zeros(nfeatures), sqrt(V₀))
+		# Likelihood
+		μs = β0 .+ X * β
+		# logistic transformations
+		σs = logistic.(μs)
+		for i in eachindex(y)
+			y[i] ~ Bernoulli(σs[i])
+		end
+		return (; σs)
+	end
+end;
+
+# ╔═╡ 21ad7056-f4f6-407c-8151-52013fc92bcf
+chain_logreg = let 
+	sample(
+		bayesian_logistic_reg(D, targets; v₀=5^2),
+		NUTS(),
+		MCMCThreads(),
+		2000,
+		3
+	)
+end;
+
+# ╔═╡ c4d44e5b-efbf-4acd-aeb9-3a629abba655
+plot(chain_logreg)
+
 # ╔═╡ 29a04770-95c3-4ac4-bad3-95f61c6857ca
 md"""
 
@@ -272,6 +388,73 @@ p(y_{test}|\mathbf{x}_{test}, \mathcal{D})
 
 * assume ``\mathbf{x}_{test} \in [0, 10]^2``
 """
+
+# ╔═╡ 32bc9b58-0c73-48ac-a3a1-91614d0e988d
+begin
+	# randomly generated test dataset
+	N_test = 5
+	D_test = rand(N_test, 2) * 10
+	pred_model = bayesian_logistic_reg(D_test, Vector{Union{Missing, Float64}}(undef, size(D_test)[1]))
+	y_preds = predict(pred_model, chain_logreg)
+end
+
+# ╔═╡ 63b33242-8ebc-4567-85e3-ba9876521415
+function predict_bayesian_logistic(X; chain = chain_logreg)
+	pred_model = bayesian_logistic_reg(X, Vector{Union{Missing, Float64}}(undef, size(X)[1]))
+	y_preds = predict(pred_model, chain)
+	mean(y_preds)[:, :mean]
+end
+
+# ╔═╡ eb25c544-0e26-4e81-95e3-7ea4f8ac4f36
+begin
+	len =20 
+	x1s = range(0, 10, length=len)
+	x2s = range(0, 10, length=len)
+	Xtest = vcat([[x1, x2]' for x1 in x1s for x2 in x2s]...)
+	zs = reshape(predict_bayesian_logistic(Xtest), len, len)
+	scatter(D[targets .== 0, 1], D[targets .==0, 2], label=L"y=0",xlabel =L"x_1", ylabel=L"x_2")
+	scatter!(D[targets .== 1, 1], D[targets .==1, 2], label=L"y=1")
+	plot!(x1s,x2s, zs, st=:contour)
+end
+
+# ╔═╡ e081c14d-1e3f-438b-93d2-b9f10e89c67d
+begin
+
+	@model function sevenhundred_scientist(data; m₀=0, v₀=100, a₀ = .5, b₀ =.5, c₀=1, d₀ = 1)
+		# prior for μ
+		μ ~ Normal(m₀, sqrt(v₀))
+		# prior for the two precisions
+		λ1 ~ Gamma(a₀, 1/b₀)
+		λ2 ~ Gamma(a₀, 1/b₀)
+		σ1 = sqrt(1/λ1)
+		σ2 = sqrt(1/λ2)
+		# prior for the unknown proportion of bad scientist
+		π ~ Beta(c₀, d₀)
+		zs ~ filldist(Bernoulli(π), length(data)) # = Product(fill(Bernoulli(π), k))
+		# likelihood for all scientists
+		for i in 1:length(data)
+			# if bad scientist
+			if zs[i] == true
+				data[i] ~ Normal(μ, σ1)
+			else
+				data[i] ~ Normal(μ, σ2)
+			end
+		end
+	end
+end
+
+# ╔═╡ cb803709-b5bb-495d-9e98-ac67529f5625
+begin
+	Random.seed!(1234)
+	# since zs are discrete, we need to compose a Gibbs sampler 
+	# note that NUTS and HMC only works with continuous densities 
+	sampler = Gibbs(MH(:zs), NUTS(200, 0.8, :μ, :λ1, :λ2, :π))
+	sevenhun_model =sevenhundred_scientist(scientists_data_700; m₀=mean(scientists_data_700), v₀=100, a₀ = 1.0, b₀ = 1.0 * var(scientists_data_700), c₀= 2.0, d₀ = 2.0)
+	sevenhund_chain = sample(sevenhun_model, sampler, 2000; discard_initial=2000)
+end
+
+# ╔═╡ 368cbf33-2d78-4262-8425-ccc252da0977
+plot(sevenhund_chain[[:μ, :λ1, :λ2, :π]])
 
 # ╔═╡ 1a9f1e6d-b16f-42b8-9860-95574e076a64
 md"""
@@ -329,11 +512,50 @@ md"""
 ##### Task 1. run Bayesian linear regression analysis on the data
 """
 
+# ╔═╡ 6d0d7d1c-36b2-4967-ba0c-444dc9409381
+# Bayesian linear regression.
+@model function multi_linear_regression(X, ys; v₀ = 10^2, V₀ = 10^2, s₀ = 5)
+    # Set variance prior.
+    σ² ~ truncated(Cauchy(0, s₀), 0, Inf)
+    # Set intercept prior.
+    intercept ~ Normal(0, sqrt(v₀))
+    # Set the priors on our coefficients.
+    nfeatures = size(X, 2)
+    coefficients ~ MvNormal(nfeatures, sqrt(V₀))
+    # Calculate all the mu terms.
+    μs = intercept .+ X * coefficients
+	for i in eachindex(ys)
+		ys[i] ~ Normal(μs[i], sqrt(σ²))
+	end
+end
+
+# ╔═╡ fedb3058-75ed-49e0-b923-37d4b6a84a8c
+begin
+	Random.seed!(100)
+	blinreg_model = multi_linear_regression(XX, yy)
+	chain_linreg = sample(blinreg_model, NUTS(), MCMCThreads(), 2000, 3; discard_initial=500)
+end;
+
 # ╔═╡ a26fa1a4-0a4c-4786-8720-4eb261410f33
 md"""
 
 ##### Task 2. visually inspect the results  
 """
+
+# ╔═╡ 1bdde86f-73fb-4245-98ee-8236f397279e
+md"""
+
+For better visualisation, let's change the names of the coefficient from general "coefficients" to their real feature names
+"""
+
+# ╔═╡ e7b1b340-18e7-4bda-a71c-abcde393556f
+chain_linreg_ = replacenames(chain_linreg,  Dict(["coefficients[1]" => "CRIM", "coefficients[2]" => "RM", "coefficients[3]" => "AGE", "coefficients[4]" => "DIS"]))
+
+# ╔═╡ bd5ecc25-0334-4535-aa36-bea10f4bf57b
+plot(chain_linreg_)
+
+# ╔═╡ 16369fee-c289-43c3-990b-6b9827492bad
+describe(chain_linreg_)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -2921,28 +3143,50 @@ version = "1.4.1+1"
 # ╠═7df2e2fa-f9bd-49bb-9c24-bf042a392651
 # ╟─4ac1a33c-0dcb-44be-acf4-23e1f994371e
 # ╠═affbc16d-781f-4772-b92c-076a559c2418
+# ╠═a0c1b0e4-02c0-44a8-881c-e4a343e63bd5
 # ╟─042b955f-a298-49ef-9940-0af184b81b8f
 # ╠═c9b4cc44-b9fa-4280-858f-8619afafbad5
+# ╟─13360989-ce25-40be-915f-6d8de09775a5
 # ╟─ffb3bad6-b498-41b4-8da5-793560af0a2a
 # ╠═05ebaf87-5cb4-4bc9-b9ba-1e37e5055fe6
 # ╠═e02b2772-bddf-4518-805a-38f2c3f6894d
 # ╠═1f1b19b2-1b2b-45d6-b90e-47a57e4dcd03
+# ╠═5108a09d-05f6-4372-ae09-265a02caf7ec
+# ╠═23d2ed84-426d-45b2-8cab-81f27e0d5817
 # ╟─dd963e78-99fe-45c1-9566-713f4cb8c0df
 # ╠═1e80cc97-f1d7-4824-b730-4a63e7d4e8bb
+# ╠═a2a2d806-0d1d-4118-8464-5c8c0431c2e1
 # ╟─bf128db7-eaff-4d19-8d6b-32dea8f3bf8b
 # ╟─bdb0989d-3b83-419c-a4f5-6f0cbb4a513d
 # ╠═58d52c04-9fbf-40fa-843f-e05e90e9d914
 # ╟─62daf110-bf01-4e8a-b212-6fad7b92c0c9
 # ╟─cf8f2889-8010-4fba-8607-81c6c5a38395
+# ╠═2e427ab0-49ff-4c3a-b1c9-af01eb49163d
+# ╠═b05fbb4f-0791-4c33-ae4a-7a606f29d8a4
+# ╠═8fab229c-f273-428e-80f5-6de08921f22f
+# ╠═a1023fba-2d41-46b0-8fce-39be055fd2c0
 # ╟─88c3e51e-3671-4181-b274-85805d453db1
 # ╠═9b5ceaea-5a98-458b-b1ed-d56326b967fe
 # ╟─54107ea4-337c-4698-a4c9-237dbfc49514
 # ╠═68707d3d-02c4-4cda-b040-98b1f0818055
+# ╟─7e639d0a-e1d8-46e8-968f-f278bc9397a8
+# ╟─14e91cff-b759-4964-b89f-7ccd343de42f
+# ╟─1c8c5fd4-bf3a-42e6-bb4a-c4ea8697c4be
+# ╟─8f417b92-8430-4024-ae60-7a7f0e214721
+# ╠═e081c14d-1e3f-438b-93d2-b9f10e89c67d
+# ╠═cb803709-b5bb-495d-9e98-ac67529f5625
+# ╠═368cbf33-2d78-4262-8425-ccc252da0977
 # ╟─3931624c-5dcc-4ff3-89f6-07ea85adae08
-# ╟─62091dc2-553f-4e73-bedd-6589b824309a
 # ╠═d59c81a1-9479-44c4-80b0-b1249ede43d4
 # ╟─f6db21ae-2ac7-4c87-81c8-73e296380b40
+# ╟─62091dc2-553f-4e73-bedd-6589b824309a
+# ╠═242b008e-af85-4d43-90cf-f65401020294
+# ╠═21ad7056-f4f6-407c-8151-52013fc92bcf
+# ╠═c4d44e5b-efbf-4acd-aeb9-3a629abba655
 # ╟─29a04770-95c3-4ac4-bad3-95f61c6857ca
+# ╠═32bc9b58-0c73-48ac-a3a1-91614d0e988d
+# ╠═63b33242-8ebc-4567-85e3-ba9876521415
+# ╠═eb25c544-0e26-4e81-95e3-7ea4f8ac4f36
 # ╟─1a9f1e6d-b16f-42b8-9860-95574e076a64
 # ╟─d0314449-12da-432f-9af8-5d2fd453c192
 # ╠═03069b91-36f7-4b8d-9e5b-d333db87006b
@@ -2955,6 +3199,12 @@ version = "1.4.1+1"
 # ╟─e4e45393-c0ef-4884-8a98-852c715b1c5b
 # ╠═d6baedd5-da3c-4ad7-bc7b-7d0793359744
 # ╟─f18239c9-5106-4375-ba1b-c413b6add1db
+# ╠═6d0d7d1c-36b2-4967-ba0c-444dc9409381
+# ╠═fedb3058-75ed-49e0-b923-37d4b6a84a8c
 # ╟─a26fa1a4-0a4c-4786-8720-4eb261410f33
+# ╟─1bdde86f-73fb-4245-98ee-8236f397279e
+# ╠═e7b1b340-18e7-4bda-a71c-abcde393556f
+# ╠═bd5ecc25-0334-4535-aa36-bea10f4bf57b
+# ╠═16369fee-c289-43c3-990b-6b9827492bad
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

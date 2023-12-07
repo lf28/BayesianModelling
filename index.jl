@@ -67,7 +67,7 @@ md"""
 md"""
 
 #### Exercise
-* [Exercise](./exercise/exercise.html)
+* [Exercise](./exercise/exercise.html) [(solution)](./exercise/exercise_sol.html)
 
 """
 

@@ -93,7 +93,7 @@ begin
 	μ = [0, 0]
 	Σ = [1.0 ρ; ρ 1]
 	target_p = (x) -> logpdf(MvNormal(μ, Σ), x)
-	plt_contour = plot(-5:0.1:5, -5:0.1:5, (x, y)-> exp(target_p([x,y])),legend = :none, st=:contour, linewidth=0.5, la=0.5, levels=5, xlabel=L"\theta_1", ylabel=L"\theta_2", title="Contour plot a highly correlated bivariate Gaussian")
+	plt_contour = plot(-5:0.1:5, -5:0.1:5, (x, y)-> exp(target_p([x,y])),legend = :none, st=:contour, linewidth=0.5, la=0.5, levels=5, xlabel=L"\theta_1", ylabel=L"\theta_2", title="Target distribution: correlated Gaussian")
 end
 
 # ╔═╡ 44c167b9-375d-4051-a4c1-825e5ec9570c
@@ -132,9 +132,9 @@ md"""
 
 ## Demo -- MH sampler (cont.)
 
-It can be observed that 
-* the acceptance rate is about 0.32
-* and the chain is **mixing well**, which means the high-density area of the target distribution has been explored well. 
+#### It can be observed that 
+* ##### the acceptance rate is about 0.32
+* ##### and the chain is **mixing well**, which means the high-density area of the target distribution has been explored well. 
 
 
 2000 samples drawn from the MH algorithm after 2000 burn-in are shown below.
@@ -151,23 +151,27 @@ md"""
 # ╔═╡ eba93b03-23d4-4ccd-88d2-dcea51bb20b9
 md"""
 
-Ideally, Monte Carlo method requires samples to be *independent* 
-
-
+##### Ideally, Monte Carlo method requires samples to be *independent* 
 * MCMC samples, however, are dependent. 
 
 
-There are two commonly used practices to reduce the temporal correlations 
+##### Two commonly used practices to reduce the temporal correlations 
 
 * **thinning** (e.g. retain every 10-th of the sample)
 
 * **parallelism** (run multiple MCMC chains in parallel)
 
 
-*It is worth noting that Monte Carlo estimation is still valid even when the samples are dependent as long as the chain reaches equilibrium. However, an estimation's standard error, in general, deteriorates when the samples in use are more dependent.* 
 
 
 """
+
+# ╔═╡ 4e84e820-d877-42b9-832f-5f8553b77c0a
+aside(tip(md"""
+
+*It is worth noting that Monte Carlo estimation is still valid even when the samples are dependent as long as the chain reaches equilibrium. However, an estimation's standard error, in general, deteriorates when the samples in use are more dependent.* 
+
+"""))
 
 # ╔═╡ 99153a03-8954-48c6-8396-1c2b669e4ea6
 md"""
@@ -3350,6 +3354,7 @@ version = "1.4.1+1"
 # ╟─c3169cf8-6b7c-418f-8052-4fd242a07592
 # ╟─922a89e6-a1a0-4f07-b815-552a9b2a4fbd
 # ╟─eba93b03-23d4-4ccd-88d2-dcea51bb20b9
+# ╟─4e84e820-d877-42b9-832f-5f8553b77c0a
 # ╟─a253c403-111f-4940-b866-c1b5233f18d0
 # ╟─99decdfe-6bd8-40af-a42d-f1639c98b323
 # ╟─99153a03-8954-48c6-8396-1c2b669e4ea6
