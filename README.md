@@ -8,7 +8,7 @@ The methods covered will be implemented using a new programming language, Julia,
 The course is facilitated by St Leonard's Postgraduate College and CREEM and delivered by the School of Computer Science.
  
 
-## The course material
+## The Course Material
  https://lf28.github.io/BayesianModelling/
 
 ## Content and Structure 
