@@ -37,28 +37,32 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-pluto_state_cache-v2-${{ hashFiles('**/Project.toml', '**/Manifest.toml', '.github/workflows/*' ) }}
 
+            - name: Ignore notebook state cache in export
+              run: echo 'pluto_state_cache' >> .gitignore
 
             - name: Run & export Pluto notebooks
-              run: |
-                julia -e 'using Pkg
-                  Pkg.activate(mktempdir())
-                  Pkg.add([
-                    Pkg.PackageSpec(name="PlutoSliderServer", version="0.3.2-0.3"),
-                  ])
+                          run: |
+                            julia -e 'using Pkg
+                              Pkg.activate(mktempdir())
+                              Pkg.add([
+                                Pkg.PackageSpec(name="PlutoSliderServer", version="1"),
+                              ])
 
-                  import PlutoSliderServer
+                              import PlutoSliderServer
 
-                  PlutoSliderServer.github_action(".";
-                    Export_cache_dir="pluto_state_cache",
-                    Export_baked_notebookfile=false,
-                    Export_baked_state=false,
-                    # more parameters can go here
-                  )'
+                              PlutoSliderServer.github_action(".";
+                                Export_cache_dir="pluto_state_cache",
+                                Export_baked_notebookfile=false,
+                                Export_baked_state=false,
+                                # more parameters can go here
+                              )'
+
 
 
             - name: Deploy to gh-pages
-              uses: JamesIves/github-pages-deploy-action@releases/v3
+              uses: JamesIves/github-pages-deploy-action@releases/v4
               with:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                  BRANCH: gh-pages
-                  FOLDER: .
+                  token: ${{ secrets.GITHUB_TOKEN }}
+                  branch: gh-pages
+                  folder: .
+                  single-commit: true
