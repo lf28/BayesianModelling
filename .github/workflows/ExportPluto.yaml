@@ -11,6 +11,11 @@ concurrency:
     group: pluto-export
     cancel-in-progress: true
 
+# This action needs permission to write the exported HTML file to the gh-pages branch.
+permissions:
+    contents: write
+    # (all other permission fields default to "none")
+
 jobs:
     build-and-deploy:
         runs-on: ubuntu-latest
@@ -21,7 +26,7 @@ jobs:
             - name: Install Julia
               uses: julia-actions/setup-julia@v2
               with:
-                  version: 1.11
+                  version: "1.11" # This will not automatically pick the latest Julia version
 
             - name: Cache Julia artifacts & such
               uses: julia-actions/cache@v2
@@ -41,22 +46,21 @@ jobs:
               run: echo 'pluto_state_cache' >> .gitignore
 
             - name: Run & export Pluto notebooks
-                          run: |
-                            julia -e 'using Pkg
-                              Pkg.activate(mktempdir())
-                              Pkg.add([
-                                Pkg.PackageSpec(name="PlutoSliderServer", version="1"),
-                              ])
+              run: |
+                julia -e 'using Pkg
+                  Pkg.activate(mktempdir())
+                  Pkg.add([
+                    Pkg.PackageSpec(name="PlutoSliderServer", version="1"),
+                  ])
 
-                              import PlutoSliderServer
+                  import PlutoSliderServer
 
-                              PlutoSliderServer.github_action(".";
-                                Export_cache_dir="pluto_state_cache",
-                                Export_baked_notebookfile=false,
-                                Export_baked_state=false,
-                                # more parameters can go here
-                              )'
-
+                  PlutoSliderServer.github_action(".";
+                    Export_cache_dir="pluto_state_cache",
+                    Export_baked_notebookfile=false,
+                    Export_baked_state=false,
+                    # more parameters can go here
+                  )'
 
 
             - name: Deploy to gh-pages
