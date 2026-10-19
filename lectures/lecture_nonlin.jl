@@ -39,9 +39,6 @@ end;
 # ╔═╡ 460bf0e3-b30f-47c3-9e5a-39022c7e05df
 using MLDatasets
 
-# ╔═╡ 10bcd23e-1ed2-4777-af44-2a9c4af6b050
-using AbstractPPL
-
 # ╔═╡ 709e2b13-67d2-4e5b-b148-aba16431b0ae
 TableOfContents()
 
@@ -600,6 +597,9 @@ We use `generated_quantities()` to make predictions as usual
 
 """
 
+# ╔═╡ 10bcd23e-1ed2-4777-af44-2a9c4af6b050
+# using AbstractPPL
+
 # ╔═╡ 0dd33f5f-7d6c-4ebc-aff4-4a545f41e9bc
 begin
 	# extract the posterior samples as a R × D matrix; the third to last are the samples for β
@@ -973,7 +973,6 @@ end
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
-AbstractPPL = "7a57a42e-76ec-4ea3-a279-07e840d6d9cf"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 GLM = "38e38edf-8417-5370-95a0-9cbb8c7f171a"
@@ -993,7 +992,6 @@ StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
 Turing = "fce5fe82-541a-59a6-adf8-730c64b5f9a0"
 
 [compat]
-AbstractPPL = "~0.15.6"
 CSV = "~0.10.17"
 DataFrames = "~1.8.2"
 GLM = "~1.9.5"
@@ -1016,7 +1014,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.13.2"
 manifest_format = "2.1"
-project_hash = "56080f15cb9859919b0fef5a493feb084e129cd4"
+project_hash = "b38368dbc938b88d2af338363bb39978b1ed9160"
 
 [[deps.ADTypes]]
 deps = ["PrecompileTools"]
@@ -4691,7 +4689,7 @@ uuid = "23338594-aafe-5451-b93e-139f81909106"
 # ╟─7c84879e-7bfe-41da-81f8-eab4f1360511
 # ╠═ef0da715-15b3-4dee-8a8a-dccd2bcc36f6
 # ╟─33803b7b-a60d-4c1b-a5ac-92b5e8aae8cd
-# ╠═10bcd23e-1ed2-4777-af44-2a9c4af6b050
+# ╟─10bcd23e-1ed2-4777-af44-2a9c4af6b050
 # ╟─0dd33f5f-7d6c-4ebc-aff4-4a545f41e9bc
 # ╟─0165ce73-cad2-4e21-ab1c-1539e853bdc2
 # ╟─81040385-7216-4b79-af50-14098754a27f
