@@ -26,36 +26,36 @@ School of Computer Science
 """
 
 # ╔═╡ 3defd8e1-b7eb-4bfe-ba8b-f01ff34de41d
-# md"""
-
-# # Topics
-
-# 1. [Introduction to Julia](./section0_julia.html)
-# 2. [An overview of Bayesian inference](./section1_introduction.html)
-# 3. [Bayesian modelling](./section2_modelling.html)
-# 4. [Bayesian computation - MCMC](./section3_mcmc.html)
-# 5. [Introduction to `Turing`](./section4_turing.html)
-# 6. [Bayesian linear regression](./section5_regressions.html)
-# 7. [Bayesian logistic regression](./section6_logistic_regression.html)
-# 8. [Bayesian generalised linear models](./section7_glm.html)
-# 9. [Bayesian non-linear model analysis](./section8_nonlinear.html)
-# """
-
-# ╔═╡ 02bf6722-796e-4d5e-918e-af3297c6705b
 md"""
 
 # Topics
 
-1. [Introduction to Julia]
-2. [An overview of Bayesian inference]
-3. [Bayesian modelling]
-4. [Bayesian computation - MCMC]
-5. [Introduction to `Turing`]
-6. [Bayesian linear regression]
-7. [Bayesian logistic regression]
-8. [Bayesian generalised linear models]
-9. [Bayesian non-linear model analysis]
+1. [Introduction to Julia](./section0_julia.html)
+2. [An overview of Bayesian inference](./section1_introduction.html)
+3. [Bayesian modelling](./section2_modelling.html)
+4. [Bayesian computation - MCMC](./section3_mcmc.html)
+5. [Introduction to `Turing`](./section4_turing.html)
+6. [Bayesian linear regression](./section5_regressions.html)
+7. [Bayesian logistic regression](./section6_logistic_regression.html)
+8. [Bayesian generalised linear models](./section7_glm.html)
+9. [Bayesian non-linear model analysis](./section8_nonlinear.html)
 """
+
+# ╔═╡ 02bf6722-796e-4d5e-918e-af3297c6705b
+# md"""
+
+# # Topics
+
+# 1. [Introduction to Julia]
+# 2. [An overview of Bayesian inference]
+# 3. [Bayesian modelling]
+# 4. [Bayesian computation - MCMC]
+# 5. [Introduction to `Turing`]
+# 6. [Bayesian linear regression]
+# 7. [Bayesian logistic regression]
+# 8. [Bayesian generalised linear models]
+# 9. [Bayesian non-linear model analysis]
+# """
 
 # ╔═╡ 7708f15d-d3b2-4f17-a9f9-a54939bee183
 md"---
